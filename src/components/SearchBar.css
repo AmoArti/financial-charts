@@ -1,0 +1,51 @@
+/* Container für die gesamte Suchleiste */
+.search-bar-container {
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  /* Styling für die Suchleiste (IonItem) */
+  .search-bar {
+    background: #fff;
+    border-radius: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 5px 10px;
+    margin: 0 auto;
+    max-width: 600px;
+    display: flex;
+    align-items: center; /* Zentriert die Elemente vertikal */
+  }
+  
+  /* Styling für das Suchsymbol */
+  .search-icon {
+    color: #666;
+    margin-right: 10px;
+  }
+  
+  /* Styling für das Eingabefeld */
+  .search-input {
+    --padding-start: 0 !important; /* Entfernt zusätzlichen Innenabstand */
+    font-size: 16px;
+    flex: 1; /* Lässt das Eingabefeld den verbleibenden Platz einnehmen */
+  }
+  
+  /* Styling für das "X"-Symbol zum Löschen */
+  .clear-icon {
+    color: #666;
+    cursor: pointer;
+    margin-right: 10px; /* Abstand zum Button */
+  }
+  
+  /* Styling für den Search-Button */
+  .search-button {
+    color: #666; /* Graue Farbe für den Text */
+    margin-left: 5px; /* Kleiner Abstand zum "X"-Symbol oder Eingabefeld */
+    --padding-start: 10px; /* Innenabstand für den Text */
+    --padding-end: 10px; /* Innenabstand für den Text */
+    font-size: 14px; /* Kleinere Schriftgröße für den Text */
+    height: 100%; /* Passt die Höhe an die Suchleiste an */
+  }
+  
+  .search-button:hover {
+    color: #3880ff; /* Ändert die Farbe des Textes beim Hover */
+  }
