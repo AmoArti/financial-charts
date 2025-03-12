@@ -15,10 +15,10 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface BarChartProps {
   data: {
-    labels: string[]; // z. B. ["Value", "Quality", "Momentum", "Volatility"]
-    values: number[]; // z. B. [75, 60, 85, 40]
+    labels: string[];
+    values: number[];
   };
-  title: string; // Titel des Diagramms
+  title: string;
 }
 
 const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
@@ -28,7 +28,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
       {
         label: title,
         data: data.values,
-        backgroundColor: 'rgba(75, 192, 192, 0.6)', // Farbe der Balken
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
       },
@@ -49,7 +49,19 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     scales: {
       y: {
         beginAtZero: true,
-        max: 100, // Finanzkennzahlen sind oft auf einer Skala von 0 bis 100
+        title: {
+          display: true,
+          text: 'Revenue (Billions)', // Y-Achsen-Beschriftung
+        },
+        ticks: {
+          callback: (value) => `${value}B`, // Anzeige in Milliarden
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: 'Year', // X-Achsen-Beschriftung
+        },
       },
     },
   };
