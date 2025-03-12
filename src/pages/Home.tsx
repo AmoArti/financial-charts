@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol } from '@ionic/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon } from '@ionic/react';
+import { closeOutline } from 'ionicons/icons'; // Icon für das "X"
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
+import './Home.css';
 
 const Home: React.FC = () => {
   const [chartData, setChartData] = useState({
@@ -10,6 +12,9 @@ const Home: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const modal = useRef<HTMLIonModalElement>(null);
 
   const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
   console.log('API Key in Home.tsx:', apiKey);
@@ -24,7 +29,6 @@ const Home: React.FC = () => {
     setError(null);
 
     try {
-      // Versuche, Income Statement zu nutzen (falls verfügbar)
       const response = await fetch(
         `https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`
       );
@@ -32,7 +36,6 @@ const Home: React.FC = () => {
       console.log('API Response (Income Statement):', data);
 
       if (data['Error Message'] || !data['annualReports']) {
-        // Fallback auf TIME_SERIES_DAILY, wenn Income Statement fehlschlägt
         const dailyResponse = await fetch(
           `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&apikey=${apiKey}`
         );
@@ -43,32 +46,40 @@ const Home: React.FC = () => {
           throw new Error('Ungültiger Ticker oder API-Fehler');
         }
 
-        // Simuliere Umsatz basierend auf Kursdaten (ungenau, nur als Placeholder)
         const timeSeries = dailyData['Time Series (Daily)'];
         const dates = Object.keys(timeSeries);
-        const last10Years = dates
+        const availableYears = dates
           .map(date => new Date(date).getFullYear())
-          .filter((year, index, self) => self.indexOf(year) === index) // Unique Jahre
-          .slice(0, 10) // Letzte 10 Jahre
-          .sort((a, b) => a - b); // Aufsteigend sortieren
+          .filter((year, index, self) => self.indexOf(year) === index)
+          .sort((a, b) => a - b);
 
-        const simulatedRevenue = last10Years.map((year, index) => index * 10 + 50); // Platzhalter-Werte (in Milliarden)
+        // Stelle sicher, dass wir 10 Jahre haben (falls weniger, füllen wir mit Platzhaltern)
+        const currentYear = new Date().getFullYear();
+        const last10Years = Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
+        const simulatedRevenue = last10Years.map(year => {
+          if (availableYears.includes(year)) {
+            return availableYears.indexOf(year) * 10 + 50; // Platzhalter basierend auf Index
+          }
+          return 0; // 0 für Jahre ohne Daten
+        });
+
         setChartData({
           labels: last10Years,
           values: simulatedRevenue,
         });
       } else {
-        // Verarbeite Income Statement-Daten (falls verfügbar)
         const reports = data['annualReports'] || [];
-        const last10Years = reports
-          .slice(0, 10)
-          .map(report => parseInt(report.fiscalDateEnding.split('-')[0])) // Extrahiere Jahr
-          .filter((year, index, self) => self.indexOf(year) === index) // Unique Jahre
-          .sort((a, b) => a - b); // Aufsteigend sortieren
+        const availableYears = reports
+          .map(report => parseInt(report.fiscalDateEnding.split('-')[0]))
+          .filter((year, index, self) => self.indexOf(year) === index)
+          .sort((a, b) => a - b);
 
-        const revenueData = reports
-          .slice(0, 10)
-          .map(report => parseFloat(report.totalRevenue) / 1e9 || 0); // Umsatz in Milliarden
+        const currentYear = new Date().getFullYear();
+        const last10Years = Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
+        const revenueData = last10Years.map(year => {
+          const report = reports.find(r => parseInt(r.fiscalDateEnding.split('-')[0]) === year);
+          return report ? parseFloat(report.totalRevenue) / 1e9 || 0 : 0; // Umsatz in Milliarden oder 0
+        });
 
         setChartData({
           labels: last10Years,
@@ -85,6 +96,14 @@ const Home: React.FC = () => {
   const handleSearch = (query: string) => {
     console.log('Search triggered with query:', query);
     fetchStockData(query);
+  };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -117,16 +136,33 @@ const Home: React.FC = () => {
             <IonRow>
               <IonCol size="12" size-md="8">
                 {chartData && chartData.values.length > 0 ? (
-                  <BarChart
-                    data={chartData}
-                    title="Revenue (in Billions) Over 10 Years"
-                  />
+                  <div className="chart-container" onClick={openModal}>
+                    <BarChart
+                      data={chartData}
+                      title="Revenue (in Billions) Over 10 Years"
+                    />
+                  </div>
                 ) : (
                   <p>Keine Daten verfügbar. Bitte suche nach einem Ticker (z. B. AAPL).</p>
                 )}
               </IonCol>
             </IonRow>
           </IonGrid>
+
+          {/* Modal für erweitertes Chart */}
+          <IonModal ref={modal} isOpen={isModalOpen} onDidDismiss={closeModal} className="custom-modal">
+            <IonContent className="ion-padding">
+              <IonButton fill="clear" className="close-button" onClick={closeModal}>
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+              <div className="modal-chart-container">
+                <BarChart
+                  data={chartData}
+                  title="Revenue (in Billions) Over 10 Years"
+                />
+              </div>
+            </IonContent>
+          </IonModal>
         </div>
       </IonContent>
     </IonPage>

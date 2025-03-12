@@ -1,0 +1,39 @@
+.chart-container {
+    width: 400px; /* Kleinere Breite */
+    height: 300px; /* Kleinere Höhe */
+    margin: 0 auto; /* Zentriert das Chart */
+    cursor: pointer; /* Zeigt an, dass das Chart klickbar ist */
+  }
+  
+  .chart-container:hover {
+    border: 2px solid #3880ff; /* Visuelle Rückmeldung beim Hover */
+    border-radius: 8px;
+  }
+  
+  .custom-modal {
+    --background: #fff; /* Weißer Hintergrund für das Modal */
+    --border-radius: 10px; /* Abgerundete Ecken */
+    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); /* Schatten */
+    --width: 90%; /* Breite des Modals */
+    --height: 80%; /* Höhe des Modals */
+    --max-width: 900px; /* Maximale Breite */
+    --max-height: 600px; /* Maximale Höhe */
+  }
+  
+  .modal-chart-container {
+    width: 100%; /* Füllt das Modal */
+    height: 90%; /* Füllt die Höhe des Modals (Platz für den Button lassen) */
+    margin: 0 auto;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #000; /* Schwarzes "X" */
+    z-index: 10; /* Über dem Chart */
+  }
+  
+  .close-button ion-icon {
+    font-size: 24px; /* Größe des "X" */
+  }
