@@ -39,7 +39,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
   const maxValue = Math.max(...data.values, 0); // Höchster Wert in den Daten
   const minValue = Math.min(...data.values.filter(val => val > 0), maxValue); // Kleinster positiver Wert
   const buffer = maxValue * 0.20; // 20 % Puffer über dem Höchstwert
-  const maxScale = Math.ceil((maxValue + buffer) / 10) * 10; // Nächster 10er-Schritt über dem Maximum
+  const maxScale = Math.ceil((maxValue + buffer) / 10) * 10; // Nächster 10er-Schritt
 
   // Passe die Schrittgröße dynamisch an die Daten an
   let stepSize: number;
@@ -66,7 +66,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     scales: {
       y: {
         beginAtZero: true,
-        min: 0, // Kann optional auf minValue gesetzt werden, z. B. min: Math.floor(minValue / 5) * 5
+        min: 0, // Kann auf minValue gesetzt werden, z. B. Math.floor(minValue / 5) * 5
         max: maxScale, // Dynamische obere Grenze mit 20 % Puffer
         title: {
           display: true,
