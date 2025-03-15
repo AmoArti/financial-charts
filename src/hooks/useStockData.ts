@@ -1,6 +1,7 @@
 // src/hooks/useStockData.ts
 import { useState, useCallback } from 'react';
 
+
 interface StockData {
   labels: (string | number)[];
   values: number[];
