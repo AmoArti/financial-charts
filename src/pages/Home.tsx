@@ -16,16 +16,24 @@ const Home: React.FC = () => {
   const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, loading, error, fetchData } = useStockData();
   const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
   const [isEPSModalOpen, setIsEPSModalOpen] = useState(false);
-  const [isAnnualView, setIsAnnualView] = useState(true);
-  const [currentChartData, setCurrentChartData] = useState<StockData>({ labels: [], values: [] });
-  const [currentEPSData, setCurrentEPSData] = useState<StockData>({ labels: [], values: [] });
+  const [isAnnualViewRevenue, setIsAnnualViewRevenue] = useState(true); // Zustand für das Revenue-Modal
+  const [isAnnualViewEPS, setIsAnnualViewEPS] = useState(true); // Zustand für das EPS-Modal
+  const [currentChartDataRevenue, setCurrentChartDataRevenue] = useState<StockData>({ labels: [], values: [] }); // Daten für das Revenue-Modal
+  const [currentEPSDataEPS, setCurrentEPSDataEPS] = useState<StockData>({ labels: [], values: [] }); // Daten für das EPS-Modal
   const revenueModal = useRef<HTMLIonModalElement>(null);
   const epsModal = useRef<HTMLIonModalElement>(null);
 
+  // Hauptseite zeigt immer Annual-Daten
+  const mainChartData = annualData; // Festgelegt auf Annual-Daten für die Hauptseite
+  const mainEPSData = annualEPS; // Festgelegt auf Annual-Daten für die Hauptseite
+
+  // Daten für die Modals aktualisieren
   useEffect(() => {
-    setCurrentChartData(isAnnualView ? annualData : quarterlyData);
-    setCurrentEPSData(isAnnualView ? annualEPS : quarterlyEPS);
-  }, [annualData, quarterlyData, annualEPS, quarterlyEPS, isAnnualView]);
+    setCurrentChartDataRevenue(isAnnualViewRevenue ? annualData : quarterlyData);
+    setCurrentEPSDataEPS(isAnnualViewEPS ? annualEPS : quarterlyEPS);
+    console.log("Revenue Modal Data:", isAnnualViewRevenue ? annualData : quarterlyData);
+    console.log("EPS Modal Data:", isAnnualViewEPS ? annualEPS : quarterlyEPS);
+  }, [annualData, quarterlyData, annualEPS, quarterlyEPS, isAnnualViewRevenue, isAnnualViewEPS]);
 
   const handleSearch = (query: string) => {
     fetchData(query);
@@ -47,8 +55,12 @@ const Home: React.FC = () => {
     setIsEPSModalOpen(false);
   };
 
-  const handleViewToggle = (isAnnual: boolean) => {
-    setIsAnnualView(isAnnual);
+  const handleViewToggleRevenue = (isAnnual: boolean) => {
+    setIsAnnualViewRevenue(isAnnual); // Nur für das Revenue-Modal
+  };
+
+  const handleViewToggleEPS = (isAnnual: boolean) => {
+    setIsAnnualViewEPS(isAnnual); // Nur für das EPS-Modal
   };
 
   return (
@@ -79,11 +91,11 @@ const Home: React.FC = () => {
           <IonGrid>
             <IonRow>
               <IonCol size="12" size-md="6">
-                {currentChartData.labels.length > 0 ? (
+                {mainChartData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openRevenueModal}>
                     <BarChart
-                      data={currentChartData}
-                      title={isAnnualView ? "Revenue (Annual)" : "Revenue (Quarterly)"}
+                      data={mainChartData} // Immer Annual-Daten für die Hauptseite
+                      title="Revenue (Annual)"
                     />
                   </div>
                 ) : (
@@ -91,11 +103,11 @@ const Home: React.FC = () => {
                 )}
               </IonCol>
               <IonCol size="12" size-md="6">
-                {currentEPSData.labels.length > 0 ? (
+                {mainEPSData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openEPSModal}>
                     <BarChart
-                      data={currentEPSData}
-                      title={isAnnualView ? "EPS (Annual)" : "EPS (Quarterly)"}
+                      data={mainEPSData} // Immer Annual-Daten für die Hauptseite
+                      title="EPS (Annual)"
                     />
                   </div>
                 ) : (
@@ -115,16 +127,16 @@ const Home: React.FC = () => {
                 <div className="toggle-container">
                   <IonLabel>Quarterly</IonLabel>
                   <IonToggle
-                    checked={isAnnualView}
-                    onIonChange={(e) => handleViewToggle(e.detail.checked)}
+                    checked={isAnnualViewRevenue}
+                    onIonChange={(e) => handleViewToggleRevenue(e.detail.checked)}
                   />
                   <IonLabel>Annual</IonLabel>
                 </div>
               </div>
               <div className="modal-chart-container">
                 <BarChart
-                  data={currentChartData}
-                  title={isAnnualView ? "Revenue (Annual)" : "Revenue (Quarterly)"}
+                  data={currentChartDataRevenue}
+                  title={isAnnualViewRevenue ? "Revenue (Annual)" : "Revenue (Quarterly)"}
                 />
               </div>
             </IonContent>
@@ -140,16 +152,16 @@ const Home: React.FC = () => {
                 <div className="toggle-container">
                   <IonLabel>Quarterly</IonLabel>
                   <IonToggle
-                    checked={isAnnualView}
-                    onIonChange={(e) => handleViewToggle(e.detail.checked)}
+                    checked={isAnnualViewEPS}
+                    onIonChange={(e) => handleViewToggleEPS(e.detail.checked)}
                   />
                   <IonLabel>Annual</IonLabel>
                 </div>
               </div>
               <div className="modal-chart-container">
                 <BarChart
-                  data={currentEPSData}
-                  title={isAnnualView ? "EPS (Annual)" : "EPS (Quarterly)"}
+                  data={currentEPSDataEPS}
+                  title={isAnnualViewEPS ? "EPS (Annual)" : "EPS (Quarterly)"}
                 />
               </div>
             </IonContent>
