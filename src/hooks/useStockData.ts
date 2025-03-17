@@ -39,9 +39,6 @@ export const useStockData = (): UseStockDataResult => {
     return `Q${quarter} ${year}`;
   };
 
-  // Hilfsfunktion für Verzögerung (um API-Limit zu umgehen)
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
   const fetchData = useCallback(async (ticker: string) => {
     if (!apiKey) {
       setError('API-Schlüssel nicht gefunden. Bitte überprüfe die .env-Datei.');
@@ -65,55 +62,45 @@ export const useStockData = (): UseStockDataResult => {
     setError(null);
 
     try {
-      // API-Abfrage für Umsatz (INCOME_STATEMENT)
-      const incomeResponse = await fetch(
-        `https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`
-      );
-      const incomeData = await incomeResponse.json();
+      // Parallele API-Aufrufe
+      const [incomeResponse, earningsResponse, cashFlowResponse] = await Promise.all([
+        fetch(`https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`),
+        fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`),
+        fetch(`https://www.alphavantage.co/query?function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`),
+      ]);
 
+      const [incomeData, earningsData, cashFlowData] = await Promise.all([
+        incomeResponse.json(),
+        earningsResponse.json(),
+        cashFlowResponse.json(),
+      ]);
+
+      // Fehlerprüfung für jede API-Antwort
       if (incomeData['Error Message']) {
         throw new Error(`API-Fehler bei INCOME_STATEMENT: ${incomeData['Error Message']}`);
       }
       if (incomeData['Note']) {
-        throw new Error(`API-Limit erreicht: ${incomeData['Note']}`);
+        throw new Error(`API-Limit erreicht bei INCOME_STATEMENT: ${incomeData['Note']}`);
       }
       if (!incomeData['annualReports'] && !incomeData['quarterlyReports']) {
         throw new Error('Keine Umsatzdaten für diesen Ticker verfügbar.');
       }
 
-      // Verzögerung vor dem nächsten Aufruf (um API-Limit zu umgehen)
-      await delay(15000); // 15 Sekunden Verzögerung
-
-      // API-Abfrage für EPS (EARNINGS)
-      const earningsResponse = await fetch(
-        `https://www.alphavantage.co/query?function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`
-      );
-      const earningsData = await earningsResponse.json();
-
       if (earningsData['Error Message']) {
         throw new Error(`API-Fehler bei EARNINGS: ${earningsData['Error Message']}`);
       }
       if (earningsData['Note']) {
-        throw new Error(`API-Limit erreicht: ${earningsData['Note']}`);
+        throw new Error(`API-Limit erreicht bei EARNINGS: ${earningsData['Note']}`);
       }
       if (!earningsData['annualEarnings'] && !earningsData['quarterlyEarnings']) {
         throw new Error('Keine EPS-Daten für diesen Ticker verfügbar.');
       }
 
-      // Verzögerung vor dem nächsten Aufruf
-      await delay(15000); // 15 Sekunden Verzögerung
-
-      // API-Abfrage für Cash Flow (CASH_FLOW)
-      const cashFlowResponse = await fetch(
-        `https://www.alphavantage.co/query?function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`
-      );
-      const cashFlowData = await cashFlowResponse.json();
-
       if (cashFlowData['Error Message']) {
         throw new Error(`API-Fehler bei CASH_FLOW: ${cashFlowData['Error Message']}`);
       }
       if (cashFlowData['Note']) {
-        throw new Error(`API-Limit erreicht: ${cashFlowData['Note']}`);
+        throw new Error(`API-Limit erreicht bei CASH_FLOW: ${cashFlowData['Note']}`);
       }
       if (!cashFlowData['annualReports'] && !cashFlowData['quarterlyReports']) {
         throw new Error('Keine Cashflow-Daten für diesen Ticker verfügbar.');
