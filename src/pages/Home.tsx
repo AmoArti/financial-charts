@@ -13,27 +13,34 @@ interface StockData {
 }
 
 const Home: React.FC = () => {
-  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, loading, error, fetchData } = useStockData();
+  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, fetchData } = useStockData();
   const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
   const [isEPSModalOpen, setIsEPSModalOpen] = useState(false);
-  const [isAnnualViewRevenue, setIsAnnualViewRevenue] = useState(true); // Zustand für das Revenue-Modal
-  const [isAnnualViewEPS, setIsAnnualViewEPS] = useState(true); // Zustand für das EPS-Modal
-  const [currentChartDataRevenue, setCurrentChartDataRevenue] = useState<StockData>({ labels: [], values: [] }); // Daten für das Revenue-Modal
-  const [currentEPSDataEPS, setCurrentEPSDataEPS] = useState<StockData>({ labels: [], values: [] }); // Daten für das EPS-Modal
+  const [isFCFModalOpen, setIsFCFModalOpen] = useState(false); // Neu: FCF-Modal
+  const [isAnnualViewRevenue, setIsAnnualViewRevenue] = useState(true);
+  const [isAnnualViewEPS, setIsAnnualViewEPS] = useState(true);
+  const [isAnnualViewFCF, setIsAnnualViewFCF] = useState(true); // Neu: Zustand für FCF-Modal
+  const [currentChartDataRevenue, setCurrentChartDataRevenue] = useState<StockData>({ labels: [], values: [] });
+  const [currentEPSDataEPS, setCurrentEPSDataEPS] = useState<StockData>({ labels: [], values: [] });
+  const [currentFCFDataFCF, setCurrentFCFDataFCF] = useState<StockData>({ labels: [], values: [] }); // Neu: Daten für FCF-Modal
   const revenueModal = useRef<HTMLIonModalElement>(null);
   const epsModal = useRef<HTMLIonModalElement>(null);
+  const fcfModal = useRef<HTMLIonModalElement>(null); // Neu: Ref für FCF-Modal
 
   // Hauptseite zeigt immer Annual-Daten
-  const mainChartData = annualData; // Festgelegt auf Annual-Daten für die Hauptseite
-  const mainEPSData = annualEPS; // Festgelegt auf Annual-Daten für die Hauptseite
+  const mainChartData = annualData;
+  const mainEPSData = annualEPS;
+  const mainFCFData = annualFCF; // Neu: FCF-Daten für die Hauptseite
 
   // Daten für die Modals aktualisieren
   useEffect(() => {
     setCurrentChartDataRevenue(isAnnualViewRevenue ? annualData : quarterlyData);
     setCurrentEPSDataEPS(isAnnualViewEPS ? annualEPS : quarterlyEPS);
+    setCurrentFCFDataFCF(isAnnualViewFCF ? annualFCF : quarterlyFCF); // Neu: FCF-Daten für Modal
     console.log("Revenue Modal Data:", isAnnualViewRevenue ? annualData : quarterlyData);
     console.log("EPS Modal Data:", isAnnualViewEPS ? annualEPS : quarterlyEPS);
-  }, [annualData, quarterlyData, annualEPS, quarterlyEPS, isAnnualViewRevenue, isAnnualViewEPS]);
+    console.log("FCF Modal Data:", isAnnualViewFCF ? annualFCF : quarterlyFCF);
+  }, [annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, isAnnualViewRevenue, isAnnualViewEPS, isAnnualViewFCF]);
 
   const handleSearch = (query: string) => {
     fetchData(query);
@@ -55,12 +62,24 @@ const Home: React.FC = () => {
     setIsEPSModalOpen(false);
   };
 
+  const openFCFModal = () => { // Neu: Funktion für FCF-Modal
+    setIsFCFModalOpen(true);
+  };
+
+  const closeFCFModal = () => { // Neu: Funktion für FCF-Modal
+    setIsFCFModalOpen(false);
+  };
+
   const handleViewToggleRevenue = (isAnnual: boolean) => {
-    setIsAnnualViewRevenue(isAnnual); // Nur für das Revenue-Modal
+    setIsAnnualViewRevenue(isAnnual);
   };
 
   const handleViewToggleEPS = (isAnnual: boolean) => {
-    setIsAnnualViewEPS(isAnnual); // Nur für das EPS-Modal
+    setIsAnnualViewEPS(isAnnual);
+  };
+
+  const handleViewToggleFCF = (isAnnual: boolean) => { // Neu: Funktion für FCF-Modal
+    setIsAnnualViewFCF(isAnnual);
   };
 
   return (
@@ -90,11 +109,11 @@ const Home: React.FC = () => {
 
           <IonGrid>
             <IonRow>
-              <IonCol size="12" size-md="6">
+              <IonCol size="12" size-md="4"> {/* Anpassung: 4 statt 6, um Platz für 3 Charts zu schaffen */}
                 {mainChartData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openRevenueModal}>
                     <BarChart
-                      data={mainChartData} // Immer Annual-Daten für die Hauptseite
+                      data={mainChartData}
                       title="Revenue (Annual)"
                     />
                   </div>
@@ -102,16 +121,28 @@ const Home: React.FC = () => {
                   <p>Keine Umsatzdaten verfügbar.</p>
                 )}
               </IonCol>
-              <IonCol size="12" size-md="6">
+              <IonCol size="12" size-md="4"> {/* Anpassung: 4 statt 6 */}
                 {mainEPSData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openEPSModal}>
                     <BarChart
-                      data={mainEPSData} // Immer Annual-Daten für die Hauptseite
+                      data={mainEPSData}
                       title="EPS (Annual)"
                     />
                   </div>
                 ) : (
                   <p>Keine EPS-Daten verfügbar.</p>
+                )}
+              </IonCol>
+              <IonCol size="12" size-md="4"> {/* Neu: Dritte Spalte für FCF */}
+                {mainFCFData.labels.length > 0 ? (
+                  <div className="chart-container" onClick={openFCFModal}>
+                    <BarChart
+                      data={mainFCFData}
+                      title="FCF (Annual)"
+                    />
+                  </div>
+                ) : (
+                  <p>Keine FCF-Daten verfügbar.</p>
                 )}
               </IonCol>
             </IonRow>
@@ -162,6 +193,31 @@ const Home: React.FC = () => {
                 <BarChart
                   data={currentEPSDataEPS}
                   title={isAnnualViewEPS ? "EPS (Annual)" : "EPS (Quarterly)"}
+                />
+              </div>
+            </IonContent>
+          </IonModal>
+
+          {/* FCF-Modal */}
+          <IonModal ref={fcfModal} isOpen={isFCFModalOpen} onDidDismiss={closeFCFModal} className="custom-modal">
+            <IonContent className="ion-padding">
+              <IonButton fill="clear" className="close-button" onClick={closeFCFModal}>
+                <IonIcon icon={closeOutline} />
+              </IonButton>
+              <div className="modal-header">
+                <div className="toggle-container">
+                  <IonLabel>Quarterly</IonLabel>
+                  <IonToggle
+                    checked={isAnnualViewFCF}
+                    onIonChange={(e) => handleViewToggleFCF(e.detail.checked)}
+                  />
+                  <IonLabel>Annual</IonLabel>
+                </div>
+              </div>
+              <div className="modal-chart-container">
+                <BarChart
+                  data={currentFCFDataFCF}
+                  title={isAnnualViewFCF ? "FCF (Annual)" : "FCF (Quarterly)"}
                 />
               </div>
             </IonContent>

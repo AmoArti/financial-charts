@@ -61,22 +61,22 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
         min: minScale, // Dynamischer Minimalwert (kann negativ sein)
         max: maxScale, // Dynamisches Maximum mit Puffer
         title: {
-          display: false, // Entfernt die Beschriftung der y-Achse ("EPS ($)" oder "Revenue (Billions $)")
+          display: false, // Keine Beschriftung der y-Achse
         },
         ticks: {
           stepSize: stepSize, // Dynamische Schrittgröße für gleichmäßige Abstände
           callback: (value: number) => {
             if (title.includes('EPS')) {
-              return `$${value}`; // Fügt $ vor EPS-Werte hinzu
+              return `$${value}`; // EPS ohne "B"
             } else {
-              return `$${value}B`; // Fügt $ vor Umsatzwerten hinzu
+              return `$${value}B`; // Revenue und FCF in Milliarden
             }
           },
         },
       },
       x: {
         title: {
-          display: false, // Entfernt die Beschriftung der x-Achse ("Year")
+          display: false, // Keine Beschriftung der x-Achse
         },
       },
     },
