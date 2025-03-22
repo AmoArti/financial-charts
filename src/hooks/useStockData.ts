@@ -16,6 +16,7 @@ interface UseStockDataResult {
   quarterlyFCF: StockData;
   loading: boolean;
   error: string | null;
+  progress: number; // Neu: Fortschritt der API-Aufrufe (0-100)
   fetchData: (ticker: string) => void;
 }
 
@@ -29,6 +30,7 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyFCF, setQuarterlyFCF] = useState<StockData>({ labels: [], values: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0); // Neu: Fortschrittsstatus
   const [cachedData, setCachedData] = useState<{ [key: string]: any }>({});
 
   const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
@@ -55,13 +57,18 @@ export const useStockData = (): UseStockDataResult => {
       setAnnualFCF({ labels: cached.annualFCFLabels, values: cached.annualFCFValues });
       setQuarterlyFCF({ labels: cached.quarterlyFCFLabels, values: cached.quarterlyFCFValues });
       setChartData({ labels: cached.annualLabels, values: cached.annualValues });
+      setProgress(100); // Fortschritt sofort auf 100%, da Cache verwendet wird
       return;
     }
 
     setLoading(true);
     setError(null);
+    setProgress(0); // Fortschritt zurücksetzen
 
     try {
+      // Fortschritt simulieren: Start bei 10%
+      setProgress(10);
+
       // Parallele API-Aufrufe
       const [incomeResponse, earningsResponse, cashFlowResponse] = await Promise.all([
         fetch(`https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`),
@@ -69,11 +76,17 @@ export const useStockData = (): UseStockDataResult => {
         fetch(`https://www.alphavantage.co/query?function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`),
       ]);
 
+      // Fortschritt nach Absenden der Anfragen: 50%
+      setProgress(50);
+
       const [incomeData, earningsData, cashFlowData] = await Promise.all([
         incomeResponse.json(),
         earningsResponse.json(),
         cashFlowResponse.json(),
       ]);
+
+      // Fortschritt nach Empfang der Antworten: 90%
+      setProgress(90);
 
       // Fehlerprüfung für jede API-Antwort
       if (incomeData['Error Message']) {
@@ -180,6 +193,9 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyFCF({ labels: quarterlyFCFLabels, values: quarterlyFCFValues });
       setChartData({ labels: last10Years, values: annualRevenue });
 
+      // Fortschritt auf 100% setzen, da Daten erfolgreich geladen wurden
+      setProgress(100);
+
       // Debugging-Ausgaben
       console.log("Annual Revenue:", { labels: last10Years, values: annualRevenue });
       console.log("Quarterly Revenue:", { labels: quarterlyLabels, values: quarterlyRevenue });
@@ -213,5 +229,5 @@ export const useStockData = (): UseStockDataResult => {
     }
   }, [apiKey, cachedData]);
 
-  return { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, fetchData };
+  return { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, fetchData };
 };

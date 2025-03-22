@@ -1,6 +1,6 @@
 // src/pages/Home.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast } from '@ionic/react';
 import { closeOutline } from 'ionicons/icons';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
@@ -13,36 +13,51 @@ interface StockData {
 }
 
 const Home: React.FC = () => {
-  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, fetchData } = useStockData();
+  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, fetchData } = useStockData();
   const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
   const [isEPSModalOpen, setIsEPSModalOpen] = useState(false);
-  const [isFCFModalOpen, setIsFCFModalOpen] = useState(false); // Neu: FCF-Modal
+  const [isFCFModalOpen, setIsFCFModalOpen] = useState(false);
   const [isAnnualViewRevenue, setIsAnnualViewRevenue] = useState(true);
   const [isAnnualViewEPS, setIsAnnualViewEPS] = useState(true);
-  const [isAnnualViewFCF, setIsAnnualViewFCF] = useState(true); // Neu: Zustand für FCF-Modal
+  const [isAnnualViewFCF, setIsAnnualViewFCF] = useState(true);
   const [currentChartDataRevenue, setCurrentChartDataRevenue] = useState<StockData>({ labels: [], values: [] });
   const [currentEPSDataEPS, setCurrentEPSDataEPS] = useState<StockData>({ labels: [], values: [] });
-  const [currentFCFDataFCF, setCurrentFCFDataFCF] = useState<StockData>({ labels: [], values: [] }); // Neu: Daten für FCF-Modal
+  const [currentFCFDataFCF, setCurrentFCFDataFCF] = useState<StockData>({ labels: [], values: [] });
+  const [currentTicker, setCurrentTicker] = useState<string>(''); // Für die Erfolgsmeldung
+  const [successMessage, setSuccessMessage] = useState<string>(''); // Für die Erfolgsmeldung
   const revenueModal = useRef<HTMLIonModalElement>(null);
   const epsModal = useRef<HTMLIonModalElement>(null);
-  const fcfModal = useRef<HTMLIonModalElement>(null); // Neu: Ref für FCF-Modal
+  const fcfModal = useRef<HTMLIonModalElement>(null);
 
-  // Hauptseite zeigt immer Annual-Daten
   const mainChartData = annualData;
   const mainEPSData = annualEPS;
-  const mainFCFData = annualFCF; // Neu: FCF-Daten für die Hauptseite
+  const mainFCFData = annualFCF;
+
+  // Dynamisch den Tab-Titel basierend auf dem Ticker setzen
+  useEffect(() => {
+    document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
+  }, [currentTicker]);
 
   // Daten für die Modals aktualisieren
   useEffect(() => {
     setCurrentChartDataRevenue(isAnnualViewRevenue ? annualData : quarterlyData);
     setCurrentEPSDataEPS(isAnnualViewEPS ? annualEPS : quarterlyEPS);
-    setCurrentFCFDataFCF(isAnnualViewFCF ? annualFCF : quarterlyFCF); // Neu: FCF-Daten für Modal
+    setCurrentFCFDataFCF(isAnnualViewFCF ? annualFCF : quarterlyFCF);
     console.log("Revenue Modal Data:", isAnnualViewRevenue ? annualData : quarterlyData);
     console.log("EPS Modal Data:", isAnnualViewEPS ? annualEPS : quarterlyEPS);
     console.log("FCF Modal Data:", isAnnualViewFCF ? annualFCF : quarterlyFCF);
   }, [annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, isAnnualViewRevenue, isAnnualViewEPS, isAnnualViewFCF]);
 
+  // Erfolgsmeldung anzeigen, wenn Daten geladen wurden
+  useEffect(() => {
+    if (!loading && !error && progress === 100 && (mainChartData.labels.length > 0 || mainEPSData.labels.length > 0 || mainFCFData.labels.length > 0)) {
+      setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
+    }
+  }, [loading, error, progress, mainChartData, mainEPSData, mainFCFData, currentTicker]);
+
   const handleSearch = (query: string) => {
+    setCurrentTicker(query.toUpperCase());
+    setSuccessMessage(''); // Erfolgsmeldung zurücksetzen
     fetchData(query);
   };
 
@@ -62,11 +77,11 @@ const Home: React.FC = () => {
     setIsEPSModalOpen(false);
   };
 
-  const openFCFModal = () => { // Neu: Funktion für FCF-Modal
+  const openFCFModal = () => {
     setIsFCFModalOpen(true);
   };
 
-  const closeFCFModal = () => { // Neu: Funktion für FCF-Modal
+  const closeFCFModal = () => {
     setIsFCFModalOpen(false);
   };
 
@@ -78,7 +93,7 @@ const Home: React.FC = () => {
     setIsAnnualViewEPS(isAnnual);
   };
 
-  const handleViewToggleFCF = (isAnnual: boolean) => { // Neu: Funktion für FCF-Modal
+  const handleViewToggleFCF = (isAnnual: boolean) => {
     setIsAnnualViewFCF(isAnnual);
   };
 
@@ -86,13 +101,13 @@ const Home: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Financial Charts</IonTitle>
+          <IonTitle>Stock Dashboard</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
         <IonHeader collapse="condense">
           <IonToolbar>
-            <IonTitle size="large">Financial Charts</IonTitle>
+            <IonTitle size="large">Stock Dashboard</IonTitle>
           </IonToolbar>
         </IonHeader>
 
@@ -100,16 +115,27 @@ const Home: React.FC = () => {
           <SearchBar onSearch={handleSearch} />
 
           {loading && (
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', margin: '20px 0' }}>
               <IonSpinner name="crescent" />
-              <p>Lädt Daten...</p>
+              <p>Lädt Daten... ({Math.round(progress)}%)</p>
+              <IonProgressBar value={progress / 100} buffer={1} style={{ marginTop: '10px' }} />
             </div>
           )}
           {error && <p style={{ color: 'red' }}>Fehler: {error}</p>}
 
+          {/* Erfolgsmeldung als Toast */}
+          <IonToast
+            isOpen={!!successMessage}
+            message={successMessage}
+            duration={3000} // 3 Sekunden anzeigen
+            color="success"
+            position="top"
+            onDidDismiss={() => setSuccessMessage('')}
+          />
+
           <IonGrid>
             <IonRow>
-              <IonCol size="12" size-md="4"> {/* Anpassung: 4 statt 6, um Platz für 3 Charts zu schaffen */}
+              <IonCol size="12" size-md="4">
                 {mainChartData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openRevenueModal}>
                     <BarChart
@@ -121,7 +147,7 @@ const Home: React.FC = () => {
                   <p>Keine Umsatzdaten verfügbar.</p>
                 )}
               </IonCol>
-              <IonCol size="12" size-md="4"> {/* Anpassung: 4 statt 6 */}
+              <IonCol size="12" size-md="4">
                 {mainEPSData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openEPSModal}>
                     <BarChart
@@ -133,7 +159,7 @@ const Home: React.FC = () => {
                   <p>Keine EPS-Daten verfügbar.</p>
                 )}
               </IonCol>
-              <IonCol size="12" size-md="4"> {/* Neu: Dritte Spalte für FCF */}
+              <IonCol size="12" size-md="4">
                 {mainFCFData.labels.length > 0 ? (
                   <div className="chart-container" onClick={openFCFModal}>
                     <BarChart
