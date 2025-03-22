@@ -6,6 +6,14 @@ interface StockData {
   values: number[];
 }
 
+interface CompanyInfo {
+  Name: string;
+  Industry: string;
+  Address: string;
+  MarketCapitalization: string;
+  LastSale: string; // Aktueller Aktienkurs (wird jetzt aus GLOBAL_QUOTE bezogen)
+}
+
 interface UseStockDataResult {
   chartData: StockData;
   annualData: StockData;
@@ -16,7 +24,8 @@ interface UseStockDataResult {
   quarterlyFCF: StockData;
   loading: boolean;
   error: string | null;
-  progress: number; // Neu: Fortschritt der API-Aufrufe (0-100)
+  progress: number;
+  companyInfo: CompanyInfo | null;
   fetchData: (ticker: string) => void;
 }
 
@@ -30,7 +39,8 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyFCF, setQuarterlyFCF] = useState<StockData>({ labels: [], values: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number>(0); // Neu: Fortschrittsstatus
+  const [progress, setProgress] = useState<number>(0);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [cachedData, setCachedData] = useState<{ [key: string]: any }>({});
 
   const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
@@ -57,38 +67,44 @@ export const useStockData = (): UseStockDataResult => {
       setAnnualFCF({ labels: cached.annualFCFLabels, values: cached.annualFCFValues });
       setQuarterlyFCF({ labels: cached.quarterlyFCFLabels, values: cached.quarterlyFCFValues });
       setChartData({ labels: cached.annualLabels, values: cached.annualValues });
-      setProgress(100); // Fortschritt sofort auf 100%, da Cache verwendet wird
+      setCompanyInfo(cached.companyInfo);
+      setProgress(100);
       return;
     }
 
     setLoading(true);
     setError(null);
-    setProgress(0); // Fortschritt zurücksetzen
+    setProgress(0);
+    setCompanyInfo(null);
 
     try {
       // Fortschritt simulieren: Start bei 10%
       setProgress(10);
 
-      // Parallele API-Aufrufe
-      const [incomeResponse, earningsResponse, cashFlowResponse] = await Promise.all([
+      // Parallele API-Aufrufe für Finanzdaten, Unternehmensinformationen und aktuellen Aktienkurs
+      const [incomeResponse, earningsResponse, cashFlowResponse, overviewResponse, quoteResponse] = await Promise.all([
         fetch(`https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`),
         fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`),
         fetch(`https://www.alphavantage.co/query?function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`),
+        fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`),
+        fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`), // Neu: Aktueller Aktienkurs
       ]);
 
       // Fortschritt nach Absenden der Anfragen: 50%
       setProgress(50);
 
-      const [incomeData, earningsData, cashFlowData] = await Promise.all([
+      const [incomeData, earningsData, cashFlowData, overviewData, quoteData] = await Promise.all([
         incomeResponse.json(),
         earningsResponse.json(),
         cashFlowResponse.json(),
+        overviewResponse.json(),
+        quoteResponse.json(),
       ]);
 
       // Fortschritt nach Empfang der Antworten: 90%
       setProgress(90);
 
-      // Fehlerprüfung für jede API-Antwort
+      // Fehlerprüfung für Finanzdaten
       if (incomeData['Error Message']) {
         throw new Error(`API-Fehler bei INCOME_STATEMENT: ${incomeData['Error Message']}`);
       }
@@ -118,6 +134,37 @@ export const useStockData = (): UseStockDataResult => {
       if (!cashFlowData['annualReports'] && !cashFlowData['quarterlyReports']) {
         throw new Error('Keine Cashflow-Daten für diesen Ticker verfügbar.');
       }
+
+      // Fehlerprüfung für Unternehmensinformationen
+      if (overviewData['Error Message']) {
+        throw new Error(`API-Fehler bei OVERVIEW: ${overviewData['Error Message']}`);
+      }
+      if (overviewData['Note']) {
+        throw new Error(`API-Limit erreicht bei OVERVIEW: ${overviewData['Note']}`);
+      }
+      if (!overviewData['Name']) {
+        throw new Error('Keine Unternehmensinformationen für diesen Ticker verfügbar.');
+      }
+
+      // Fehlerprüfung für Aktienkurs
+      if (quoteData['Error Message']) {
+        throw new Error(`API-Fehler bei GLOBAL_QUOTE: ${quoteData['Error Message']}`);
+      }
+      if (quoteData['Note']) {
+        throw new Error(`API-Limit erreicht bei GLOBAL_QUOTE: ${quoteData['Note']}`);
+      }
+      if (!quoteData['Global Quote'] || !quoteData['Global Quote']['05. price']) {
+        throw new Error('Kein aktueller Aktienkurs für diesen Ticker verfügbar.');
+      }
+
+      // Unternehmensinformationen speichern, inklusive aktuellem Aktienkurs
+      setCompanyInfo({
+        Name: overviewData['Name'],
+        Industry: overviewData['Industry'],
+        Address: overviewData['Address'],
+        MarketCapitalization: overviewData['MarketCapitalization'],
+        LastSale: parseFloat(quoteData['Global Quote']['05. price']).toFixed(2), // Aktueller Kurs aus GLOBAL_QUOTE
+      });
 
       const currentYear = new Date().getFullYear();
       const last10Years = Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
@@ -203,6 +250,13 @@ export const useStockData = (): UseStockDataResult => {
       console.log("Quarterly EPS:", { labels: quarterlyEPSLabels, values: quarterlyEPSValues });
       console.log("Annual FCF:", { labels: last10Years, values: annualFCFValues });
       console.log("Quarterly FCF:", { labels: quarterlyFCFLabels, values: quarterlyFCFValues });
+      console.log("Company Info:", {
+        Name: overviewData['Name'],
+        Industry: overviewData['Industry'],
+        Address: overviewData['Address'],
+        MarketCapitalization: overviewData['MarketCapitalization'],
+        LastSale: quoteData['Global Quote']['05. price'],
+      });
 
       setCachedData(prev => ({
         ...prev,
@@ -219,6 +273,13 @@ export const useStockData = (): UseStockDataResult => {
           annualFCFValues,
           quarterlyFCFLabels,
           quarterlyFCFValues,
+          companyInfo: {
+            Name: overviewData['Name'],
+            Industry: overviewData['Industry'],
+            Address: overviewData['Address'],
+            MarketCapitalization: overviewData['MarketCapitalization'],
+            LastSale: parseFloat(quoteData['Global Quote']['05. price']).toFixed(2),
+          },
         },
       }));
     } catch (err) {
@@ -229,5 +290,5 @@ export const useStockData = (): UseStockDataResult => {
     }
   }, [apiKey, cachedData]);
 
-  return { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, fetchData };
+  return { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, companyInfo, fetchData };
 };

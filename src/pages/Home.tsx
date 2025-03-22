@@ -1,6 +1,6 @@
 // src/pages/Home.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
 import { closeOutline } from 'ionicons/icons';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
@@ -13,7 +13,7 @@ interface StockData {
 }
 
 const Home: React.FC = () => {
-  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, fetchData } = useStockData();
+  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, companyInfo, fetchData } = useStockData();
   const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
   const [isEPSModalOpen, setIsEPSModalOpen] = useState(false);
   const [isFCFModalOpen, setIsFCFModalOpen] = useState(false);
@@ -23,8 +23,8 @@ const Home: React.FC = () => {
   const [currentChartDataRevenue, setCurrentChartDataRevenue] = useState<StockData>({ labels: [], values: [] });
   const [currentEPSDataEPS, setCurrentEPSDataEPS] = useState<StockData>({ labels: [], values: [] });
   const [currentFCFDataFCF, setCurrentFCFDataFCF] = useState<StockData>({ labels: [], values: [] });
-  const [currentTicker, setCurrentTicker] = useState<string>(''); // Für die Erfolgsmeldung
-  const [successMessage, setSuccessMessage] = useState<string>(''); // Für die Erfolgsmeldung
+  const [currentTicker, setCurrentTicker] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
   const revenueModal = useRef<HTMLIonModalElement>(null);
   const epsModal = useRef<HTMLIonModalElement>(null);
   const fcfModal = useRef<HTMLIonModalElement>(null);
@@ -57,7 +57,7 @@ const Home: React.FC = () => {
 
   const handleSearch = (query: string) => {
     setCurrentTicker(query.toUpperCase());
-    setSuccessMessage(''); // Erfolgsmeldung zurücksetzen
+    setSuccessMessage('');
     fetchData(query);
   };
 
@@ -97,6 +97,13 @@ const Home: React.FC = () => {
     setIsAnnualViewFCF(isAnnual);
   };
 
+  // Funktion zur Formatierung der Marktkapitalisierung (in Milliarden)
+  const formatMarketCap = (marketCap: string) => {
+    const marketCapNumber = parseFloat(marketCap);
+    if (isNaN(marketCapNumber)) return 'N/A';
+    return (marketCapNumber / 1e9).toFixed(2) + ' Mrd. $';
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -127,11 +134,26 @@ const Home: React.FC = () => {
           <IonToast
             isOpen={!!successMessage}
             message={successMessage}
-            duration={3000} // 3 Sekunden anzeigen
+            duration={3000}
             color="success"
             position="top"
             onDidDismiss={() => setSuccessMessage('')}
           />
+
+          {/* Unternehmensinformationen anzeigen */}
+          {companyInfo && (
+            <IonCard style={{ margin: '20px 0' }}>
+              <IonCardHeader>
+                <IonCardTitle>{companyInfo.Name} ({currentTicker})</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <p><strong>Branche:</strong> {companyInfo.Industry}</p>
+                <p><strong>Sitz:</strong> {companyInfo.Address}</p>
+                <p><strong>Marktkapitalisierung:</strong> {formatMarketCap(companyInfo.MarketCapitalization)}</p>
+                <p><strong>Aktueller Aktienkurs:</strong> ${companyInfo.LastSale}</p>
+              </IonCardContent>
+            </IonCard>
+          )}
 
           <IonGrid>
             <IonRow>

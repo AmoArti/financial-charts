@@ -62,3 +62,27 @@
   .close-button ion-icon {
     font-size: 24px;
   }
+
+  /* Styling für die Infobox */
+ion-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+ion-card-header {
+  background-color: #f4f5f8;
+}
+
+ion-card-title {
+  font-size: 1.2rem;
+  color: #333;
+}
+
+ion-card-content p {
+  margin: 5px 0;
+  color: #555;
+}
+
+ion-card-content strong {
+  color: #000;
+}
