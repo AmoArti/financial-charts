@@ -1,7 +1,7 @@
 // src/pages/Home.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
-import { closeOutline } from 'ionicons/icons';
+import { closeOutline, refreshOutline } from 'ionicons/icons';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
 import { useStockData } from '../hooks/useStockData';
@@ -61,6 +61,12 @@ const Home: React.FC = () => {
     fetchData(query);
   };
 
+  const handleRetry = () => {
+    if (currentTicker) {
+      fetchData(currentTicker); // Daten mit dem aktuellen Ticker erneut abrufen
+    }
+  };
+
   const openRevenueModal = () => {
     setIsRevenueModalOpen(true);
   };
@@ -104,6 +110,31 @@ const Home: React.FC = () => {
     return (marketCapNumber / 1e9).toFixed(2) + ' Mrd. $';
   };
 
+  // Funktion zur Bestimmung der Fehlerursache und Handlungsempfehlung
+  const getErrorDetails = (errorMessage: string) => {
+    let explanation = '';
+    let recommendation = '';
+
+    if (errorMessage.includes('Ungültiger Ticker') || errorMessage.includes('Keine Unternehmensinformationen')) {
+      explanation = 'Der eingegebene Ticker existiert nicht oder ist nicht korrekt.';
+      recommendation = 'Bitte überprüfen Sie den Ticker (z. B. „IBM“ für IBM) und versuchen Sie es erneut.';
+    } else if (errorMessage.includes('API-Limit erreicht')) {
+      explanation = 'Das API-Limit von Alpha Vantage (5 Aufrufe pro Minute) wurde erreicht. Sie haben zu viele Anfragen in kurzer Zeit gestellt.';
+      recommendation = 'Bitte warten Sie eine Minute, bevor Sie es erneut versuchen, oder erwägen Sie die Verwendung eines Premium-API-Schlüssels für höhere Limits.';
+    } else if (errorMessage.includes('Keine Umsatzdaten') || errorMessage.includes('Keine EPS-Daten') || errorMessage.includes('Keine Cashflow-Daten')) {
+      explanation = 'Für diesen Ticker sind keine Finanzdaten verfügbar.';
+      recommendation = 'Versuchen Sie einen anderen Ticker, z. B. „AAPL“ für Apple, oder überprüfen Sie, ob die Daten später verfügbar sind.';
+    } else if (errorMessage.includes('API-Schlüssel nicht gefunden')) {
+      explanation = 'Der API-Schlüssel für Alpha Vantage fehlt oder ist ungültig.';
+      recommendation = 'Überprüfen Sie die .env-Datei und stellen Sie sicher, dass VITE_ALPHA_VANTAGE_API_KEY korrekt gesetzt ist.';
+    } else {
+      explanation = 'Ein unerwarteter Fehler ist aufgetreten.';
+      recommendation = 'Bitte versuchen Sie es erneut. Falls der Fehler bestehen bleibt, kontaktieren Sie den Support.';
+    }
+
+    return { explanation, recommendation };
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -125,10 +156,32 @@ const Home: React.FC = () => {
             <div style={{ textAlign: 'center', margin: '20px 0' }}>
               <IonSpinner name="crescent" />
               <p>Lädt Daten... ({Math.round(progress)}%)</p>
-              <IonProgressBar value={progress / 100} buffer={1} style={{ marginTop: '10px' }} />
+              <IonProgressBar value={progress / 100} buffer={1} className="loading-container" style={{ marginTop: '10px' }} />
             </div>
           )}
-          {error && <p style={{ color: 'red' }}>Fehler: {error}</p>}
+
+          {/* Detaillierte Fehlermeldung mit Handlungsempfehlung */}
+          {error && (
+            <IonCard className="error-card" style={{ margin: '20px 0', border: '1px solid #ff4d4f' }}>
+              <IonCardHeader>
+                <IonCardTitle style={{ color: '#ff4d4f' }}>Fehler</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <p><strong>Fehlermeldung:</strong> {error}</p>
+                <p><strong>Erklärung:</strong> {getErrorDetails(error).explanation}</p>
+                <p><strong>Empfehlung:</strong> {getErrorDetails(error).recommendation}</p>
+                <IonButton
+                  fill="outline"
+                  color="danger"
+                  onClick={handleRetry}
+                  style={{ marginTop: '10px' }}
+                >
+                  <IonIcon icon={refreshOutline} slot="start" />
+                  Erneut versuchen
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          )}
 
           {/* Erfolgsmeldung als Toast */}
           <IonToast

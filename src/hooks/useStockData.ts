@@ -11,7 +11,7 @@ interface CompanyInfo {
   Industry: string;
   Address: string;
   MarketCapitalization: string;
-  LastSale: string; // Aktueller Aktienkurs (wird jetzt aus GLOBAL_QUOTE bezogen)
+  LastSale: string;
 }
 
 interface UseStockDataResult {
@@ -87,7 +87,7 @@ export const useStockData = (): UseStockDataResult => {
         fetch(`https://www.alphavantage.co/query?function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`),
         fetch(`https://www.alphavantage.co/query?function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`),
         fetch(`https://www.alphavantage.co/query?function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`),
-        fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`), // Neu: Aktueller Aktienkurs
+        fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`),
       ]);
 
       // Fortschritt nach Absenden der Anfragen: 50%
@@ -109,7 +109,7 @@ export const useStockData = (): UseStockDataResult => {
         throw new Error(`API-Fehler bei INCOME_STATEMENT: ${incomeData['Error Message']}`);
       }
       if (incomeData['Note']) {
-        throw new Error(`API-Limit erreicht bei INCOME_STATEMENT: ${incomeData['Note']}`);
+        throw new Error(`API-Limit erreicht: INCOME_STATEMENT – ${incomeData['Note']}`); // Standardisierte Nachricht
       }
       if (!incomeData['annualReports'] && !incomeData['quarterlyReports']) {
         throw new Error('Keine Umsatzdaten für diesen Ticker verfügbar.');
@@ -119,7 +119,7 @@ export const useStockData = (): UseStockDataResult => {
         throw new Error(`API-Fehler bei EARNINGS: ${earningsData['Error Message']}`);
       }
       if (earningsData['Note']) {
-        throw new Error(`API-Limit erreicht bei EARNINGS: ${earningsData['Note']}`);
+        throw new Error(`API-Limit erreicht: EARNINGS – ${earningsData['Note']}`);
       }
       if (!earningsData['annualEarnings'] && !earningsData['quarterlyEarnings']) {
         throw new Error('Keine EPS-Daten für diesen Ticker verfügbar.');
@@ -129,7 +129,7 @@ export const useStockData = (): UseStockDataResult => {
         throw new Error(`API-Fehler bei CASH_FLOW: ${cashFlowData['Error Message']}`);
       }
       if (cashFlowData['Note']) {
-        throw new Error(`API-Limit erreicht bei CASH_FLOW: ${cashFlowData['Note']}`);
+        throw new Error(`API-Limit erreicht: CASH_FLOW – ${cashFlowData['Note']}`);
       }
       if (!cashFlowData['annualReports'] && !cashFlowData['quarterlyReports']) {
         throw new Error('Keine Cashflow-Daten für diesen Ticker verfügbar.');
@@ -140,7 +140,7 @@ export const useStockData = (): UseStockDataResult => {
         throw new Error(`API-Fehler bei OVERVIEW: ${overviewData['Error Message']}`);
       }
       if (overviewData['Note']) {
-        throw new Error(`API-Limit erreicht bei OVERVIEW: ${overviewData['Note']}`);
+        throw new Error(`API-Limit erreicht: OVERVIEW – ${overviewData['Note']}`);
       }
       if (!overviewData['Name']) {
         throw new Error('Keine Unternehmensinformationen für diesen Ticker verfügbar.');
@@ -151,7 +151,7 @@ export const useStockData = (): UseStockDataResult => {
         throw new Error(`API-Fehler bei GLOBAL_QUOTE: ${quoteData['Error Message']}`);
       }
       if (quoteData['Note']) {
-        throw new Error(`API-Limit erreicht bei GLOBAL_QUOTE: ${quoteData['Note']}`);
+        throw new Error(`API-Limit erreicht: GLOBAL_QUOTE – ${quoteData['Note']}`);
       }
       if (!quoteData['Global Quote'] || !quoteData['Global Quote']['05. price']) {
         throw new Error('Kein aktueller Aktienkurs für diesen Ticker verfügbar.');
@@ -163,7 +163,7 @@ export const useStockData = (): UseStockDataResult => {
         Industry: overviewData['Industry'],
         Address: overviewData['Address'],
         MarketCapitalization: overviewData['MarketCapitalization'],
-        LastSale: parseFloat(quoteData['Global Quote']['05. price']).toFixed(2), // Aktueller Kurs aus GLOBAL_QUOTE
+        LastSale: parseFloat(quoteData['Global Quote']['05. price']).toFixed(2),
       });
 
       const currentYear = new Date().getFullYear();
