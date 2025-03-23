@@ -195,7 +195,7 @@ const Home: React.FC = () => {
 
           {/* Unternehmensinformationen anzeigen */}
           {companyInfo && (
-            <IonCard style={{ margin: '20px 0' }}>
+            <IonCard className="company-info-card" style={{ margin: '20px 0' }}>
               <IonCardHeader>
                 <IonCardTitle>{companyInfo.Name} ({currentTicker})</IonCardTitle>
               </IonCardHeader>

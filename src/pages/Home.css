@@ -63,6 +63,36 @@
     font-size: 24px;
   }
 
+  /* Styling für die Infobox (ohne Ränder und Akzente) */
+.company-info-card {
+  box-shadow: none; /* Entfernt den Schatten */
+  border: none; /* Entfernt den Rand */
+  text-align: center; /* Zentriert den Text */
+}
+
+.company-info-card ion-card-header {
+  background-color: transparent; /* Entfernt den grauen Hintergrund */
+  padding-bottom: 0; /* Reduziert den Abstand */
+}
+
+.company-info-card ion-card-title {
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.company-info-card ion-card-content {
+  padding-top: 0; /* Reduziert den Abstand */
+}
+
+.company-info-card ion-card-content p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.company-info-card ion-card-content strong {
+  color: #000;
+}
+
 /* Styling für die Infobox */
 ion-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
