@@ -1,69 +1,81 @@
-.chart-container {
-    width: 400px;
-    height: 300px;
-    margin: 0 auto;
-    cursor: pointer;
-  }
-  
-  .chart-container:hover {
-    border: 2px solid #3880ff;
-    border-radius: 8px;
-  }
-  
-  .custom-modal {
-    --background: #fff;
-    --border-radius: 10px;
-    --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    --width: 90%;
-    --height: 80%;
-    --max-width: 900px;
-    --max-height: 600px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .modal-header {
-    display: flex;
-    justify-content: center;
-    padding: 10px 0;
-    width: 100%;
-  }
-  
-  .toggle-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .toggle-container ion-label {
-    font-size: 16px;
-    color: #666;
-  }
-  
-  .modal-chart-container {
-    width: 100%;
-    height: 80%; /* Platz für den Header lassen */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 auto;
-  }
-  
-  .close-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    color: #000;
-    z-index: 10;
-  }
-  
-  .close-button ion-icon {
-    font-size: 24px;
-  }
+/* src/pages/Home.css */
 
-  /* Styling für die Infobox (ohne Ränder und Akzente) */
+.chart-container {
+  width: 400px;
+  height: 300px;
+  margin: 0 auto;
+  cursor: pointer;
+}
+
+.chart-container:hover {
+  border: 2px solid #3880ff;
+  border-radius: 8px;
+}
+
+.custom-modal {
+  --background: #fff;
+  --border-radius: 10px;
+  --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --width: 90%;
+  --height: 80%;
+  --max-width: 900px;
+  --max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-header {
+  position: relative; /* Für absolut positionierte Kinder */
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 0;
+  width: 100%;
+}
+
+.toggle-wrapper {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* Zentriert den Toggle-Schalter */
+  display: flex;
+  justify-content: center;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-container ion-label {
+  font-size: 16px;
+  color: #666;
+}
+
+.modal-chart-container {
+  width: 100%;
+  height: 80%; /* Platz für den Header lassen */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #000;
+  z-index: 10;
+}
+
+.close-button ion-icon {
+  font-size: 24px;
+}
+
+/* Styling für die Infobox (ohne Ränder und Akzente) */
 .company-info-card {
   box-shadow: none; /* Entfernt den Schatten */
   border: none; /* Entfernt den Rand */
@@ -90,30 +102,6 @@
 }
 
 .company-info-card ion-card-content strong {
-  color: #000;
-}
-
-/* Styling für die Infobox */
-ion-card {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-}
-
-ion-card-header {
-  background-color: #f4f5f8;
-}
-
-ion-card-title {
-  font-size: 1.2rem;
-  color: #333;
-}
-
-ion-card-content p {
-  margin: 5px 0;
-  color: #555;
-}
-
-ion-card-content strong {
   color: #000;
 }
 
@@ -144,4 +132,18 @@ ion-progress-bar {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+}
+
+/* Styling für das Dropdown-Menü im Modal-Header */
+.chart-header {
+  display: flex;
+  justify-content: flex-start; /* Dropdown-Menü links ausrichten */
+}
+
+.chart-header ion-select {
+  font-size: 0.9rem;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
 }

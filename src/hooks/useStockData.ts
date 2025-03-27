@@ -26,7 +26,7 @@ interface UseStockDataResult {
   error: string | null;
   progress: number;
   companyInfo: CompanyInfo | null;
-  fetchData: (ticker: string) => void;
+  fetchData: (ticker: string, years: number) => void;
 }
 
 export const useStockData = (): UseStockDataResult => {
@@ -51,15 +51,16 @@ export const useStockData = (): UseStockDataResult => {
     return `Q${quarter} ${year}`;
   };
 
-  const fetchData = useCallback(async (ticker: string) => {
+  const fetchData = useCallback(async (ticker: string, years: number) => {
     if (!apiKey) {
       setError('API-Schlüssel nicht gefunden. Bitte überprüfe die .env-Datei.');
       return;
     }
 
-    if (cachedData[ticker]) {
-      console.log(`Using cached data for ${ticker}`);
-      const cached = cachedData[ticker];
+    const cacheKey = `${ticker}-${years}`; // Cache-Schlüssel basierend auf Ticker und Zeitspanne
+    if (cachedData[cacheKey]) {
+      console.log(`Using cached data for ${ticker} (${years} years)`);
+      const cached = cachedData[cacheKey];
       setAnnualData({ labels: cached.annualLabels, values: cached.annualValues });
       setQuarterlyData({ labels: cached.quarterlyLabels, values: cached.quarterlyValues });
       setAnnualEPS({ labels: cached.annualEPSLabels, values: cached.annualEPSValues });
@@ -109,7 +110,7 @@ export const useStockData = (): UseStockDataResult => {
         throw new Error(`API-Fehler bei INCOME_STATEMENT: ${incomeData['Error Message']}`);
       }
       if (incomeData['Note']) {
-        throw new Error(`API-Limit erreicht: INCOME_STATEMENT – ${incomeData['Note']}`); // Standardisierte Nachricht
+        throw new Error(`API-Limit erreicht: INCOME_STATEMENT – ${incomeData['Note']}`);
       }
       if (!incomeData['annualReports'] && !incomeData['quarterlyReports']) {
         throw new Error('Keine Umsatzdaten für diesen Ticker verfügbar.');
@@ -167,47 +168,62 @@ export const useStockData = (): UseStockDataResult => {
       });
 
       const currentYear = new Date().getFullYear();
-      const last10Years = Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
+      const startYear = currentYear - years + 1; // Startjahr basierend auf der gewünschten Zeitspanne
+      const availableYears = Array.from({ length: years }, (_, i) => currentYear - years + 1 + i);
 
       // Jährliche Umsatzdaten
       const annualReports = incomeData['annualReports'] || [];
-      const annualRevenue = last10Years.map(year => {
+      const annualRevenue = availableYears.map(year => {
         const report = annualReports.find(r => parseInt(r.fiscalDateEnding.split('-')[0]) === year);
         return report ? parseFloat(report.totalRevenue) / 1e9 || 0 : 0;
       });
 
       // Quartalsweise Umsatzdaten
       const quarterlyReports = incomeData['quarterlyReports'] || [];
-      const quarterlyLabels = quarterlyReports
+      const numQuarters = years * 4; // Anzahl der Quartale basierend auf der Zeitspanne (z. B. 10 Jahre = 40 Quartale)
+      const startDate = new Date(`${startYear}-01-01`); // Startdatum für die gewünschte Zeitspanne
+
+      // Filtern der quartalsweisen Daten basierend auf dem Startdatum
+      const filteredQuarterlyReports = quarterlyReports.filter(report => {
+        const reportDate = new Date(report.fiscalDateEnding);
+        return reportDate >= startDate;
+      });
+
+      const quarterlyLabels = filteredQuarterlyReports
         .map(report => formatQuarter(report.fiscalDateEnding))
-        .slice(0, 12)
+        .slice(0, numQuarters) // Begrenze auf die gewünschte Anzahl von Quartalen
         .reverse();
-      const quarterlyRevenue = quarterlyReports
+      const quarterlyRevenue = filteredQuarterlyReports
         .map(report => parseFloat(report.totalRevenue) / 1e9 || 0)
-        .slice(0, 12)
+        .slice(0, numQuarters) // Begrenze auf die gewünschte Anzahl von Quartalen
         .reverse();
 
       // Jährliche EPS-Daten
       const annualEarnings = earningsData['annualEarnings'] || [];
-      const annualEPSValues = last10Years.map(year => {
+      const annualEPSValues = availableYears.map(year => {
         const earning = annualEarnings.find(e => parseInt(e.fiscalDateEnding.split('-')[0]) === year);
         return earning ? parseFloat(earning.reportedEPS) || 0 : 0;
       });
 
       // Quartalsweise EPS-Daten
       const quarterlyEarnings = earningsData['quarterlyEarnings'] || [];
-      const quarterlyEPSLabels = quarterlyEarnings
+      const filteredQuarterlyEarnings = quarterlyEarnings.filter(earning => {
+        const earningDate = new Date(earning.fiscalDateEnding);
+        return earningDate >= startDate;
+      });
+
+      const quarterlyEPSLabels = filteredQuarterlyEarnings
         .map(earning => formatQuarter(earning.fiscalDateEnding))
-        .slice(0, 12)
+        .slice(0, numQuarters) // Begrenze auf die gewünschte Anzahl von Quartalen
         .reverse();
-      const quarterlyEPSValues = quarterlyEarnings
+      const quarterlyEPSValues = filteredQuarterlyEarnings
         .map(earning => parseFloat(earning.reportedEPS) || 0)
-        .slice(0, 12)
+        .slice(0, numQuarters) // Begrenze auf die gewünschte Anzahl von Quartalen
         .reverse();
 
       // Jährliche Free Cash Flow-Daten
       const annualCashFlowReports = cashFlowData['annualReports'] || [];
-      const annualFCFValues = last10Years.map(year => {
+      const annualFCFValues = availableYears.map(year => {
         const report = annualCashFlowReports.find(r => parseInt(r.fiscalDateEnding.split('-')[0]) === year);
         if (report) {
           const operatingCashflow = parseFloat(report.operatingCashflow) || 0;
@@ -219,37 +235,61 @@ export const useStockData = (): UseStockDataResult => {
 
       // Quartalsweise Free Cash Flow-Daten
       const quarterlyCashFlowReports = cashFlowData['quarterlyReports'] || [];
-      const quarterlyFCFLabels = quarterlyCashFlowReports
+      const filteredQuarterlyCashFlowReports = quarterlyCashFlowReports.filter(report => {
+        const reportDate = new Date(report.fiscalDateEnding);
+        return reportDate >= startDate;
+      });
+
+      const quarterlyFCFLabels = filteredQuarterlyCashFlowReports
         .map(report => formatQuarter(report.fiscalDateEnding))
-        .slice(0, 12)
+        .slice(0, numQuarters) // Begrenze auf die gewünschte Anzahl von Quartalen
         .reverse();
-      const quarterlyFCFValues = quarterlyCashFlowReports
+      const quarterlyFCFValues = filteredQuarterlyCashFlowReports
         .map(report => {
           const operatingCashflow = parseFloat(report.operatingCashflow) || 0;
           const capitalExpenditures = parseFloat(report.capitalExpenditures) || 0;
           return (operatingCashflow - Math.abs(capitalExpenditures)) / 1e9; // In Milliarden $
         })
-        .slice(0, 12)
+        .slice(0, numQuarters) // Begrenze auf die gewünschte Anzahl von Quartalen
         .reverse();
 
-      setAnnualData({ labels: last10Years, values: annualRevenue });
-      setQuarterlyData({ labels: quarterlyLabels, values: quarterlyRevenue });
-      setAnnualEPS({ labels: last10Years, values: annualEPSValues });
-      setQuarterlyEPS({ labels: quarterlyEPSLabels, values: quarterlyEPSValues });
-      setAnnualFCF({ labels: last10Years, values: annualFCFValues });
-      setQuarterlyFCF({ labels: quarterlyFCFLabels, values: quarterlyFCFValues });
-      setChartData({ labels: last10Years, values: annualRevenue });
+      // Edge Case: Wenn weniger Daten verfügbar sind, schneiden wir die Jahre entsprechend ab
+      const trimData = (labels: (string | number)[], values: number[]) => {
+        const firstNonZeroIndex = values.findIndex(value => value !== 0);
+        if (firstNonZeroIndex === -1) {
+          return { labels: [], values: [] }; // Keine Daten verfügbar
+        }
+        return {
+          labels: labels.slice(firstNonZeroIndex),
+          values: values.slice(firstNonZeroIndex),
+        };
+      };
+
+      const trimmedAnnualRevenue = trimData(availableYears, annualRevenue);
+      const trimmedAnnualEPS = trimData(availableYears, annualEPSValues);
+      const trimmedAnnualFCF = trimData(availableYears, annualFCFValues);
+      const trimmedQuarterlyRevenue = trimData(quarterlyLabels, quarterlyRevenue);
+      const trimmedQuarterlyEPS = trimData(quarterlyEPSLabels, quarterlyEPSValues);
+      const trimmedQuarterlyFCF = trimData(quarterlyFCFLabels, quarterlyFCFValues);
+
+      setAnnualData({ labels: trimmedAnnualRevenue.labels, values: trimmedAnnualRevenue.values });
+      setQuarterlyData({ labels: trimmedQuarterlyRevenue.labels, values: trimmedQuarterlyRevenue.values });
+      setAnnualEPS({ labels: trimmedAnnualEPS.labels, values: trimmedAnnualEPS.values });
+      setQuarterlyEPS({ labels: trimmedQuarterlyEPS.labels, values: trimmedQuarterlyEPS.values });
+      setAnnualFCF({ labels: trimmedAnnualFCF.labels, values: trimmedAnnualFCF.values });
+      setQuarterlyFCF({ labels: trimmedQuarterlyFCF.labels, values: trimmedQuarterlyFCF.values });
+      setChartData({ labels: trimmedAnnualRevenue.labels, values: trimmedAnnualRevenue.values });
 
       // Fortschritt auf 100% setzen, da Daten erfolgreich geladen wurden
       setProgress(100);
 
       // Debugging-Ausgaben
-      console.log("Annual Revenue:", { labels: last10Years, values: annualRevenue });
-      console.log("Quarterly Revenue:", { labels: quarterlyLabels, values: quarterlyRevenue });
-      console.log("Annual EPS:", { labels: last10Years, values: annualEPSValues });
-      console.log("Quarterly EPS:", { labels: quarterlyEPSLabels, values: quarterlyEPSValues });
-      console.log("Annual FCF:", { labels: last10Years, values: annualFCFValues });
-      console.log("Quarterly FCF:", { labels: quarterlyFCFLabels, values: quarterlyFCFValues });
+      console.log("Annual Revenue:", { labels: trimmedAnnualRevenue.labels, values: trimmedAnnualRevenue.values });
+      console.log("Quarterly Revenue:", { labels: trimmedQuarterlyRevenue.labels, values: trimmedQuarterlyRevenue.values });
+      console.log("Annual EPS:", { labels: trimmedAnnualEPS.labels, values: trimmedAnnualEPS.values });
+      console.log("Quarterly EPS:", { labels: trimmedQuarterlyEPS.labels, values: trimmedQuarterlyEPS.values });
+      console.log("Annual FCF:", { labels: trimmedAnnualFCF.labels, values: trimmedAnnualFCF.values });
+      console.log("Quarterly FCF:", { labels: trimmedQuarterlyFCF.labels, values: trimmedQuarterlyFCF.values });
       console.log("Company Info:", {
         Name: overviewData['Name'],
         Industry: overviewData['Industry'],
@@ -260,19 +300,19 @@ export const useStockData = (): UseStockDataResult => {
 
       setCachedData(prev => ({
         ...prev,
-        [ticker]: {
-          annualLabels: last10Years,
-          annualValues: annualRevenue,
-          quarterlyLabels,
-          quarterlyValues: quarterlyRevenue,
-          annualEPSLabels: last10Years,
-          annualEPSValues,
-          quarterlyEPSLabels,
-          quarterlyEPSValues,
-          annualFCFLabels: last10Years,
-          annualFCFValues,
-          quarterlyFCFLabels,
-          quarterlyFCFValues,
+        [cacheKey]: {
+          annualLabels: trimmedAnnualRevenue.labels,
+          annualValues: trimmedAnnualRevenue.values,
+          quarterlyLabels: trimmedQuarterlyRevenue.labels,
+          quarterlyValues: trimmedQuarterlyRevenue.values,
+          annualEPSLabels: trimmedAnnualEPS.labels,
+          annualEPSValues: trimmedAnnualEPS.values,
+          quarterlyEPSLabels: trimmedQuarterlyEPS.labels,
+          quarterlyEPSValues: trimmedQuarterlyEPS.values,
+          annualFCFLabels: trimmedAnnualFCF.labels,
+          annualFCFValues: trimmedAnnualFCF.values,
+          quarterlyFCFLabels: trimmedQuarterlyFCF.labels,
+          quarterlyFCFValues: trimmedQuarterlyFCF.values,
           companyInfo: {
             Name: overviewData['Name'],
             Industry: overviewData['Industry'],

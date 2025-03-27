@@ -1,6 +1,6 @@
 // src/pages/Home.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonSelect, IonSelectOption } from '@ionic/react';
 import { closeOutline, refreshOutline } from 'ionicons/icons';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
@@ -25,6 +25,9 @@ const Home: React.FC = () => {
   const [currentFCFDataFCF, setCurrentFCFDataFCF] = useState<StockData>({ labels: [], values: [] });
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [revenueYears, setRevenueYears] = useState<number>(10); // Standard: 10 Jahre
+  const [epsYears, setEPSYears] = useState<number>(10); // Standard: 10 Jahre
+  const [fcfYears, setFCFYears] = useState<number>(10); // Standard: 10 Jahre
   const revenueModal = useRef<HTMLIonModalElement>(null);
   const epsModal = useRef<HTMLIonModalElement>(null);
   const fcfModal = useRef<HTMLIonModalElement>(null);
@@ -55,15 +58,34 @@ const Home: React.FC = () => {
     }
   }, [loading, error, progress, mainChartData, mainEPSData, mainFCFData, currentTicker]);
 
+  // Daten neu laden, wenn sich die Zeitspanne ändert
+  useEffect(() => {
+    if (currentTicker) {
+      fetchData(currentTicker, revenueYears);
+    }
+  }, [revenueYears, fetchData, currentTicker]);
+
+  useEffect(() => {
+    if (currentTicker) {
+      fetchData(currentTicker, epsYears);
+    }
+  }, [epsYears, fetchData, currentTicker]);
+
+  useEffect(() => {
+    if (currentTicker) {
+      fetchData(currentTicker, fcfYears);
+    }
+  }, [fcfYears, fetchData, currentTicker]);
+
   const handleSearch = (query: string) => {
     setCurrentTicker(query.toUpperCase());
     setSuccessMessage('');
-    fetchData(query);
+    fetchData(query, 10); // Standard-Zeitspanne: 10 Jahre
   };
 
   const handleRetry = () => {
     if (currentTicker) {
-      fetchData(currentTicker); // Daten mit dem aktuellen Ticker erneut abrufen
+      fetchData(currentTicker, 10); // Standard-Zeitspanne: 10 Jahre
     }
   };
 
@@ -252,18 +274,32 @@ const Home: React.FC = () => {
           {/* Umsatz-Modal */}
           <IonModal ref={revenueModal} isOpen={isRevenueModalOpen} onDidDismiss={closeRevenueModal} className="custom-modal">
             <IonContent className="ion-padding">
-              <IonButton fill="clear" className="close-button" onClick={closeRevenueModal}>
-                <IonIcon icon={closeOutline} />
-              </IonButton>
               <div className="modal-header">
-                <div className="toggle-container">
-                  <IonLabel>Quarterly</IonLabel>
-                  <IonToggle
-                    checked={isAnnualViewRevenue}
-                    onIonChange={(e) => handleViewToggleRevenue(e.detail.checked)}
-                  />
-                  <IonLabel>Annual</IonLabel>
+                <div className="chart-header">
+                  <IonSelect
+                    value={revenueYears}
+                    placeholder="Zeitspanne auswählen"
+                    onIonChange={(e) => setRevenueYears(e.detail.value)}
+                    interface="popover"
+                  >
+                    <IonSelectOption value={5}>5 Jahre</IonSelectOption>
+                    <IonSelectOption value={10}>10 Jahre</IonSelectOption>
+                    <IonSelectOption value={20}>20 Jahre</IonSelectOption>
+                  </IonSelect>
                 </div>
+                <div className="toggle-wrapper">
+                  <div className="toggle-container">
+                    <IonLabel>Quarterly</IonLabel>
+                    <IonToggle
+                      checked={isAnnualViewRevenue}
+                      onIonChange={(e) => handleViewToggleRevenue(e.detail.checked)}
+                    />
+                    <IonLabel>Annual</IonLabel>
+                  </div>
+                </div>
+                <IonButton fill="clear" className="close-button" onClick={closeRevenueModal}>
+                  <IonIcon icon={closeOutline} />
+                </IonButton>
               </div>
               <div className="modal-chart-container">
                 <BarChart
@@ -277,18 +313,32 @@ const Home: React.FC = () => {
           {/* EPS-Modal */}
           <IonModal ref={epsModal} isOpen={isEPSModalOpen} onDidDismiss={closeEPSModal} className="custom-modal">
             <IonContent className="ion-padding">
-              <IonButton fill="clear" className="close-button" onClick={closeEPSModal}>
-                <IonIcon icon={closeOutline} />
-              </IonButton>
               <div className="modal-header">
-                <div className="toggle-container">
-                  <IonLabel>Quarterly</IonLabel>
-                  <IonToggle
-                    checked={isAnnualViewEPS}
-                    onIonChange={(e) => handleViewToggleEPS(e.detail.checked)}
-                  />
-                  <IonLabel>Annual</IonLabel>
+                <div className="chart-header">
+                  <IonSelect
+                    value={epsYears}
+                    placeholder="Zeitspanne auswählen"
+                    onIonChange={(e) => setEPSYears(e.detail.value)}
+                    interface="popover"
+                  >
+                    <IonSelectOption value={5}>5 Jahre</IonSelectOption>
+                    <IonSelectOption value={10}>10 Jahre</IonSelectOption>
+                    <IonSelectOption value={20}>20 Jahre</IonSelectOption>
+                  </IonSelect>
                 </div>
+                <div className="toggle-wrapper">
+                  <div className="toggle-container">
+                    <IonLabel>Quarterly</IonLabel>
+                    <IonToggle
+                      checked={isAnnualViewEPS}
+                      onIonChange={(e) => handleViewToggleEPS(e.detail.checked)}
+                    />
+                    <IonLabel>Annual</IonLabel>
+                  </div>
+                </div>
+                <IonButton fill="clear" className="close-button" onClick={closeEPSModal}>
+                  <IonIcon icon={closeOutline} />
+                </IonButton>
               </div>
               <div className="modal-chart-container">
                 <BarChart
@@ -302,18 +352,32 @@ const Home: React.FC = () => {
           {/* FCF-Modal */}
           <IonModal ref={fcfModal} isOpen={isFCFModalOpen} onDidDismiss={closeFCFModal} className="custom-modal">
             <IonContent className="ion-padding">
-              <IonButton fill="clear" className="close-button" onClick={closeFCFModal}>
-                <IonIcon icon={closeOutline} />
-              </IonButton>
               <div className="modal-header">
-                <div className="toggle-container">
-                  <IonLabel>Quarterly</IonLabel>
-                  <IonToggle
-                    checked={isAnnualViewFCF}
-                    onIonChange={(e) => handleViewToggleFCF(e.detail.checked)}
-                  />
-                  <IonLabel>Annual</IonLabel>
+                <div className="chart-header">
+                  <IonSelect
+                    value={fcfYears}
+                    placeholder="Zeitspanne auswählen"
+                    onIonChange={(e) => setFCFYears(e.detail.value)}
+                    interface="popover"
+                  >
+                    <IonSelectOption value={5}>5 Jahre</IonSelectOption>
+                    <IonSelectOption value={10}>10 Jahre</IonSelectOption>
+                    <IonSelectOption value={20}>20 Jahre</IonSelectOption>
+                  </IonSelect>
                 </div>
+                <div className="toggle-wrapper">
+                  <div className="toggle-container">
+                    <IonLabel>Quarterly</IonLabel>
+                    <IonToggle
+                      checked={isAnnualViewFCF}
+                      onIonChange={(e) => handleViewToggleFCF(e.detail.checked)}
+                    />
+                    <IonLabel>Annual</IonLabel>
+                  </div>
+                </div>
+                <IonButton fill="clear" className="close-button" onClick={closeFCFModal}>
+                  <IonIcon icon={closeOutline} />
+                </IonButton>
               </div>
               <div className="modal-chart-container">
                 <BarChart
