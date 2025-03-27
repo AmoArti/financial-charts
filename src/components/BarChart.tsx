@@ -25,15 +25,15 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
   // Berechnung der maximalen und minimalen Werte
   const maxValue = Math.max(...data.values, 0);
   const minValue = Math.min(...data.values, 0);
-  
-  // Dynamische Berechnung von maxScale und minScale mit Puffer
-  const buffer = Math.max(Math.abs(maxValue), Math.abs(minValue)) * 0.1; // 10% Puffer
-  const maxScale = maxValue > 0 ? Math.ceil((maxValue + buffer) / 2) * 2 : 2; // Rundet auf die nächste gerade Zahl
-  const minScale = minValue < 0 ? Math.floor((minValue - buffer) / 2) * 2 : 0; // Rundet ab für negative Werte
 
-  // Berechnung der Schrittgröße basierend auf dem Wertebereich
+  // Dynamische Berechnung von maxScale und minScale (Vielfache von 5)
+  const buffer = Math.max(Math.abs(maxValue), Math.abs(minValue)) * 0.1; // 10% Puffer
+  const maxScale = maxValue > 0 ? Math.ceil((maxValue + buffer) / 5) * 5 : 5; // Auf nächstes Vielfaches von 5 aufrunden
+  const minScale = minValue < 0 ? Math.floor((minValue - buffer) / 5) * 5 : 0; // Auf nächstes Vielfaches von 5 abrunden
+
+  // Berechnung der Schrittgröße (Vielfaches von 5)
   const range = maxScale - minScale;
-  const stepSize = Math.max(2, Math.ceil(range / 5)); // Mindestens 2, aber an den Bereich angepasst
+  const stepSize = Math.max(5, Math.ceil(range / 50) * 5); // Schrittgröße ist mindestens 5, aber ein Vielfaches von 5
 
   const chartData = {
     labels: data.labels,
@@ -64,7 +64,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
           display: false, // Keine Beschriftung der y-Achse
         },
         ticks: {
-          stepSize: stepSize, // Dynamische Schrittgröße für gleichmäßige Abstände
+          stepSize: stepSize, // Schrittgröße als Vielfaches von 5
           callback: (value: number) => {
             if (title.includes('EPS')) {
               return `$${value}`; // EPS ohne "B"
