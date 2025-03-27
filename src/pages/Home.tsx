@@ -1,138 +1,139 @@
 // src/pages/Home.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonModal, IonButton, IonIcon, IonToggle, IonLabel, IonSpinner, IonProgressBar, IonToast, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonSelect, IonSelectOption } from '@ionic/react';
-import { closeOutline, refreshOutline } from 'ionicons/icons';
+import React, { useState, useEffect } from 'react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonToast } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
-import { useStockData } from '../hooks/useStockData';
+import ChartModal from '../components/ChartModal';
+import CompanyInfoCard from '../components/CompanyInfoCard';
+import ErrorCard from '../components/ErrorCard';
+import LoadingIndicator from '../components/LoadingIndicator';
+import { useStockData, StockData } from '../hooks/useStockData';
 import './Home.css';
 
-interface StockData {
-  labels: (string | number)[];
-  values: number[];
+interface ChartState {
+  isModalOpen: boolean;
+  isAnnualView: boolean;
+  years: number;
+  data: StockData;
 }
 
 const Home: React.FC = () => {
-  const { chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, companyInfo, fetchData } = useStockData();
-  const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
-  const [isEPSModalOpen, setIsEPSModalOpen] = useState(false);
-  const [isFCFModalOpen, setIsFCFModalOpen] = useState(false);
-  const [isAnnualViewRevenue, setIsAnnualViewRevenue] = useState(true);
-  const [isAnnualViewEPS, setIsAnnualViewEPS] = useState(true);
-  const [isAnnualViewFCF, setIsAnnualViewFCF] = useState(true);
-  const [currentChartDataRevenue, setCurrentChartDataRevenue] = useState<StockData>({ labels: [], values: [] });
-  const [currentEPSDataEPS, setCurrentEPSDataEPS] = useState<StockData>({ labels: [], values: [] });
-  const [currentFCFDataFCF, setCurrentFCFDataFCF] = useState<StockData>({ labels: [], values: [] });
+  const { annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, companyInfo, fetchData } = useStockData();
+
+  const [charts, setCharts] = useState<{
+    revenue: ChartState;
+    eps: ChartState;
+    fcf: ChartState;
+  }>({
+    revenue: { isModalOpen: false, isAnnualView: true, years: 10, data: { labels: [], values: [] } },
+    eps: { isModalOpen: false, isAnnualView: true, years: 10, data: { labels: [], values: [] } },
+    fcf: { isModalOpen: false, isAnnualView: true, years: 10, data: { labels: [], values: [] } },
+  });
+
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
-  const [revenueYears, setRevenueYears] = useState<number>(10); // Standard: 10 Jahre
-  const [epsYears, setEPSYears] = useState<number>(10); // Standard: 10 Jahre
-  const [fcfYears, setFCFYears] = useState<number>(10); // Standard: 10 Jahre
-  const revenueModal = useRef<HTMLIonModalElement>(null);
-  const epsModal = useRef<HTMLIonModalElement>(null);
-  const fcfModal = useRef<HTMLIonModalElement>(null);
 
   const mainChartData = annualData;
   const mainEPSData = annualEPS;
   const mainFCFData = annualFCF;
 
-  // Dynamisch den Tab-Titel basierend auf dem Ticker setzen
   useEffect(() => {
     document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
   }, [currentTicker]);
 
-  // Daten für die Modals aktualisieren
   useEffect(() => {
-    setCurrentChartDataRevenue(isAnnualViewRevenue ? annualData : quarterlyData);
-    setCurrentEPSDataEPS(isAnnualViewEPS ? annualEPS : quarterlyEPS);
-    setCurrentFCFDataFCF(isAnnualViewFCF ? annualFCF : quarterlyFCF);
-    console.log("Revenue Modal Data:", isAnnualViewRevenue ? annualData : quarterlyData);
-    console.log("EPS Modal Data:", isAnnualViewEPS ? annualEPS : quarterlyEPS);
-    console.log("FCF Modal Data:", isAnnualViewFCF ? annualFCF : quarterlyFCF);
-  }, [annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, isAnnualViewRevenue, isAnnualViewEPS, isAnnualViewFCF]);
+    setCharts(prev => ({
+      ...prev,
+      revenue: { ...prev.revenue, data: prev.revenue.isAnnualView ? annualData : quarterlyData },
+      eps: { ...prev.eps, data: prev.eps.isAnnualView ? annualEPS : quarterlyEPS },
+      fcf: { ...prev.fcf, data: prev.fcf.isAnnualView ? annualFCF : quarterlyFCF },
+    }));
+  }, [annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF]);
 
-  // Erfolgsmeldung anzeigen, wenn Daten geladen wurden
   useEffect(() => {
     if (!loading && !error && progress === 100 && (mainChartData.labels.length > 0 || mainEPSData.labels.length > 0 || mainFCFData.labels.length > 0)) {
       setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
     }
   }, [loading, error, progress, mainChartData, mainEPSData, mainFCFData, currentTicker]);
 
-  // Daten neu laden, wenn sich die Zeitspanne ändert
   useEffect(() => {
     if (currentTicker) {
-      fetchData(currentTicker, revenueYears);
+      fetchData(currentTicker, charts.revenue.years);
     }
-  }, [revenueYears, fetchData, currentTicker]);
+  }, [charts.revenue.years, fetchData, currentTicker]);
 
   useEffect(() => {
     if (currentTicker) {
-      fetchData(currentTicker, epsYears);
+      fetchData(currentTicker, charts.eps.years);
     }
-  }, [epsYears, fetchData, currentTicker]);
+  }, [charts.eps.years, fetchData, currentTicker]);
 
   useEffect(() => {
     if (currentTicker) {
-      fetchData(currentTicker, fcfYears);
+      fetchData(currentTicker, charts.fcf.years);
     }
-  }, [fcfYears, fetchData, currentTicker]);
+  }, [charts.fcf.years, fetchData, currentTicker]);
 
   const handleSearch = (query: string) => {
     setCurrentTicker(query.toUpperCase());
     setSuccessMessage('');
-    fetchData(query, 10); // Standard-Zeitspanne: 10 Jahre
+    fetchData(query, 10);
   };
 
   const handleRetry = () => {
     if (currentTicker) {
-      fetchData(currentTicker, 10); // Standard-Zeitspanne: 10 Jahre
+      fetchData(currentTicker, 10);
     }
   };
 
-  const openRevenueModal = () => {
-    setIsRevenueModalOpen(true);
+  const openModal = (chartType: 'revenue' | 'eps' | 'fcf') => {
+    setCharts(prev => ({
+      ...prev,
+      [chartType]: { ...prev[chartType], isModalOpen: true },
+    }));
   };
 
-  const closeRevenueModal = () => {
-    setIsRevenueModalOpen(false);
+  const closeModal = (chartType: 'revenue' | 'eps' | 'fcf') => {
+    setCharts(prev => ({
+      ...prev,
+      [chartType]: { ...prev[chartType], isModalOpen: false },
+    }));
   };
 
-  const openEPSModal = () => {
-    setIsEPSModalOpen(true);
+  const handleViewToggle = (chartType: 'revenue' | 'eps' | 'fcf', isAnnual: boolean) => {
+    setCharts(prev => ({
+      ...prev,
+      [chartType]: {
+        ...prev[chartType],
+        isAnnualView: isAnnual,
+        data: isAnnual
+          ? chartType === 'revenue'
+            ? annualData
+            : chartType === 'eps'
+            ? annualEPS
+            : annualFCF
+          : chartType === 'revenue'
+          ? quarterlyData
+          : chartType === 'eps'
+          ? quarterlyEPS
+          : quarterlyFCF,
+      },
+    }));
   };
 
-  const closeEPSModal = () => {
-    setIsEPSModalOpen(false);
+  const handleYearsChange = (chartType: 'revenue' | 'eps' | 'fcf', years: number) => {
+    setCharts(prev => ({
+      ...prev,
+      [chartType]: { ...prev[chartType], years },
+    }));
   };
 
-  const openFCFModal = () => {
-    setIsFCFModalOpen(true);
-  };
-
-  const closeFCFModal = () => {
-    setIsFCFModalOpen(false);
-  };
-
-  const handleViewToggleRevenue = (isAnnual: boolean) => {
-    setIsAnnualViewRevenue(isAnnual);
-  };
-
-  const handleViewToggleEPS = (isAnnual: boolean) => {
-    setIsAnnualViewEPS(isAnnual);
-  };
-
-  const handleViewToggleFCF = (isAnnual: boolean) => {
-    setIsAnnualViewFCF(isAnnual);
-  };
-
-  // Funktion zur Formatierung der Marktkapitalisierung (in Milliarden)
   const formatMarketCap = (marketCap: string) => {
     const marketCapNumber = parseFloat(marketCap);
     if (isNaN(marketCapNumber)) return 'N/A';
     return (marketCapNumber / 1e9).toFixed(2) + ' Mrd. $';
   };
 
-  // Funktion zur Bestimmung der Fehlerursache und Handlungsempfehlung
   const getErrorDetails = (errorMessage: string) => {
     let explanation = '';
     let recommendation = '';
@@ -174,38 +175,16 @@ const Home: React.FC = () => {
         <div style={{ padding: '20px' }}>
           <SearchBar onSearch={handleSearch} />
 
-          {loading && (
-            <div style={{ textAlign: 'center', margin: '20px 0' }}>
-              <IonSpinner name="crescent" />
-              <p>Lädt Daten... ({Math.round(progress)}%)</p>
-              <IonProgressBar value={progress / 100} buffer={1} className="loading-container" style={{ marginTop: '10px' }} />
-            </div>
-          )}
+          {loading && <LoadingIndicator progress={progress} />}
 
-          {/* Detaillierte Fehlermeldung mit Handlungsempfehlung */}
           {error && (
-            <IonCard className="error-card" style={{ margin: '20px 0', border: '1px solid #ff4d4f' }}>
-              <IonCardHeader>
-                <IonCardTitle style={{ color: '#ff4d4f' }}>Fehler</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <p><strong>Fehlermeldung:</strong> {error}</p>
-                <p><strong>Erklärung:</strong> {getErrorDetails(error).explanation}</p>
-                <p><strong>Empfehlung:</strong> {getErrorDetails(error).recommendation}</p>
-                <IonButton
-                  fill="outline"
-                  color="danger"
-                  onClick={handleRetry}
-                  style={{ marginTop: '10px' }}
-                >
-                  <IonIcon icon={refreshOutline} slot="start" />
-                  Erneut versuchen
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
+            <ErrorCard
+              error={error}
+              getErrorDetails={getErrorDetails}
+              onRetry={handleRetry}
+            />
           )}
 
-          {/* Erfolgsmeldung als Toast */}
           <IonToast
             isOpen={!!successMessage}
             message={successMessage}
@@ -215,30 +194,20 @@ const Home: React.FC = () => {
             onDidDismiss={() => setSuccessMessage('')}
           />
 
-          {/* Unternehmensinformationen anzeigen */}
           {companyInfo && (
-            <IonCard className="company-info-card" style={{ margin: '20px 0' }}>
-              <IonCardHeader>
-                <IonCardTitle>{companyInfo.Name} ({currentTicker})</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <p><strong>Branche:</strong> {companyInfo.Industry}</p>
-                <p><strong>Sitz:</strong> {companyInfo.Address}</p>
-                <p><strong>Marktkapitalisierung:</strong> {formatMarketCap(companyInfo.MarketCapitalization)}</p>
-                <p><strong>Aktueller Aktienkurs:</strong> ${companyInfo.LastSale}</p>
-              </IonCardContent>
-            </IonCard>
+            <CompanyInfoCard
+              companyInfo={companyInfo}
+              ticker={currentTicker}
+              formatMarketCap={formatMarketCap}
+            />
           )}
 
           <IonGrid>
             <IonRow>
               <IonCol size="12" size-md="4">
                 {mainChartData.labels.length > 0 ? (
-                  <div className="chart-container" onClick={openRevenueModal}>
-                    <BarChart
-                      data={mainChartData}
-                      title="Revenue (Annual)"
-                    />
+                  <div className="chart-container" onClick={() => openModal('revenue')}>
+                    <BarChart data={mainChartData} title="Revenue (Annual)" />
                   </div>
                 ) : (
                   <p>Keine Umsatzdaten verfügbar.</p>
@@ -246,11 +215,8 @@ const Home: React.FC = () => {
               </IonCol>
               <IonCol size="12" size-md="4">
                 {mainEPSData.labels.length > 0 ? (
-                  <div className="chart-container" onClick={openEPSModal}>
-                    <BarChart
-                      data={mainEPSData}
-                      title="EPS (Annual)"
-                    />
+                  <div className="chart-container" onClick={() => openModal('eps')}>
+                    <BarChart data={mainEPSData} title="EPS (Annual)" />
                   </div>
                 ) : (
                   <p>Keine EPS-Daten verfügbar.</p>
@@ -258,11 +224,8 @@ const Home: React.FC = () => {
               </IonCol>
               <IonCol size="12" size-md="4">
                 {mainFCFData.labels.length > 0 ? (
-                  <div className="chart-container" onClick={openFCFModal}>
-                    <BarChart
-                      data={mainFCFData}
-                      title="FCF (Annual)"
-                    />
+                  <div className="chart-container" onClick={() => openModal('fcf')}>
+                    <BarChart data={mainFCFData} title="FCF (Annual)" />
                   </div>
                 ) : (
                   <p>Keine FCF-Daten verfügbar.</p>
@@ -271,122 +234,41 @@ const Home: React.FC = () => {
             </IonRow>
           </IonGrid>
 
-          {/* Umsatz-Modal */}
-          <IonModal ref={revenueModal} isOpen={isRevenueModalOpen} onDidDismiss={closeRevenueModal} className="custom-modal">
-            <IonContent className="ion-padding">
-              <div className="modal-header">
-                <div className="chart-header">
-                  <IonSelect
-                    value={revenueYears}
-                    placeholder="Zeitspanne auswählen"
-                    onIonChange={(e) => setRevenueYears(e.detail.value)}
-                    interface="popover"
-                  >
-                    <IonSelectOption value={5}>5 Jahre</IonSelectOption>
-                    <IonSelectOption value={10}>10 Jahre</IonSelectOption>
-                    <IonSelectOption value={20}>20 Jahre</IonSelectOption>
-                  </IonSelect>
-                </div>
-                <div className="toggle-wrapper">
-                  <div className="toggle-container">
-                    <IonLabel>Quarterly</IonLabel>
-                    <IonToggle
-                      checked={isAnnualViewRevenue}
-                      onIonChange={(e) => handleViewToggleRevenue(e.detail.checked)}
-                    />
-                    <IonLabel>Annual</IonLabel>
-                  </div>
-                </div>
-                <IonButton fill="clear" className="close-button" onClick={closeRevenueModal}>
-                  <IonIcon icon={closeOutline} />
-                </IonButton>
-              </div>
-              <div className="modal-chart-container">
-                <BarChart
-                  data={currentChartDataRevenue}
-                  title={isAnnualViewRevenue ? "Revenue (Annual)" : "Revenue (Quarterly)"}
-                />
-              </div>
-            </IonContent>
-          </IonModal>
+          <ChartModal
+            isOpen={charts.revenue.isModalOpen}
+            onClose={() => closeModal('revenue')}
+            title="Revenue"
+            annualData={annualData}
+            quarterlyData={quarterlyData}
+            isAnnualView={charts.revenue.isAnnualView}
+            setIsAnnualView={(isAnnual) => handleViewToggle('revenue', isAnnual)}
+            years={charts.revenue.years}
+            setYears={(years) => handleYearsChange('revenue', years)}
+          />
 
-          {/* EPS-Modal */}
-          <IonModal ref={epsModal} isOpen={isEPSModalOpen} onDidDismiss={closeEPSModal} className="custom-modal">
-            <IonContent className="ion-padding">
-              <div className="modal-header">
-                <div className="chart-header">
-                  <IonSelect
-                    value={epsYears}
-                    placeholder="Zeitspanne auswählen"
-                    onIonChange={(e) => setEPSYears(e.detail.value)}
-                    interface="popover"
-                  >
-                    <IonSelectOption value={5}>5 Jahre</IonSelectOption>
-                    <IonSelectOption value={10}>10 Jahre</IonSelectOption>
-                    <IonSelectOption value={20}>20 Jahre</IonSelectOption>
-                  </IonSelect>
-                </div>
-                <div className="toggle-wrapper">
-                  <div className="toggle-container">
-                    <IonLabel>Quarterly</IonLabel>
-                    <IonToggle
-                      checked={isAnnualViewEPS}
-                      onIonChange={(e) => handleViewToggleEPS(e.detail.checked)}
-                    />
-                    <IonLabel>Annual</IonLabel>
-                  </div>
-                </div>
-                <IonButton fill="clear" className="close-button" onClick={closeEPSModal}>
-                  <IonIcon icon={closeOutline} />
-                </IonButton>
-              </div>
-              <div className="modal-chart-container">
-                <BarChart
-                  data={currentEPSDataEPS}
-                  title={isAnnualViewEPS ? "EPS (Annual)" : "EPS (Quarterly)"}
-                />
-              </div>
-            </IonContent>
-          </IonModal>
+          <ChartModal
+            isOpen={charts.eps.isModalOpen}
+            onClose={() => closeModal('eps')}
+            title="EPS"
+            annualData={annualEPS}
+            quarterlyData={quarterlyEPS}
+            isAnnualView={charts.eps.isAnnualView}
+            setIsAnnualView={(isAnnual) => handleViewToggle('eps', isAnnual)}
+            years={charts.eps.years}
+            setYears={(years) => handleYearsChange('eps', years)}
+          />
 
-          {/* FCF-Modal */}
-          <IonModal ref={fcfModal} isOpen={isFCFModalOpen} onDidDismiss={closeFCFModal} className="custom-modal">
-            <IonContent className="ion-padding">
-              <div className="modal-header">
-                <div className="chart-header">
-                  <IonSelect
-                    value={fcfYears}
-                    placeholder="Zeitspanne auswählen"
-                    onIonChange={(e) => setFCFYears(e.detail.value)}
-                    interface="popover"
-                  >
-                    <IonSelectOption value={5}>5 Jahre</IonSelectOption>
-                    <IonSelectOption value={10}>10 Jahre</IonSelectOption>
-                    <IonSelectOption value={20}>20 Jahre</IonSelectOption>
-                  </IonSelect>
-                </div>
-                <div className="toggle-wrapper">
-                  <div className="toggle-container">
-                    <IonLabel>Quarterly</IonLabel>
-                    <IonToggle
-                      checked={isAnnualViewFCF}
-                      onIonChange={(e) => handleViewToggleFCF(e.detail.checked)}
-                    />
-                    <IonLabel>Annual</IonLabel>
-                  </div>
-                </div>
-                <IonButton fill="clear" className="close-button" onClick={closeFCFModal}>
-                  <IonIcon icon={closeOutline} />
-                </IonButton>
-              </div>
-              <div className="modal-chart-container">
-                <BarChart
-                  data={currentFCFDataFCF}
-                  title={isAnnualViewFCF ? "FCF (Annual)" : "FCF (Quarterly)"}
-                />
-              </div>
-            </IonContent>
-          </IonModal>
+          <ChartModal
+            isOpen={charts.fcf.isModalOpen}
+            onClose={() => closeModal('fcf')}
+            title="FCF"
+            annualData={annualFCF}
+            quarterlyData={quarterlyFCF}
+            isAnnualView={charts.fcf.isAnnualView}
+            setIsAnnualView={(isAnnual) => handleViewToggle('fcf', isAnnual)}
+            years={charts.fcf.years}
+            setYears={(years) => handleYearsChange('fcf', years)}
+          />
         </div>
       </IonContent>
     </IonPage>

@@ -1,5 +1,6 @@
 // src/hooks/useStockData.ts
 import { useState, useCallback } from 'react';
+import { formatQuarter } from '../utils/utils'; // Import von formatQuarter
 
 interface StockData {
   labels: (string | number)[];
@@ -44,12 +45,6 @@ export const useStockData = (): UseStockDataResult => {
   const [cachedData, setCachedData] = useState<{ [key: string]: any }>({});
 
   const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
-
-  const formatQuarter = (dateString: string): string => {
-    const [year, month] = dateString.split('-');
-    const quarter = Math.ceil(parseInt(month) / 3);
-    return `Q${quarter} ${year}`;
-  };
 
   const fetchData = useCallback(async (ticker: string, years: number) => {
     if (!apiKey) {
@@ -169,7 +164,7 @@ export const useStockData = (): UseStockDataResult => {
 
       const currentYear = new Date().getFullYear();
       const startYear = currentYear - years + 1; // Startjahr basierend auf der gewünschten Zeitspanne
-      const availableYears = Array.from({ length: years }, (_, i) => currentYear - years + 1 + i);
+      const availableYears = Array.from({ length: years }, (_, i) => startYear + i);
 
       // Jährliche Umsatzdaten
       const annualReports = incomeData['annualReports'] || [];

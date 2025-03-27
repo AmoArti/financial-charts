@@ -1,3 +1,4 @@
+// src/components/SearchBar.tsx
 import React, { useState } from 'react';
 import { IonInput, IonItem, IonIcon, IonButton } from '@ionic/react';
 import { searchOutline, closeOutline } from 'ionicons/icons';
