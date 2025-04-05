@@ -8,10 +8,13 @@ interface LoadingIndicatorProps {
 
 const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ progress }) => {
   return (
-    <div style={{ textAlign: 'center', margin: '20px 0' }}>
+    <div className="loading-indicator-wrapper">
       <IonSpinner name="crescent" />
       <p>Lädt Daten... ({Math.round(progress)}%)</p>
-      <IonProgressBar value={progress / 100} buffer={1} className="loading-container" style={{ marginTop: '10px' }} />
+      <IonProgressBar
+        value={progress / 100}
+        buffer={1}
+      />
     </div>
   );
 };

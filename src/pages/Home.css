@@ -146,3 +146,22 @@ ion-progress-bar {
   border-radius: 5px;
   background-color: #f9f9f9;
 }
+/* Styles for LoadingIndicator component */
+.loading-indicator-wrapper {
+  text-align: center;
+  margin: 20px 0; /* Kombiniert vorherige Inline-Styles */
+}
+
+.loading-indicator-wrapper ion-progress-bar {
+  margin-top: 10px; /* Vorheriger Inline-Style für die ProgressBar */
+  /* Optional: Bestehende Styles für .loading-container können hierher verschoben
+     oder beibehalten werden, je nachdem, ob die Klasse noch verwendet wird */
+}
+
+/* Optional: Falls du .loading-container beibehältst und es
+   spezifische Styles hatte, die nicht nur margin-top waren: */
+/*
+.loading-indicator-wrapper .loading-container {
+   // Bestehende Styles für .loading-container hier
+}
+*/
