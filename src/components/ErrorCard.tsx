@@ -11,9 +11,11 @@ interface ErrorCardProps {
 
 const ErrorCard: React.FC<ErrorCardProps> = ({ error, getErrorDetails, onRetry }) => {
   return (
-    <IonCard className="error-card" style={{ margin: '20px 0', border: '1px solid #ff4d4f' }}>
+    // Inline-Styles für margin und border entfernt
+    <IonCard className="error-card">
       <IonCardHeader>
-        <IonCardTitle style={{ color: '#ff4d4f' }}>Fehler</IonCardTitle>
+        {/* Inline-Style für color entfernt */}
+        <IonCardTitle>Fehler</IonCardTitle>
       </IonCardHeader>
       <IonCardContent>
         <p><strong>Fehlermeldung:</strong> {error}</p>
@@ -23,7 +25,7 @@ const ErrorCard: React.FC<ErrorCardProps> = ({ error, getErrorDetails, onRetry }
           fill="outline"
           color="danger"
           onClick={onRetry}
-          style={{ marginTop: '10px' }}
+          // Inline-Style für marginTop entfernt (wird über CSS gesteuert)
         >
           <IonIcon icon={refreshOutline} slot="start" />
           Erneut versuchen

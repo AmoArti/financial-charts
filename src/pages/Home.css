@@ -165,3 +165,79 @@ ion-progress-bar {
    // Bestehende Styles für .loading-container hier
 }
 */
+
+/* src/pages/Home.css */
+
+/* ... andere Styles ... */
+
+/* Styling für die Infobox */
+.company-info-card {
+  box-shadow: none;
+  border: none;
+  text-align: center;
+  margin: 20px 0; /* Hinzugefügt (ersetzt Inline-Style) */
+  /* Bestehende Styles beibehalten */
+}
+
+.company-info-card ion-card-header {
+  background-color: transparent;
+  padding-bottom: 0;
+}
+
+.company-info-card ion-card-title {
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.company-info-card ion-card-content {
+  padding-top: 0;
+}
+
+.company-info-card ion-card-content p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.company-info-card ion-card-content strong {
+  color: #000;
+}
+
+
+/* Styling für die Fehlermeldung */
+.error-card {
+  margin: 20px 0; /* Hinzugefügt (ersetzt Inline-Style) */
+  border: 1px solid #ff4d4f; /* Hinzugefügt (ersetzt Inline-Style) */
+  /* Behalte evtl. bestehende Styles für error-card bei */
+}
+
+.error-card ion-card-header {
+  background-color: #fff1f0;
+  padding-bottom: 0;
+}
+
+.error-card ion-card-title {
+  color: #ff4d4f; /* Hinzugefügt (ersetzt Inline-Style) */
+  padding-top: 5px;
+}
+
+.error-card ion-card-content {
+  background-color: #fff;
+  padding-top: 5px;
+}
+
+/* Stelle sicher, dass diese Regel existiert und korrekt ist */
+.error-card ion-button {
+  margin-top: 10px;
+}
+
+/* ... andere Styles ... */
+
+/* Styles for LoadingIndicator component (bereits vorhanden) */
+.loading-indicator-wrapper {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.loading-indicator-wrapper ion-progress-bar {
+  margin-top: 10px;
+}

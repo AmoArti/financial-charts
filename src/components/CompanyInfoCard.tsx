@@ -1,7 +1,7 @@
 // src/components/CompanyInfoCard.tsx
 import React from 'react';
 import { IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
-import { CompanyInfo } from '../hooks/useStockData';
+import { CompanyInfo } from '../hooks/useStockData'; // Stelle sicher, dass der Importpfad stimmt
 
 interface CompanyInfoCardProps {
   companyInfo: CompanyInfo;
@@ -11,7 +11,8 @@ interface CompanyInfoCardProps {
 
 const CompanyInfoCard: React.FC<CompanyInfoCardProps> = ({ companyInfo, ticker, formatMarketCap }) => {
   return (
-    <IonCard className="company-info-card" style={{ margin: '20px 0' }}>
+    // Inline-Style entfernt
+    <IonCard className="company-info-card">
       <IonCardHeader>
         <IonCardTitle>{companyInfo.Name} ({ticker})</IonCardTitle>
       </IonCardHeader>
