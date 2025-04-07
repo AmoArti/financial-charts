@@ -1,88 +1,62 @@
 // src/components/BarChart.tsx
-import React from 'react';
+import React from 'react'; // useEffect entfernt
 import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-interface BarChartProps {
-  data: {
-    labels: (string | number)[];
-    values: number[];
-  };
-  title: string;
-}
+// Interface ggf. anpassen oder importieren
+interface StockDataForChart { labels: (string | number)[]; values: number[]; }
+
+interface BarChartProps { data: StockDataForChart; title: string; }
 
 const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
-  // Berechnung der maximalen und minimalen Werte
-  const maxValue = Math.max(...data.values, 0);
-  const minValue = Math.min(...data.values, 0);
 
-  // Dynamische Berechnung von maxScale und minScale (Vielfache von 5)
-  const buffer = Math.max(Math.abs(maxValue), Math.abs(minValue)) * 0.1; // 10% Puffer
-  const maxScale = maxValue > 0 ? Math.ceil((maxValue + buffer) / 5) * 5 : 5; // Auf nächstes Vielfaches von 5 aufrunden
-  const minScale = minValue < 0 ? Math.floor((minValue - buffer) / 5) * 5 : 0; // Auf nächstes Vielfaches von 5 abrunden
+  // useEffect Log wurde entfernt
 
-  // Berechnung der Schrittgröße (Vielfaches von 5)
+  // Berechnung der Skalierung
+  const values = data?.values || [];
+  const maxValue = Math.max(...values, 0); const minValue = Math.min(...values, 0);
+  const buffer = Math.max(Math.abs(maxValue), Math.abs(minValue)) * 0.1;
+  const maxScale = maxValue > 0 ? Math.ceil((maxValue + buffer) / 5) * 5 : 5;
+  const minScale = minValue < 0 ? Math.floor((minValue - buffer) / 5) * 5 : 0;
   const range = maxScale - minScale;
-  const stepSize = Math.max(5, Math.ceil(range / 50) * 5); // Schrittgröße ist mindestens 5, aber ein Vielfaches von 5
+  const stepSize = Math.max(5, Math.ceil(range / 50) * 5);
 
+  // Chart Daten
   const chartData = {
-    labels: data.labels,
+    labels: data?.labels || [],
     datasets: [
       {
-        label: title,
-        data: data.values,
+        label: title, data: values,
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
-      },
+      }
     ],
   };
 
+  // Chart Optionen
   const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' as const },
-      title: { display: true, text: title },
-    },
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top' as const }, title: { display: true, text: title }, },
     scales: {
       y: {
-        beginAtZero: true, // Startet bei 0, aber minScale kann dies überschreiben
-        min: minScale, // Dynamischer Minimalwert (kann negativ sein)
-        max: maxScale, // Dynamisches Maximum mit Puffer
-        title: {
-          display: false, // Keine Beschriftung der y-Achse
-        },
+        beginAtZero: minValue >= 0, min: minScale, max: maxScale, title: { display: false },
         ticks: {
-          stepSize: stepSize, // Schrittgröße als Vielfaches von 5
-          callback: (value: number) => {
-            if (title.includes('EPS')) {
-              return `$${value}`; // EPS ohne "B"
-            } else {
-              return `$${value}B`; // Revenue und FCF in Milliarden
-            }
+          stepSize: stepSize,
+          callback: (value: number | string) => {
+             const numValue = typeof value === 'number' ? value : parseFloat(value); if (isNaN(numValue)) return value;
+             if (title.includes('EPS')) { return `$${numValue.toFixed(2)}`; }
+             else { return `$${numValue.toFixed(numValue === 0 ? 0 : 1)}B`; }
           },
         },
       },
-      x: {
-        title: {
-          display: false, // Keine Beschriftung der x-Achse
-        },
-      },
+      x: { title: { display: false }, },
     },
   };
 
-  return <Bar data={chartData} options={options} />;
+  return (data?.labels?.length > 0) ? <Bar data={chartData} options={options} /> : null;
 };
 
 export default BarChart;
