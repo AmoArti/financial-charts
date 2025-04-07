@@ -1,6 +1,6 @@
-// src/pages/Home.tsx (Mit Debugging in handleYearsChange)
+// src/pages/Home.tsx (Mit isFetchingMoreYears State)
 import React, { useState, useEffect, useCallback } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonToast, IonList, IonItem, IonLabel, IonNote } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonToast, IonList, IonItem, IonLabel, IonNote, IonSpinner } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
 import ChartModal from '../components/ChartModal';
@@ -17,6 +17,7 @@ interface ChartState {
 }
 
 const Home: React.FC = () => {
+  // Hole loading vom Hook
   const { annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, companyInfo, keyMetrics, fetchData } = useStockData();
 
   const [charts, setCharts] = useState<{
@@ -29,16 +30,20 @@ const Home: React.FC = () => {
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [maxYearsFetched, setMaxYearsFetched] = useState<number>(0);
+  // *** NEUER STATE ***
+  const [isFetchingMoreYears, setIsFetchingMoreYears] = useState<boolean>(false);
 
   const mainChartData = annualData; const mainEPSData = annualEPS; const mainFCFData = annualFCF;
 
   useEffect(() => { document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard"; }, [currentTicker]);
+
+  // useEffect für Erfolgsmeldung (unverändert)
   useEffect(() => { if (!loading && !error && progress === 100 && currentTicker && (mainChartData.labels.length > 0 || mainEPSData.labels.length > 0 || mainFCFData.labels.length > 0)) { setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`); } }, [loading, error, progress, mainChartData, mainEPSData, mainFCFData, currentTicker]);
 
+  // useEffect zum Abrufen initialer Daten (unverändert)
   useEffect(() => {
     if (currentTicker) {
       const initialFetchYears = 10;
-      // console.log(`Optimized Home: Fetching initial data for ${currentTicker} for ${initialFetchYears} years.`);
       fetchData(currentTicker, initialFetchYears);
       setMaxYearsFetched(initialFetchYears);
       setSuccessMessage('');
@@ -47,33 +52,43 @@ const Home: React.FC = () => {
            eps: { ...prev.eps, years: initialFetchYears },
            fcf: { ...prev.fcf, years: initialFetchYears },
        }));
+       setIsFetchingMoreYears(false); // Sicherstellen, dass Flag zurückgesetzt wird bei neuer Suche
     } else {
       setMaxYearsFetched(0);
+      setIsFetchingMoreYears(false); // Auch zurücksetzen
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTicker, fetchData]); // fetchData als Dep ist ok, wenn im Hook stabilisiert
+  }, [currentTicker, fetchData]);
+
+  // *** NEU: useEffect zum Zurücksetzen des Flags, wenn Laden beendet ***
+  useEffect(() => {
+      if (!loading && isFetchingMoreYears) {
+          // Setze das Flag zurück, *nachdem* der Ladevorgang abgeschlossen ist
+          setIsFetchingMoreYears(false);
+          console.log("[Home useEffect] Resetting isFetchingMoreYears flag because loading finished.");
+      }
+  }, [loading, isFetchingMoreYears]); // Abhängig von loading und dem Flag selbst
+
 
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
-  const handleRetry = () => { if (currentTicker) { const yearsToRetry = maxYearsFetched > 0 ? maxYearsFetched : 10; fetchData(currentTicker, yearsToRetry); } };
+  const handleRetry = () => { if (currentTicker) { const yearsToRetry = maxYearsFetched > 0 ? maxYearsFetched : 10; setIsFetchingMoreYears(true); setMaxYearsFetched(yearsToRetry); fetchData(currentTicker, yearsToRetry); } };
   const openModal = (chartType: 'revenue' | 'eps' | 'fcf') => { setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], isModalOpen: true }, })); };
   const closeModal = (chartType: 'revenue' | 'eps' | 'fcf') => { setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], isModalOpen: false }, })); };
   const handleViewToggle = (chartType: 'revenue' | 'eps' | 'fcf', isAnnual: boolean) => { setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], isAnnualView: isAnnual, }, })); };
 
   const handleYearsChange = (chartType: 'revenue' | 'eps' | 'fcf', years: number) => {
-    // *** DEBUGGING HIER ***
-    console.log(`[handleYearsChange DEBUG] Called for ${chartType}. Received years: ${years}, currentTicker: '${currentTicker}', maxYearsFetched: ${maxYearsFetched}`);
-    const shouldFetch = currentTicker && years > maxYearsFetched;
-    console.log(`[handleYearsChange DEBUG] Condition (currentTicker && years > maxYearsFetched) is: ${shouldFetch}`);
-    // *** ENDE DEBUGGING ***
-
     setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], years }, })); // Update gewünschte Jahre
 
-    if (shouldFetch) { // Verwende die berechnete Variable
+    if (currentTicker && years > maxYearsFetched) {
       console.log(`Optimized Home: Fetching additional data for ${currentTicker} for ${years} years (max fetched: ${maxYearsFetched}).`);
-      setMaxYearsFetched(years); // State *vor* dem async Call setzen
+      // *** NEU: Setze das Flag *bevor* der Fetch startet ***
+      setIsFetchingMoreYears(true);
+      setMaxYearsFetched(years); // Setze max Years *nach* dem Flag
       fetchData(currentTicker, years);
     } else {
-      console.log(`Optimized Home: No new fetch needed for ${years} years (max fetched: ${maxYearsFetched}).`);
+      // console.log(`Optimized Home: No new fetch needed for ${years} years (max fetched: ${maxYearsFetched}).`);
+      // Stelle sicher, dass das Flag false ist, wenn kein Fetch nötig ist
+       if (isFetchingMoreYears) setIsFetchingMoreYears(false);
     }
   };
 
@@ -95,12 +110,13 @@ const Home: React.FC = () => {
         <IonHeader collapse="condense"><IonToolbar><IonTitle size="large">Stock Dashboard</IonTitle></IonToolbar></IonHeader>
         <div style={{ padding: '20px' }}>
           <SearchBar onSearch={handleSearch} />
-          {loading && <LoadingIndicator progress={progress} />}
+          {/* Globaler Ladebalken optional verstecken, wenn Modal lädt */}
+          {loading && !isFetchingMoreYears && <LoadingIndicator progress={progress} />}
           {typeof error === 'string' && !loading && ( <ErrorCard error={error} getErrorDetails={getErrorDetails} onRetry={handleRetry} /> )}
           <IonToast isOpen={!!successMessage} message={successMessage} duration={3000} color="success" position="top" onDidDismiss={() => setSuccessMessage('')} />
           {!loading && !error && companyInfo && ( <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} /> )}
           {!loading && !error && keyMetrics && (
-            <IonList inset={true} style={{ marginTop: '20px', marginBottom: '20px', '--ion-item-background': '#f9f9f9', borderRadius: '8px' }}>
+             <IonList inset={true} style={{ marginTop: '20px', marginBottom: '20px', '--ion-item-background': '#f9f9f9', borderRadius: '8px' }}>
               <IonItem lines="full"><IonLabel color="medium">Kennzahlen</IonLabel></IonItem>
               {keyMetrics.peRatio && <IonItem><IonLabel>KGV (P/E Ratio)</IonLabel><IonNote slot="end">{keyMetrics.peRatio}</IonNote></IonItem>}
               {keyMetrics.psRatio && <IonItem><IonLabel>KUV (P/S Ratio)</IonLabel><IonNote slot="end">{keyMetrics.psRatio}</IonNote></IonItem>}
@@ -110,7 +126,7 @@ const Home: React.FC = () => {
               {keyMetrics.operatingMargin && <IonItem><IonLabel>Operative Marge</IonLabel><IonNote slot="end">{keyMetrics.operatingMargin}</IonNote></IonItem>}
               {keyMetrics.dividendYield && <IonItem lines="none"><IonLabel>Dividendenrendite</IonLabel><IonNote slot="end">{keyMetrics.dividendYield}</IonNote></IonItem>}
             </IonList>
-           )}
+          )}
           {!loading && !error && currentTicker && (
             <IonGrid>
                <IonRow>
@@ -120,9 +136,29 @@ const Home: React.FC = () => {
               </IonRow>
             </IonGrid>
            )}
-          <ChartModal isOpen={charts.revenue.isModalOpen} onClose={() => closeModal('revenue')} title="Revenue" annualData={annualData} quarterlyData={quarterlyData} isAnnualView={charts.revenue.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('revenue', isAnnual)} years={charts.revenue.years} setYears={(y) => handleYearsChange('revenue', y)} />
-          <ChartModal isOpen={charts.eps.isModalOpen} onClose={() => closeModal('eps')} title="EPS" annualData={annualEPS} quarterlyData={quarterlyEPS} isAnnualView={charts.eps.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('eps', isAnnual)} years={charts.eps.years} setYears={(y) => handleYearsChange('eps', y)} />
-          <ChartModal isOpen={charts.fcf.isModalOpen} onClose={() => closeModal('fcf')} title="FCF" annualData={annualFCF} quarterlyData={quarterlyFCF} isAnnualView={charts.fcf.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('fcf', isAnnual)} years={charts.fcf.years} setYears={(y) => handleYearsChange('fcf', y)} />
+
+          {/* Modals erhalten jetzt isFetchingMoreYears */}
+          <ChartModal
+            isOpen={charts.revenue.isModalOpen} onClose={() => closeModal('revenue')} title="Revenue"
+            annualData={annualData} quarterlyData={quarterlyData}
+            isAnnualView={charts.revenue.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('revenue', isAnnual)}
+            years={charts.revenue.years} setYears={(y) => handleYearsChange('revenue', y)}
+            isFetchingMoreYears={isFetchingMoreYears} // NEU
+          />
+          <ChartModal
+             isOpen={charts.eps.isModalOpen} onClose={() => closeModal('eps')} title="EPS"
+             annualData={annualEPS} quarterlyData={quarterlyEPS}
+             isAnnualView={charts.eps.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('eps', isAnnual)}
+             years={charts.eps.years} setYears={(y) => handleYearsChange('eps', y)}
+             isFetchingMoreYears={isFetchingMoreYears} // NEU
+          />
+          <ChartModal
+             isOpen={charts.fcf.isModalOpen} onClose={() => closeModal('fcf')} title="FCF"
+             annualData={annualFCF} quarterlyData={quarterlyFCF}
+             isAnnualView={charts.fcf.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('fcf', isAnnual)}
+             years={charts.fcf.years} setYears={(y) => handleYearsChange('fcf', y)}
+             isFetchingMoreYears={isFetchingMoreYears} // NEU
+           />
         </div>
       </IonContent>
     </IonPage>
