@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback wieder entfernt, wenn nicht nötig
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonToast, IonList, IonItem, IonLabel, IonNote } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
@@ -19,7 +19,7 @@ interface ChartState {
 }
 
 const Home: React.FC = () => {
-  // Hol die neuen keyMetrics aus dem Hook
+  // Hol die Daten vom Hook (inkl. keyMetrics)
   const { annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF, loading, error, progress, companyInfo, keyMetrics, fetchData } = useStockData();
 
   // State für die individuellen Chart-Einstellungen (Originalversion)
@@ -36,7 +36,7 @@ const Home: React.FC = () => {
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
-  // Hauptdaten für Charts (unverändert)
+  // Hauptdaten für Charts
   const mainChartData = annualData;
   const mainEPSData = annualEPS;
   const mainFCFData = annualFCF;
@@ -54,15 +54,14 @@ const Home: React.FC = () => {
     }));
   }, [annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF]);
 
-  // Erfolgsmeldung (unverändert)
+  // Erfolgsmeldung
   useEffect(() => { if (!loading && !error && progress === 100 && currentTicker && (mainChartData.labels.length > 0 || mainEPSData.labels.length > 0 || mainFCFData.labels.length > 0)) { setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`); } }, [loading, error, progress, mainChartData, mainEPSData, mainFCFData, currentTicker]);
 
   // Originale drei useEffects für Jahresänderungen
-  // Wichtig: fetchData als Abhängigkeit hinzufügen, wenn es in useCallback gewrapped ist
+  // fetchData als Abhängigkeit hinzugefügt
   useEffect(() => { if (currentTicker) fetchData(currentTicker, charts.revenue.years); }, [charts.revenue.years, currentTicker, fetchData]);
   useEffect(() => { if (currentTicker) fetchData(currentTicker, charts.eps.years); }, [charts.eps.years, currentTicker, fetchData]);
   useEffect(() => { if (currentTicker) fetchData(currentTicker, charts.fcf.years); }, [charts.fcf.years, currentTicker, fetchData]);
-
 
   // --- Event Handlers (Originalversion) ---
   const handleSearch = (query: string) => {
@@ -71,9 +70,9 @@ const Home: React.FC = () => {
     setSuccessMessage('');
     const initialYears = 10;
      setCharts(prev => ({ // Setzt Jahre für alle Charts, triggert useEffects
-       revenue: { ...prev.revenue, years: initialYears },
-       eps: { ...prev.eps, years: initialYears },
-       fcf: { ...prev.fcf, years: initialYears },
+       revenue: { ...prev.revenue, years: initialYears, isModalOpen: false, isAnnualView: true },
+       eps: { ...prev.eps, years: initialYears, isModalOpen: false, isAnnualView: true },
+       fcf: { ...prev.fcf, years: initialYears, isModalOpen: false, isAnnualView: true },
      }));
   };
 
@@ -105,7 +104,10 @@ const Home: React.FC = () => {
      else if (errorMessage.includes('API-Limit erreicht')) { explanation = 'API-Limit erreicht.'; recommendation = 'Warte eine Minute.'; }
      else if (errorMessage.includes('Keine ') && errorMessage.includes('Daten')) { explanation = `Für ${currentTicker} sind diese Daten nicht verfügbar.`; recommendation = 'Anderen Ticker versuchen.';}
      else if (errorMessage.includes('API-Schlüssel nicht gefunden')) { explanation = 'API-Schlüssel fehlt.'; recommendation = 'Prüfe .env Datei.'}
-     else { explanation = 'Unerwarteter Fehler.'; recommendation = 'Erneut versuchen.'; }
+     else { // Default Fall
+         explanation = 'Ein unerwarteter Fehler ist aufgetreten.';
+         recommendation = 'Bitte versuchen Sie es erneut oder überprüfen Sie die Browserkonsole auf Details.';
+     }
      return { explanation, recommendation };
   };
 
@@ -119,47 +121,42 @@ const Home: React.FC = () => {
         <div style={{ padding: '20px' }}>
           <SearchBar onSearch={handleSearch} />
           {loading && <LoadingIndicator progress={progress} />}
-          {error && !loading && ( <ErrorCard error={error} getErrorDetails={getErrorDetails} onRetry={handleRetry} /> )}
+          {typeof error === 'string' && !loading && (
+            <ErrorCard error={error} getErrorDetails={getErrorDetails} onRetry={handleRetry} />
+          )}
           <IonToast isOpen={!!successMessage} message={successMessage} duration={3000} color="success" position="top" onDidDismiss={() => setSuccessMessage('')} />
 
-          {/* --- CompanyInfoCard (Übergibt keyMetrics) --- */}
+          {/* CompanyInfoCard */}
           {!loading && !error && companyInfo && (
              <CompanyInfoCard
                companyInfo={companyInfo}
                ticker={currentTicker}
                formatMarketCap={formatMarketCap}
-               keyMetrics={keyMetrics} // Übergabe der neuen Metriken
+               keyMetrics={keyMetrics}
              />
            )}
 
-          {/* --- NEU: Anzeige der Bewertungskennzahlen --- */}
+          {/* Key Metrics Anzeige */}
           {!loading && !error && keyMetrics && (
             <IonList inset={true} style={{ marginTop: '20px', marginBottom: '20px', '--ion-item-background': '#f9f9f9', borderRadius: '8px' }}>
               <IonItem lines="full"><IonLabel color="medium">Kennzahlen</IonLabel></IonItem>
-              {/* Bestehende Kennzahlen */}
               {keyMetrics.peRatio && <IonItem><IonLabel>KGV (P/E Ratio)</IonLabel><IonNote slot="end">{keyMetrics.peRatio}</IonNote></IonItem>}
               {keyMetrics.psRatio && <IonItem><IonLabel>KUV (P/S Ratio)</IonLabel><IonNote slot="end">{keyMetrics.psRatio}</IonNote></IonItem>}
               {keyMetrics.pbRatio && <IonItem><IonLabel>KBV (P/B Ratio)</IonLabel><IonNote slot="end">{keyMetrics.pbRatio}</IonNote></IonItem>}
               {keyMetrics.evToEbitda && <IonItem><IonLabel>EV/EBITDA</IonLabel><IonNote slot="end">{keyMetrics.evToEbitda}</IonNote></IonItem>}
-              {/* NEU: Margen hinzufügen */}
               {keyMetrics.grossMargin && <IonItem><IonLabel>Bruttomarge</IonLabel><IonNote slot="end">{keyMetrics.grossMargin}</IonNote></IonItem>}
               {keyMetrics.operatingMargin && <IonItem><IonLabel>Operative Marge</IonLabel><IonNote slot="end">{keyMetrics.operatingMargin}</IonNote></IonItem>}
-              {/* Bestehende Dividendenrendite */}
               {keyMetrics.dividendYield && <IonItem lines="none"><IonLabel>Dividendenrendite</IonLabel><IonNote slot="end">{keyMetrics.dividendYield}</IonNote></IonItem>}
             </IonList>
           )}
-          {/* --- Ende Kennzahlen-Anzeige --- */}
 
           {/* Charts Grid */}
           {!loading && !error && currentTicker && (
             <IonGrid>
               <IonRow>
-                {/* Revenue */}
-                <IonCol size="12" size-md="4"> {mainChartData.labels.length > 0 ? (<div className="chart-container" onClick={() => openModal('revenue')}><BarChart data={mainChartData} title="Revenue (Annual)" /></div>) : (<p>Keine Umsatzdaten.</p>)} </IonCol>
-                {/* EPS */}
-                <IonCol size="12" size-md="4"> {mainEPSData.labels.length > 0 ? (<div className="chart-container" onClick={() => openModal('eps')}><BarChart data={mainEPSData} title="EPS (Annual)" /></div>) : (<p>Keine EPS-Daten.</p>)} </IonCol>
-                {/* FCF */}
-                <IonCol size="12" size-md="4"> {mainFCFData.labels.length > 0 ? (<div className="chart-container" onClick={() => openModal('fcf')}><BarChart data={mainFCFData} title="FCF (Annual)" /></div>) : (<p>Keine FCF-Daten.</p>)} </IonCol>
+                 <IonCol size="12" size-md="4"> {mainChartData.labels.length > 0 ? (<div className="chart-container" onClick={() => openModal('revenue')}><BarChart data={mainChartData} title="Revenue (Annual)" /></div>) : (<p>Keine Umsatzdaten.</p>)} </IonCol>
+                 <IonCol size="12" size-md="4"> {mainEPSData.labels.length > 0 ? (<div className="chart-container" onClick={() => openModal('eps')}><BarChart data={mainEPSData} title="EPS (Annual)" /></div>) : (<p>Keine EPS-Daten.</p>)} </IonCol>
+                 <IonCol size="12" size-md="4"> {mainFCFData.labels.length > 0 ? (<div className="chart-container" onClick={() => openModal('fcf')}><BarChart data={mainFCFData} title="FCF (Annual)" /></div>) : (<p>Keine FCF-Daten.</p>)} </IonCol>
               </IonRow>
             </IonGrid>
           )}
