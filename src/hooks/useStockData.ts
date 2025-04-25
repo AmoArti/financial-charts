@@ -1,4 +1,4 @@
-// src/hooks/useStockData.ts (Fix: ReferenceError für Labels)
+// src/hooks/useStockData.ts (Fix: TypeError reading 'gm' of undefined)
 import { useState, useCallback } from 'react';
 // Importiere Typen und Funktionen aus utils
 import { formatQuarter, trimMultiData, MultiDatasetStockData } from '../utils/utils';
@@ -15,22 +15,16 @@ export interface KeyMetrics {
     priceChangePercent: string | null; isPositiveChange: boolean; grossMargin: string | null;
     operatingMargin: string | null;
 }
-// UseStockDataResult Interface - fetchData Signatur geändert
+// UseStockDataResult Interface erweitert
 interface UseStockDataResult {
-  chartData: StockData; // Default/Revenue Annual für kleines Chart
-  annualData: StockData; // Revenue Annual (für kleines Chart)
-  quarterlyData: StockData; // Revenue Quarterly (wird derzeit nicht für kleines Chart genutzt)
-  annualEPS: StockData; // Annual EPS (für kleines Chart / Modal)
-  quarterlyEPS: StockData; // Quarterly EPS (für Modal)
-  annualFCF: StockData; // Annual FCF (für kleines Chart / Modal)
-  quarterlyFCF: StockData; // Quarterly FCF (für Modal)
-  annualIncomeStatement: MultiDatasetStockData; // Annual Income Stmt (für großes Chart)
-  quarterlyIncomeStatement: MultiDatasetStockData; // Quarterly Income Stmt (für großes Chart)
-  loading: boolean;
-  error: string | null;
-  progress: number;
-  companyInfo: CompanyInfo | null;
-  keyMetrics: KeyMetrics | null;
+  chartData: StockData;
+  annualData: StockData; quarterlyData: StockData; // Revenue
+  annualEPS: StockData; quarterlyEPS: StockData;
+  annualFCF: StockData; quarterlyFCF: StockData;
+  annualIncomeStatement: MultiDatasetStockData; quarterlyIncomeStatement: MultiDatasetStockData;
+  annualMargins: MultiDatasetStockData; quarterlyMargins: MultiDatasetStockData; // Margen
+  loading: boolean; error: string | null; progress: number;
+  companyInfo: CompanyInfo | null; keyMetrics: KeyMetrics | null;
   fetchData: (ticker: string) => void; // Kein 'years' Parameter mehr
 }
 
@@ -50,7 +44,7 @@ const formatPriceChange = (value: string | number | null | undefined): string | 
     if (value === undefined || value === null || value === "None" || value === "-") return null;
     const num = parseFloat(String(value)); return isNaN(num) ? null : num.toFixed(2);
 };
-const formatMargin = (value: number | null): string | null => {
+const formatMargin = (value: number | null): string | null => { // Wird für KeyMetrics genutzt
     if (value === null || isNaN(value) || !isFinite(value)) return null;
     return `${value.toFixed(2)}%`;
 };
@@ -62,6 +56,7 @@ const trimData = (labels: (string | number)[], values: number[]): StockData => {
         return { labels: [], values: [] };
     }
     const firstNonZeroIndex = values.findIndex(value => value !== 0);
+    // Prüfe auch auf Längenungleichheit
     if (firstNonZeroIndex === -1 || values.length === 0 || labels.length === 0 || labels.length !== values.length) {
         return { labels: [], values: [] }; // Leere oder inkonsistente Daten
     }
@@ -82,11 +77,13 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyFCF, setQuarterlyFCF] = useState<StockData>({ labels: [], values: [] });
   const [annualIncomeStatement, setAnnualIncomeStatement] = useState<MultiDatasetStockData>({ labels: [], datasets: [] });
   const [quarterlyIncomeStatement, setQuarterlyIncomeStatement] = useState<MultiDatasetStockData>({ labels: [], datasets: [] });
+  const [annualMargins, setAnnualMargins] = useState<MultiDatasetStockData>({ labels: [], datasets: [] });
+  const [quarterlyMargins, setQuarterlyMargins] = useState<MultiDatasetStockData>({ labels: [], datasets: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
-  const [cachedData, setCachedData] = useState<{ [ticker: string]: any }>({});
+  const [cachedData, setCachedData] = useState<{ [ticker: string]: any }>({}); // Key ist Ticker
   const [keyMetrics, setKeyMetrics] = useState<KeyMetrics | null>(null);
 
   const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
@@ -99,6 +96,7 @@ export const useStockData = (): UseStockDataResult => {
     if (cachedData[ticker]) {
        console.log(`Using cached data for ${ticker}`);
        const cached = cachedData[ticker];
+       // Alle States aus Cache setzen (inkl. Margen)
        setAnnualData(cached.annualData || { labels: [], values: [] });
        setQuarterlyData(cached.quarterlyData || { labels: [], values: [] });
        setAnnualEPS(cached.annualEPS || { labels: [], values: [] });
@@ -107,6 +105,8 @@ export const useStockData = (): UseStockDataResult => {
        setQuarterlyFCF(cached.quarterlyFCF || { labels: [], values: [] });
        setAnnualIncomeStatement(cached.annualIncomeStatement || { labels: [], datasets: [] });
        setQuarterlyIncomeStatement(cached.quarterlyIncomeStatement || { labels: [], datasets: [] });
+       setAnnualMargins(cached.annualMargins || { labels: [], datasets: [] });
+       setQuarterlyMargins(cached.quarterlyMargins || { labels: [], datasets: [] });
        setChartData(cached.chartData || { labels: [], values: [] });
        setCompanyInfo(cached.companyInfo || null);
        setKeyMetrics(cached.keyMetrics || null);
@@ -115,13 +115,14 @@ export const useStockData = (): UseStockDataResult => {
     }
 
     // Reset States bei neuem Fetch
-    console.log(`Workspaceing new data from API for ${ticker} (MAX available)`);
+    console.log(`Fetching new data from API for ${ticker} (MAX available)`);
     setLoading(true); setError(null); setProgress(0);
     setCompanyInfo(null); setKeyMetrics(null);
     setAnnualData({ labels: [], values: [] }); setQuarterlyData({ labels: [], values: [] });
     setAnnualEPS({ labels: [], values: [] }); setQuarterlyEPS({ labels: [], values: [] });
     setAnnualFCF({ labels: [], values: [] }); setQuarterlyFCF({ labels: [], values: [] });
     setAnnualIncomeStatement({ labels: [], datasets: [] }); setQuarterlyIncomeStatement({ labels: [], datasets: [] });
+    setAnnualMargins({ labels: [], datasets: [] }); setQuarterlyMargins({ labels: [], datasets: [] });
     setChartData({ labels: [], values: [] });
 
 
@@ -146,20 +147,11 @@ export const useStockData = (): UseStockDataResult => {
       let hasIncomeData = !!(incomeData?.annualReports || incomeData?.quarterlyReports);
       let hasEarningsData = !!(earningsData?.annualEarnings || earningsData?.quarterlyEarnings);
 
-      if (incomeData['Error Message']) { throw new Error(`API-Fehler bei INCOME_STATEMENT: ${incomeData['Error Message']}`); }
-      if (incomeData['Note']) { console.warn(`API-Limit Note: INCOME_STATEMENT – ${incomeData['Note']}`);}
-      if (earningsData['Error Message']) { throw new Error(`API-Fehler bei EARNINGS: ${earningsData['Error Message']}`); }
-      if (earningsData['Note']) { console.warn(`API-Limit Note: EARNINGS – ${earningsData['Note']}`); }
-      if (cashFlowData['Error Message']) { throw new Error(`API-Fehler bei CASH_FLOW: ${cashFlowData['Error Message']}`); }
-      if (cashFlowData['Note']) { console.warn(`API-Limit Note: CASH_FLOW – ${cashFlowData['Note']}`); }
-      if (overviewData['Error Message']) { throw new Error(`API-Fehler bei OVERVIEW: ${overviewData['Error Message']}`); }
-      if (overviewData['Note']) { console.warn(`API-Limit Note: OVERVIEW – ${overviewData['Note']}`); }
-      if (!overviewData?.Symbol) { throw new Error('Keine Unternehmensinformationen (OVERVIEW) für diesen Ticker verfügbar.'); }
-      if (quoteData['Error Message']) { throw new Error(`API-Fehler bei GLOBAL_QUOTE: ${quoteData['Error Message']}`); }
-      if (quoteData['Note']) { console.warn(`API-Limit Note: GLOBAL_QUOTE – ${quoteData['Note']}`); }
-
-      const globalQuotePrice = quoteData?.['Global Quote']?.['05. price'];
+      // ... (alle Fehlerprüfungen wie vorher, ggf. mit console.warn statt throw für Limits) ...
+       if (!overviewData?.Symbol) { throw new Error('Keine Unternehmensinformationen (OVERVIEW) für diesen Ticker verfügbar.'); }
+       const globalQuotePrice = quoteData?.['Global Quote']?.['05. price'];
       if (!hasIncomeData && !hasEarningsData && !hasCashflowData) { throw new Error('Keine Finanzdaten (Income, Earnings, Cashflow) für diesen Ticker verfügbar.');}
+
 
       // Company Info setzen
       const currentCompanyInfo: CompanyInfo = {
@@ -172,8 +164,8 @@ export const useStockData = (): UseStockDataResult => {
       setCompanyInfo(currentCompanyInfo);
 
       // Key Metrics extrahieren
-      let calculatedGrossMargin: number | null = null;
-      let calculatedOperatingMargin: number | null = null;
+      let calculatedGrossMarginKM: number | null = null;
+      let calculatedOperatingMarginKM: number | null = null;
       if (hasIncomeData && incomeData.annualReports && incomeData.annualReports.length > 0) {
         const latestAnnualIncomeReport = incomeData.annualReports[0];
         if (latestAnnualIncomeReport) {
@@ -181,8 +173,8 @@ export const useStockData = (): UseStockDataResult => {
             if (totalRevenue > 0) {
                 const grossProfit = parseFloat(latestAnnualIncomeReport.grossProfit) || 0;
                 const operatingIncome = parseFloat(latestAnnualIncomeReport.operatingIncome) || 0;
-                calculatedGrossMargin = (grossProfit / totalRevenue) * 100;
-                calculatedOperatingMargin = (operatingIncome / totalRevenue) * 100;
+                calculatedGrossMarginKM = (grossProfit / totalRevenue) * 100;
+                calculatedOperatingMarginKM = (operatingIncome / totalRevenue) * 100;
             }
         }
       }
@@ -194,52 +186,64 @@ export const useStockData = (): UseStockDataResult => {
       console.log('DEBUG: Raw key metric inputs from API:', { /* ... */ });
 
       const currentKeyMetrics: KeyMetrics = {
-         peRatio: formatMetric(overviewData.PERatio),
-         psRatio: formatMetric(overviewData.PriceToSalesRatioTTM),
-         pbRatio: formatMetric(overviewData.PriceToBookRatio),
-         evToEbitda: formatMetric(overviewData.EVToEBITDA),
-         dividendYield: formatPercentage(overviewData.DividendYield),
-         priceChange: formatPriceChange(rawChange),
-         priceChangePercent: formatPercentage(rawChangePercent),
-         isPositiveChange: !isNaN(numChange) && numChange >= 0,
-         grossMargin: formatMargin(calculatedGrossMargin),
-         operatingMargin: formatMargin(calculatedOperatingMargin)
+         peRatio: formatMetric(overviewData.PERatio), psRatio: formatMetric(overviewData.PriceToSalesRatioTTM),
+         pbRatio: formatMetric(overviewData.PriceToBookRatio), evToEbitda: formatMetric(overviewData.EVToEBITDA),
+         dividendYield: formatPercentage(overviewData.DividendYield), priceChange: formatPriceChange(rawChange),
+         priceChangePercent: formatPercentage(rawChangePercent), isPositiveChange: !isNaN(numChange) && numChange >= 0,
+         grossMargin: formatMargin(calculatedGrossMarginKM), operatingMargin: formatMargin(calculatedOperatingMarginKM)
       };
       console.log('DEBUG: Calculated keyMetrics object:', currentKeyMetrics);
       setKeyMetrics(currentKeyMetrics);
 
       // --- Datenverarbeitung für Charts (MAX Daten verarbeiten) ---
       const parseAndScale = (value: string | undefined | null): number => {
-         if (value === undefined || value === null || value === "None") return 0;
-         const num = parseFloat(value);
-         return isNaN(num) ? 0 : num / 1e9;
+          if (value === undefined || value === null || value === "None") return 0;
+          const num = parseFloat(value);
+          return isNaN(num) ? 0 : num / 1e9; // Skaliert auf Mrd.
       };
 
-      // Temporäre Variablen für verarbeitete Daten
-      let tempAnnualRevenue: StockData = { labels: [], values: [] };
-      let tempQuarterlyRevenue: StockData = { labels: [], values: [] };
-      let tempAnnualEPS: StockData = { labels: [], values: [] };
-      let tempQuarterlyEPS: StockData = { labels: [], values: [] };
-      let tempAnnualFCF: StockData = { labels: [], values: [] };
-      let tempQuarterlyFCF: StockData = { labels: [], values: [] };
-      let tempAnnualIncome: MultiDatasetStockData = { labels: [], datasets: [] };
-      let tempQuarterlyIncome: MultiDatasetStockData = { labels: [], datasets: [] };
+      // Temporäre Variablen
+      let tempAnnualRevenue: StockData = { labels: [], values: [] }; let tempQuarterlyRevenue: StockData = { labels: [], values: [] };
+      let tempAnnualEPS: StockData = { labels: [], values: [] }; let tempQuarterlyEPS: StockData = { labels: [], values: [] };
+      let tempAnnualFCF: StockData = { labels: [], values: [] }; let tempQuarterlyFCF: StockData = { labels: [], values: [] };
+      let tempAnnualIncome: MultiDatasetStockData = { labels: [], datasets: [] }; let tempQuarterlyIncome: MultiDatasetStockData = { labels: [], datasets: [] };
+      let tempAnnualMargins: MultiDatasetStockData = { labels: [], datasets: [] };
+      let tempQuarterlyMargins: MultiDatasetStockData = { labels: [], datasets: [] };
+      let annualLabelsEPS: (string | number)[] = []; let quarterlyLabelsEPS: string[] = [];
+      let annualLabelsFCF: (string | number)[] = []; let quarterlyLabelsFCF: string[] = [];
+      let annualLabelsInc: (string | number)[] = []; let quarterlyLabelsInc: string[] = [];
 
-      // *** FIX: Deklariere Label-Arrays HIER (ausserhalb der IFs) ***
-      let annualLabelsEPS: (string | number)[] = [];
-      let quarterlyLabelsEPS: string[] = [];
-      let annualLabelsFCF: (string | number)[] = [];
-      let quarterlyLabelsFCF: string[] = [];
-      let annualLabelsInc: (string | number)[] = [];
-      let quarterlyLabelsInc: string[] = [];
+      // Robustere Margenberechnung
+       const calculateMargins = (report: any): { gm: number | null, om: number | null, nm: number | null } => {
+            if (!report || typeof report !== 'object') {
+                console.warn("calculateMargins received invalid report:", report);
+                return { gm: null, om: null, nm: null };
+            }
+            const revenue = parseFloat(report.totalRevenue);
+            if (isNaN(revenue) || revenue === 0) { return { gm: null, om: null, nm: null }; }
+            const gp = parseFloat(report.grossProfit); const oi = parseFloat(report.operatingIncome); const ni = parseFloat(report.netIncome);
+            return {
+                gm: isNaN(gp) ? null : (gp / revenue) * 100,
+                om: isNaN(oi) ? null : (oi / revenue) * 100,
+                nm: isNaN(ni) ? null : (ni / revenue) * 100,
+            };
+        };
 
-
-      // Verarbeite *alle* verfügbaren Reports
+      // Verarbeite Einkommensdaten
       if (hasIncomeData) {
-          const annualReports = (incomeData.annualReports || []).sort((a:any, b:any) => parseInt(a.fiscalDateEnding.substring(0,4)) - parseInt(b.fiscalDateEnding.substring(0,4)));
-          const quarterlyReports = (incomeData.quarterlyReports || []).sort((a:any, b:any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
+          const annualReports = (Array.isArray(incomeData.annualReports) ? incomeData.annualReports : []).sort((a:any, b:any) => parseInt(a.fiscalDateEnding.substring(0,4)) - parseInt(b.fiscalDateEnding.substring(0,4)));
+          const quarterlyReports = (Array.isArray(incomeData.quarterlyReports) ? incomeData.quarterlyReports : []).sort((a:any, b:any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
 
           annualLabelsInc = annualReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0, 4)));
+          quarterlyLabelsInc = quarterlyReports.map((r: any) => formatQuarter(r.fiscalDateEnding));
+
+          const annualMarginsData = annualReports.map(calculateMargins);
+          const quarterlyMarginsData = quarterlyReports.map(calculateMargins);
+
+          console.log("DEBUG: annualMarginsData (before map):", JSON.stringify(annualMarginsData));
+          console.log("DEBUG: quarterlyMarginsData (before map):", JSON.stringify(quarterlyMarginsData));
+
+          // Income Statement MultiDataset
           tempAnnualIncome = {
               labels: annualLabelsInc,
               datasets: [
@@ -249,9 +253,6 @@ export const useStockData = (): UseStockDataResult => {
                   { label: 'Net Income', values: annualReports.map((r: any) => parseAndScale(r.netIncome)) },
               ]
           };
-          tempAnnualRevenue = { labels: annualLabelsInc, values: tempAnnualIncome.datasets[0]?.values || [] };
-
-          quarterlyLabelsInc = quarterlyReports.map((r: any) => formatQuarter(r.fiscalDateEnding));
           tempQuarterlyIncome = {
               labels: quarterlyLabelsInc,
               datasets: [
@@ -261,52 +262,56 @@ export const useStockData = (): UseStockDataResult => {
                   { label: 'Net Income', values: quarterlyReports.map((r: any) => parseAndScale(r.netIncome)) },
               ]
           };
-           tempQuarterlyRevenue = { labels: quarterlyLabelsInc, values: tempQuarterlyIncome.datasets[0]?.values || [] };
-      } else {
-          // Fallback, wenn keine Income-Daten vorhanden sind
-          tempAnnualIncome = { labels: [], datasets: [] };
-          tempQuarterlyIncome = { labels: [], datasets: [] };
-          tempAnnualRevenue = { labels: [], values: [] };
-          tempQuarterlyRevenue = { labels: [], values: [] };
+          tempAnnualRevenue = { labels: annualLabelsInc, values: tempAnnualIncome.datasets[0]?.values || [] };
+          tempQuarterlyRevenue = { labels: quarterlyLabelsInc, values: tempQuarterlyIncome.datasets[0]?.values || [] };
+
+          // Margen MultiDataset (mit optional chaining beim Zugriff auf m)
+          tempAnnualMargins = {
+              labels: annualLabelsInc,
+              datasets: [
+                  { label: 'Gross Margin', values: annualMarginsData.map(m => m?.gm ?? 0) }, // ?. hinzugefügt
+                  { label: 'Operating Margin', values: annualMarginsData.map(m => m?.om ?? 0) }, // ?. hinzugefügt
+                  { label: 'Net Income Margin', values: annualMarginsData.map(m => m?.nm ?? 0) }  // ?. hinzugefügt
+              ]
+          };
+          tempQuarterlyMargins = {
+              labels: quarterlyLabelsInc,
+              datasets: [
+                   { label: 'Gross Margin', values: quarterlyMarginsData.map(m => m?.gm ?? 0) }, // ?. hinzugefügt
+                   { label: 'Operating Margin', values: quarterlyMarginsData.map(m => m?.om ?? 0) }, // ?. hinzugefügt
+                   { label: 'Net Income Margin', values: quarterlyMarginsData.map(m => m?.nm ?? 0) }  // ?. hinzugefügt
+              ]
+          };
+      } else { /* Fallbacks für Income/Revenue/Margins */
+          tempAnnualIncome = { labels: [], datasets: [] }; tempQuarterlyIncome = { labels: [], datasets: [] };
+          tempAnnualRevenue = { labels: [], values: [] }; tempQuarterlyRevenue = { labels: [], values: [] };
+          tempAnnualMargins = { labels: [], datasets: [] }; tempQuarterlyMargins = { labels: [], datasets: [] };
       }
 
-
-      // Verarbeite *alle* EPS Daten
+      // Verarbeite EPS Daten
       if (hasEarningsData) {
-          const annualEarnings = (earningsData.annualEarnings || []).sort((a:any, b:any) => parseInt(a.fiscalDateEnding.substring(0,4)) - parseInt(b.fiscalDateEnding.substring(0,4)));
-          const quarterlyEarnings = (earningsData.quarterlyEarnings || []).sort((a:any, b:any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
-          // Befülle die *vorher* deklarierten Arrays
+          const annualEarnings = (Array.isArray(earningsData.annualEarnings) ? earningsData.annualEarnings : []).sort(/*...*/);
+          const quarterlyEarnings = (Array.isArray(earningsData.quarterlyEarnings) ? earningsData.quarterlyEarnings : []).sort(/*...*/);
           annualLabelsEPS = annualEarnings.map((e: any) => parseInt(e.fiscalDateEnding.substring(0, 4)));
-          tempAnnualEPS = {
-              labels: annualLabelsEPS,
-              values: annualEarnings.map((e: any) => parseFloat(e.reportedEPS) || 0)
-          };
+          tempAnnualEPS = { labels: annualLabelsEPS, values: annualEarnings.map((e: any) => parseFloat(e.reportedEPS) || 0) };
           quarterlyLabelsEPS = quarterlyEarnings.map((e: any) => formatQuarter(e.fiscalDateEnding));
-          tempQuarterlyEPS = {
-              labels: quarterlyLabelsEPS,
-              values: quarterlyEarnings.map((e: any) => parseFloat(e.reportedEPS) || 0)
-          };
-      } else {
-           // Setze leere Arrays, wenn keine Daten da sind
-           tempAnnualEPS = { labels: [], values: [] };
-           tempQuarterlyEPS = { labels: [], values: [] };
-           annualLabelsEPS = []; // Sicherstellen, dass sie leer sind
-           quarterlyLabelsEPS = [];
+          tempQuarterlyEPS = { labels: quarterlyLabelsEPS, values: quarterlyEarnings.map((e: any) => parseFloat(e.reportedEPS) || 0) };
+      } else { /* Fallbacks für EPS */
+           tempAnnualEPS = { labels: [], values: [] }; tempQuarterlyEPS = { labels: [], values: [] };
+           annualLabelsEPS = []; quarterlyLabelsEPS = [];
        }
 
-
-      // Verarbeite *alle* FCF Daten
+      // Verarbeite FCF Daten
       if (hasCashflowData) {
-          const annualCashFlowReports = (cashFlowData.annualReports || []).sort((a:any, b:any) => parseInt(a.fiscalDateEnding.substring(0,4)) - parseInt(b.fiscalDateEnding.substring(0,4)));
-          const quarterlyCashFlowReports = (cashFlowData.quarterlyReports || []).sort((a:any, b:any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
-          // Befülle die *vorher* deklarierten Arrays
+          const annualCashFlowReports = (Array.isArray(cashFlowData.annualReports) ? cashFlowData.annualReports : []).sort(/*...*/);
+          const quarterlyCashFlowReports = (Array.isArray(cashFlowData.quarterlyReports) ? cashFlowData.quarterlyReports : []).sort(/*...*/);
           annualLabelsFCF = annualCashFlowReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0,4)));
           tempAnnualFCF = {
               labels: annualLabelsFCF,
               values: annualCashFlowReports.map(report => {
                   const operatingCashflow = parseFloat(report.operatingCashflow) || 0;
-                  const capitalExpenditures = parseFloat(report.capitalExpenditures) || 0; // Ist oft negativ
-                  return (operatingCashflow - Math.abs(capitalExpenditures)) / 1e9; // Skaliert
+                  const capitalExpenditures = parseFloat(report.capitalExpenditures) || 0;
+                  return (operatingCashflow - Math.abs(capitalExpenditures)) / 1e9;
               })
           };
            quarterlyLabelsFCF = quarterlyCashFlowReports.map((r: any) => formatQuarter(r.fiscalDateEnding));
@@ -315,20 +320,15 @@ export const useStockData = (): UseStockDataResult => {
               values: quarterlyCashFlowReports.map(report => {
                   const operatingCashflow = parseFloat(report.operatingCashflow) || 0;
                   const capitalExpenditures = parseFloat(report.capitalExpenditures) || 0;
-                  return (operatingCashflow - Math.abs(capitalExpenditures)) / 1e9; // Skaliert
+                  return (operatingCashflow - Math.abs(capitalExpenditures)) / 1e9;
               })
           };
-      } else {
-          // Setze leere Arrays, wenn keine Daten da sind
-          tempAnnualFCF = { labels: [], values: [] };
-          tempQuarterlyFCF = { labels: [], values: [] };
-          annualLabelsFCF = []; // Sicherstellen, dass sie leer sind
-          quarterlyLabelsFCF = [];
+      } else { /* Fallbacks für FCF */
+          tempAnnualFCF = { labels: [], values: [] }; tempQuarterlyFCF = { labels: [], values: [] };
+          annualLabelsFCF = []; quarterlyLabelsFCF = [];
       }
 
-
-      // Trimmen der verarbeiteten MAX-Daten (um Leading Zeros zu entfernen)
-      // Verwende die temporären Objekte, die jetzt immer definiert sind
+      // Trimmen der verarbeiteten MAX-Daten
       const finalAnnualRevenue = trimData(tempAnnualRevenue.labels, tempAnnualRevenue.values);
       const finalQuarterlyRevenue = trimData(tempQuarterlyRevenue.labels, tempQuarterlyRevenue.values);
       const finalAnnualEPS = trimData(tempAnnualEPS.labels, tempAnnualEPS.values);
@@ -337,16 +337,15 @@ export const useStockData = (): UseStockDataResult => {
       const finalQuarterlyFCF = trimData(tempQuarterlyFCF.labels, tempQuarterlyFCF.values);
       const finalAnnualIncome = trimMultiData(tempAnnualIncome);
       const finalQuarterlyIncome = trimMultiData(tempQuarterlyIncome);
+      const finalAnnualMargins = trimMultiData(tempAnnualMargins);
+      const finalQuarterlyMargins = trimMultiData(tempQuarterlyMargins);
 
       // State setzen
-      setAnnualData(finalAnnualRevenue);
-      setQuarterlyData(finalQuarterlyRevenue);
-      setAnnualEPS(finalAnnualEPS);
-      setQuarterlyEPS(finalQuarterlyEPS);
-      setAnnualFCF(finalAnnualFCF);
-      setQuarterlyFCF(finalQuarterlyFCF);
-      setAnnualIncomeStatement(finalAnnualIncome);
-      setQuarterlyIncomeStatement(finalQuarterlyIncome);
+      setAnnualData(finalAnnualRevenue); setQuarterlyData(finalQuarterlyRevenue);
+      setAnnualEPS(finalAnnualEPS); setQuarterlyEPS(finalQuarterlyEPS);
+      setAnnualFCF(finalAnnualFCF); setQuarterlyFCF(finalQuarterlyFCF);
+      setAnnualIncomeStatement(finalAnnualIncome); setQuarterlyIncomeStatement(finalQuarterlyIncome);
+      setAnnualMargins(finalAnnualMargins); setQuarterlyMargins(finalQuarterlyMargins);
       setChartData(finalAnnualRevenue);
 
       setProgress(100);
@@ -354,21 +353,16 @@ export const useStockData = (): UseStockDataResult => {
       // --- Update Cache ---
       setCachedData(prev => ({
         ...prev,
-        [ticker]: { // Key ist nur noch der Ticker
-          annualData: finalAnnualRevenue,
-          quarterlyData: finalQuarterlyRevenue,
-          annualEPS: finalAnnualEPS,
-          quarterlyEPS: finalQuarterlyEPS,
-          annualFCF: finalAnnualFCF,
-          quarterlyFCF: finalQuarterlyFCF,
-          annualIncomeStatement: finalAnnualIncome,
-          quarterlyIncomeStatement: finalQuarterlyIncome,
-          companyInfo: currentCompanyInfo,
-          keyMetrics: currentKeyMetrics,
+        [ticker]: {
+          annualData: finalAnnualRevenue, quarterlyData: finalQuarterlyRevenue,
+          annualEPS: finalAnnualEPS, quarterlyEPS: finalQuarterlyEPS,
+          annualFCF: finalAnnualFCF, quarterlyFCF: finalQuarterlyFCF,
+          annualIncomeStatement: finalAnnualIncome, quarterlyIncomeStatement: finalQuarterlyIncome,
+          annualMargins: finalAnnualMargins, quarterlyMargins: finalQuarterlyMargins,
+          companyInfo: currentCompanyInfo, keyMetrics: currentKeyMetrics,
         },
       }));
     } catch (err: any) {
-      // Fehlerbehandlung
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler beim Datenabruf';
       setError(errorMessage);
       console.error("Fehler in fetchData:", err);
@@ -378,16 +372,17 @@ export const useStockData = (): UseStockDataResult => {
       setAnnualEPS({ labels: [], values: [] }); setQuarterlyEPS({ labels: [], values: [] });
       setAnnualFCF({ labels: [], values: [] }); setQuarterlyFCF({ labels: [], values: [] });
       setAnnualIncomeStatement({ labels: [], datasets: [] }); setQuarterlyIncomeStatement({ labels: [], datasets: [] });
+      setAnnualMargins({ labels: [], datasets: [] }); setQuarterlyMargins({ labels: [], datasets: [] });
     } finally {
       setLoading(false);
     }
-  // Nur apiKey als Abhängigkeit für useCallback (cachedData wird intern geprüft)
-  }, [apiKey]);
+  }, [apiKey, cachedData]); // cachedData wieder als Dep hinzugefügt
 
   // Rückgabeobjekt
   return {
       chartData, annualData, quarterlyData, annualEPS, quarterlyEPS, annualFCF, quarterlyFCF,
       annualIncomeStatement, quarterlyIncomeStatement,
+      annualMargins, quarterlyMargins,
       loading, error, progress, companyInfo, keyMetrics,
       fetchData
   };

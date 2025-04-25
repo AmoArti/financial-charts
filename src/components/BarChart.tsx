@@ -1,70 +1,68 @@
-// src/components/BarChart.tsx (Mit automatischer Skalierung)
+// src/components/BarChart.tsx (Mit Y-Achsen Formatierung)
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartOptions, ScriptableContext } from 'chart.js'; // ChartOptions, ScriptableContext hinzugefügt
-// Importiere die MultiDatasetStockData Struktur
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartOptions } from 'chart.js';
 import { MultiDatasetStockData } from '../hooks/useStockData'; // Passe Pfad ggf. an
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// Props Interface (unverändert)
+// Props Interface erweitert
 interface BarChartProps {
   data: MultiDatasetStockData;
-  title: string;
+  title: string; // Wird für Card-Titel verwendet
+  yAxisFormat?: 'currency' | 'percent' | 'number'; // Format der Y-Achse
+  yAxisLabel?: string; // Optionaler Titel für die Y-Achse
 }
 
-const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
+const BarChart: React.FC<BarChartProps> = ({ data, title, yAxisFormat = 'number', yAxisLabel }) => { // Defaults gesetzt
 
-  // Farben für die Datasets (ähnlich dem Screenshot)
+  // Farben für die Datasets
   const datasetColors = [
-    { bg: 'rgba(54, 162, 235, 0.6)', border: 'rgba(54, 162, 235, 1)' },   // Blau (z.B. Revenue)
-    { bg: 'rgba(255, 206, 86, 0.6)', border: 'rgba(255, 206, 86, 1)' },   // Gelb (z.B. Gross Profit)
-    { bg: 'rgba(255, 99, 132, 0.6)', border: 'rgba(255, 99, 132, 1)' },   // Rot (z.B. Operating Income)
-    { bg: 'rgba(75, 192, 192, 0.6)', border: 'rgba(75, 192, 192, 1)' },   // Grün (z.B. Net Income)
+    { bg: 'rgba(54, 162, 235, 0.6)', border: 'rgba(54, 162, 235, 1)' },   // Blau
+    { bg: 'rgba(255, 206, 86, 0.6)', border: 'rgba(255, 206, 86, 1)' },   // Gelb
+    { bg: 'rgba(255, 99, 132, 0.6)', border: 'rgba(255, 99, 132, 1)' },   // Rot
+    { bg: 'rgba(75, 192, 192, 0.6)', border: 'rgba(75, 192, 192, 1)' },   // Grün
+     // Füge bei Bedarf mehr Farben hinzu
   ];
 
   // Mappe die Datasets aus den Props in das Chart.js Format
-  const chartDatasets = (data.datasets || []).map((ds, index) => ({ // Füge Fallback für leeres datasets hinzu
+  const chartDatasets = (data.datasets || []).map((ds, index) => ({
     label: ds.label,
-    data: ds.values || [], // Fallback für leere values
-    backgroundColor: ds.backgroundColor || datasetColors[index % datasetColors.length].bg,
-    borderColor: ds.borderColor || datasetColors[index % datasetColors.length].border,
+    data: ds.values || [],
+    backgroundColor: datasetColors[index % datasetColors.length].bg,
+    borderColor: datasetColors[index % datasetColors.length].border,
     borderWidth: 1,
   }));
-
-  // Manuelle Skalierungsberechnung ENTFERNT
 
   // Chart Daten Objekt
   const chartData = {
     labels: data?.labels || [],
-    datasets: chartDatasets, // Verwende die gemappten Datasets
+    datasets: chartDatasets,
   };
 
-  // Chart Optionen angepasst für automatische Skalierung
+  // Chart Optionen mit dynamischer Y-Achse
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'top' as const,
-        // Standard-onClick von Chart.js sollte für das Ausblenden/Einblenden ausreichen
-      },
-      title: {
-        display: false,
-        text: title,
-      },
+      legend: { position: 'top' as const, },
+      title: { display: false }, // Interner Titel bleibt aus
       tooltip: {
-        mode: 'index', // Zeige Tooltip für alle Balken eines Index (Quartal)
-        intersect: false,
-         callbacks: { // Tooltip formatieren
-            label: function(context) {
+        mode: 'index', intersect: false,
+         callbacks: {
+            label: function(context) { // Tooltip anpassen je nach Format
                 let label = context.dataset.label || '';
-                if (label) {
-                    label += ': ';
-                }
+                if (label) { label += ': '; }
                 if (context.parsed.y !== null) {
-                    // Formatiere als Milliarden, behalte Vorzeichen bei
-                    label += `$${context.parsed.y.toFixed(2)}B`;
+                    const value = context.parsed.y;
+                    if (yAxisFormat === 'currency') {
+                        // Annahme: Skalierung in Mrd. passiert im Hook, hier nur Format
+                        label += `$${value.toFixed(2)}B`;
+                    } else if (yAxisFormat === 'percent') {
+                        label += `${value.toFixed(2)}%`; // Prozent mit 2 Nachkommastellen
+                    } else {
+                        label += value.toString(); // Normale Zahl
+                    }
                 }
                 return label;
             }
@@ -73,31 +71,29 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     },
     scales: {
       y: {
-        // beginAtZero: true, // Chart.js macht das meist automatisch korrekt
-        grace: 0.1, // Fügt 10% Puffer über dem höchsten sichtbaren Wert hinzu
+        grace: 0.1, // 10% Puffer
         title: {
-          display: true, // Y-Achsen Titel anzeigen
-          text: 'Billions ($B)', // Text für Y-Achse
+          display: !!yAxisLabel, // Nur anzeigen, wenn Label übergeben wird
+          text: yAxisLabel ?? '', // Verwende übergebenes Label
         },
         ticks: {
-           // stepSize entfernt - Chart.js bestimmt Schrittgröße automatisch
-           callback: (value: number | string) => { // Formatierung beibehalten
-             const numValue = typeof value === 'number' ? value : parseFloat(String(value)); // String Konvertierung für Sicherheit
+           callback: (value: number | string) => { // Dynamische Formatierung
+             const numValue = typeof value === 'number' ? value : parseFloat(String(value));
              if (isNaN(numValue)) return value;
-             // Formatierung beibehalten ($XB oder $X.XB)
-             return `$${numValue.toFixed(numValue % 1 !== 0 ? 1 : 0)}B`; // Zeige .1 wenn nicht ganze Zahl
+
+             if (yAxisFormat === 'currency') {
+                 return `$${numValue.toFixed(numValue % 1 !== 0 ? 1 : 0)}B`;
+             } else if (yAxisFormat === 'percent') {
+                 // Zeige eine Nachkommastelle für Prozente, außer bei 0
+                 return `${numValue.toFixed(numValue !== 0 && numValue % 1 !== 0 ? 1 : 0)}%`;
+             } else {
+                 return numValue.toString();
+             }
            },
         },
       },
-      x: {
-        title: {
-          display: false, // X-Achsen Titel nicht anzeigen
-        },
-         stacked: false, // Sicherstellen, dass Bars gruppiert sind
-      },
+      x: { stacked: false },
     },
-    // Stelle sicher, dass das Chart Updates verarbeitet
-    // animation: false, // Kann helfen, Probleme zu debuggen
   };
 
   // Rendere nur, wenn Labels und Datasets vorhanden sind
