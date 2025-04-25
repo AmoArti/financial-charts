@@ -50,7 +50,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
         // Standard-onClick von Chart.js sollte für das Ausblenden/Einblenden ausreichen
       },
       title: {
-        display: true,
+        display: false,
         text: title,
       },
       tooltip: {
