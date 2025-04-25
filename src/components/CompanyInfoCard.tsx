@@ -1,38 +1,44 @@
+// src/components/CompanyInfoCard.tsx (Robuster gemacht)
 import React from 'react';
-import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonText } from '@ionic/react'; // IonText hinzugefügt
-// Passe den Pfad und Import an, falls KeyMetrics exportiert wurde
-import { CompanyInfo, KeyMetrics } from '../hooks/useStockData';
+import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonText } from '@ionic/react';
+import { CompanyInfo, KeyMetrics } from '../hooks/useStockData'; // Passe Pfad ggf. an
 
 interface CompanyInfoCardProps {
-  companyInfo: CompanyInfo;
+  companyInfo: CompanyInfo | null; // Erlaube null explizit
   ticker: string;
-  formatMarketCap: (marketCap: string) => string;
-  keyMetrics: KeyMetrics | null; // NEU: keyMetrics als Prop
+  formatMarketCap: (marketCap: string | null | undefined) => string; // Erlaube null/undefined
+  keyMetrics: KeyMetrics | null;
 }
 
 const CompanyInfoCard: React.FC<CompanyInfoCardProps> = ({ companyInfo, ticker, formatMarketCap, keyMetrics }) => {
+  // Früher Ausstieg oder Standardwerte, wenn companyInfo null ist
+  if (!companyInfo) {
+    // Optional: Eine kleine Ladeanzeige oder null zurückgeben, während companyInfo noch lädt
+    // Zum Debuggen ist es besser, null zurückzugeben, um Fehler zu vermeiden
+    return null;
+  }
+
   return (
-    // Inline-Style für margin sollte jetzt in CSS sein
     <IonCard className="company-info-card">
       <IonCardHeader>
-        <IonCardTitle>{companyInfo.Name} ({ticker})</IonCardTitle>
+         {/* Verwende Fallback für Name */}
+        <IonCardTitle>{companyInfo?.Name ?? ticker} ({ticker || 'N/A'})</IonCardTitle> {/* Fallback für Ticker hinzugefügt */}
       </IonCardHeader>
       <IonCardContent>
-        {/* Bestehende Infos */}
-        <p><strong>Branche:</strong> {companyInfo.Industry}</p>
-        <p><strong>Sitz:</strong> {companyInfo.Address}</p>
-        <p><strong>Marktkapitalisierung:</strong> {formatMarketCap(companyInfo.MarketCapitalization)}</p>
-        {/* Preis und Preisänderung */}
+         {/* Verwende optional chaining und nullish coalescing */}
+        <p><strong>Branche:</strong> {companyInfo?.Industry ?? 'N/A'}</p>
+        <p><strong>Sitz:</strong> {companyInfo?.Address ?? 'N/A'}</p>
+        <p><strong>Marktkapitalisierung:</strong> {formatMarketCap(companyInfo?.MarketCapitalization)}</p> {/* formatMarketCap sollte null prüfen */}
         <p style={{ marginTop: '10px', fontSize: '1.1em' }}>
-            <strong>Aktueller Kurs:</strong> ${companyInfo.LastSale}
-            {/* NEU: Preisänderung anzeigen, wenn vorhanden */}
-            {keyMetrics && keyMetrics.priceChange !== null && keyMetrics.priceChangePercent !== null && (
-              <IonText color={keyMetrics.isPositiveChange ? 'success' : 'danger'} style={{ marginLeft: '10px' }}>
-                {/* Zeige Vorzeichen nur wenn nicht 0 */}
-                <span> ({parseFloat(keyMetrics.priceChange) >= 0 ? '+' : ''}{keyMetrics.priceChange}$)</span>
-                <span> ({keyMetrics.priceChangePercent})</span>
-              </IonText>
-            )}
+           <strong>Aktueller Kurs:</strong> ${companyInfo?.LastSale ?? 'N/A'}
+           {/* Preisänderung (keyMetrics kann auch null sein) */}
+           {keyMetrics && keyMetrics.priceChange !== null && keyMetrics.priceChangePercent !== null && (
+             <IonText color={keyMetrics.isPositiveChange ? 'success' : 'danger'} style={{ marginLeft: '10px' }}>
+               {/* Stelle sicher, dass priceChange existiert, bevor parseFloat versucht wird */}
+               <span> ({keyMetrics.priceChange && parseFloat(keyMetrics.priceChange) >= 0 ? '+' : ''}{keyMetrics.priceChange}$)</span>
+               <span> ({keyMetrics.priceChangePercent})</span>
+             </IonText>
+           )}
         </p>
       </IonCardContent>
     </IonCard>
