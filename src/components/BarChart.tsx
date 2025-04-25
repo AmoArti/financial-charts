@@ -1,15 +1,15 @@
-// src/components/BarChart.tsx
+// src/components/BarChart.tsx (Mit automatischer Skalierung)
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartOptions } from 'chart.js'; // ChartOptions hinzugefügt
-// Importiere die neue Datenstruktur
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartOptions, ScriptableContext } from 'chart.js'; // ChartOptions, ScriptableContext hinzugefügt
+// Importiere die MultiDatasetStockData Struktur
 import { MultiDatasetStockData } from '../hooks/useStockData'; // Passe Pfad ggf. an
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// Props Interface angepasst
+// Props Interface (unverändert)
 interface BarChartProps {
-  data: MultiDatasetStockData; // Verwende die neue Struktur
+  data: MultiDatasetStockData;
   title: string;
 }
 
@@ -24,29 +24,15 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
   ];
 
   // Mappe die Datasets aus den Props in das Chart.js Format
-  const chartDatasets = data.datasets.map((ds, index) => ({
+  const chartDatasets = (data.datasets || []).map((ds, index) => ({ // Füge Fallback für leeres datasets hinzu
     label: ds.label,
-    data: ds.values,
+    data: ds.values || [], // Fallback für leere values
     backgroundColor: ds.backgroundColor || datasetColors[index % datasetColors.length].bg,
     borderColor: ds.borderColor || datasetColors[index % datasetColors.length].border,
     borderWidth: 1,
   }));
 
-  // Berechnung der Skalierung über *alle* Datasets
-  const allValues = data.datasets.flatMap(ds => ds.values).filter(v => typeof v === 'number' && !isNaN(v)); // Sicherstellen, dass nur gültige Zahlen betrachtet werden
-  const maxValue = Math.max(...allValues, 0);
-  const minValue = Math.min(...allValues, 0); // Negative Werte für Income erlauben
-  const buffer = Math.max(Math.abs(maxValue), Math.abs(minValue)) * 0.1; // 10% Puffer
-
-  // Skalierungslogik angepasst
-  const maxScale = maxValue > 0 ? Math.ceil((maxValue + buffer) / 5) * 5 : (minValue < -5 ? 0 : 5); // Sorge dafür, dass 0 sichtbar ist, wenn es negative Werte gibt
-  const minScale = minValue < 0 ? Math.floor((minValue - buffer) / 5) * 5 : 0;
-
-  const range = maxScale - minScale;
-  // Schrittgröße - sorge für sinnvolle Schritte, vermeide 0
-  let stepSize = range > 0 ? Math.max(1, Math.ceil(range / 10 / 5) * 5) : 5; // Teile durch 10 für max ~10 Ticks, nicht 50
-   if (stepSize === 0) stepSize = 5; // Fallback
-
+  // Manuelle Skalierungsberechnung ENTFERNT
 
   // Chart Daten Objekt
   const chartData = {
@@ -54,13 +40,14 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     datasets: chartDatasets, // Verwende die gemappten Datasets
   };
 
-  // Chart Optionen angepasst
+  // Chart Optionen angepasst für automatische Skalierung
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top' as const,
+        // Standard-onClick von Chart.js sollte für das Ausblenden/Einblenden ausreichen
       },
       title: {
         display: true,
@@ -86,20 +73,19 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
     },
     scales: {
       y: {
-        beginAtZero: minValue >= 0, // Dynamisch setzen
-        min: minScale,
-        max: maxScale,
+        // beginAtZero: true, // Chart.js macht das meist automatisch korrekt
+        grace: 0.1, // Fügt 10% Puffer über dem höchsten sichtbaren Wert hinzu
         title: {
           display: true, // Y-Achsen Titel anzeigen
           text: 'Billions ($B)', // Text für Y-Achse
         },
         ticks: {
-           stepSize: stepSize, // Berechnete Schrittgröße
-           callback: (value: number | string) => {
-             const numValue = typeof value === 'number' ? value : parseFloat(value);
+           // stepSize entfernt - Chart.js bestimmt Schrittgröße automatisch
+           callback: (value: number | string) => { // Formatierung beibehalten
+             const numValue = typeof value === 'number' ? value : parseFloat(String(value)); // String Konvertierung für Sicherheit
              if (isNaN(numValue)) return value;
-             // Formatierung beibehalten ($XB)
-             return `$${numValue.toFixed(numValue === 0 ? 0 : 1)}B`;
+             // Formatierung beibehalten ($XB oder $X.XB)
+             return `$${numValue.toFixed(numValue % 1 !== 0 ? 1 : 0)}B`; // Zeige .1 wenn nicht ganze Zahl
            },
         },
       },
@@ -107,12 +93,14 @@ const BarChart: React.FC<BarChartProps> = ({ data, title }) => {
         title: {
           display: false, // X-Achsen Titel nicht anzeigen
         },
-         stacked: false, // Sicherstellen, dass Bars gruppiert sind (default)
+         stacked: false, // Sicherstellen, dass Bars gruppiert sind
       },
     },
+    // Stelle sicher, dass das Chart Updates verarbeitet
+    // animation: false, // Kann helfen, Probleme zu debuggen
   };
 
-  // Rendere nur, wenn Labels vorhanden sind
+  // Rendere nur, wenn Labels und Datasets vorhanden sind
   return (data?.labels?.length > 0 && data?.datasets?.length > 0) ? <Bar data={chartData} options={options} /> : null;
 };
 
