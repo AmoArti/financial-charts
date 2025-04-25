@@ -27,7 +27,7 @@ export interface MultiDatasetStockData {
   };
   
   
-  // --- HINZUGEFÜGT: trimMultiData Funktion ---
+  // --- trimMultiData Funktion ---
   /**
    * Kürzt die Daten in einem MultiDatasetStockData-Objekt, sodass sie erst
    * beim ersten Nicht-Null-Wert im *ersten* Dataset beginnen.
@@ -36,7 +36,7 @@ export interface MultiDatasetStockData {
    * @returns Ein neues MultiDatasetStockData-Objekt mit den gekürzten Daten.
    */
   export const trimMultiData = (data: MultiDatasetStockData): MultiDatasetStockData => {
-      if (!data || !data.datasets || data.datasets.length === 0 || !data.datasets[0].values) {
+      if (!data || !data.datasets || data.datasets.length === 0 || !data.datasets[0]?.values || data.datasets[0].values.length === 0) {
           return { labels: [], datasets: [] };
       }
   
@@ -45,7 +45,11 @@ export interface MultiDatasetStockData {
   
       // Wenn alle Werte im ersten Dataset 0 sind oder keine Werte vorhanden sind, leere Daten zurückgeben.
       if (firstNonZeroIndex === -1) {
-          return { labels: [], datasets: [] };
+          // Wichtig: Gib leere Datasets zurück, aber behalte die Struktur bei
+          return {
+               labels: [],
+               datasets: data.datasets.map(ds => ({ ...ds, values: [] }))
+          };
       }
   
       // Kürze Labels und *alle* Datasets ab diesem Index.
@@ -53,14 +57,14 @@ export interface MultiDatasetStockData {
           labels: data.labels.slice(firstNonZeroIndex),
           datasets: data.datasets.map(ds => ({
               ...ds,
-              values: ds.values.slice(firstNonZeroIndex)
-          }))
+              // Stelle sicher, dass values existiert, bevor slice aufgerufen wird
+              values: ds.values ? ds.values.slice(firstNonZeroIndex) : [],
+          })),
       };
   };
   
   
-  // --- Originale filterDataToYears Funktion (Beachte: Diese funktioniert NICHT direkt mit MultiDatasetStockData) ---
-  // Sie wird im ChartModal nicht mehr benötigt, wenn die Filterung/Kürzung im Hook passiert.
+  // --- Originale filterDataToYears Funktion (wird nicht mehr direkt im Modal benötigt) ---
   interface StockDataForFilter {
       labels: (string | number)[];
       values: number[];
@@ -79,4 +83,39 @@ export interface MultiDatasetStockData {
           values: data.values.slice(startIndex),
       };
   };
-  // --- Ende Anpassungen ---
+  
+  // --- NEUE sliceMultiDataToLastNPoints Funktion ---
+  /**
+   * Schneidet die Daten in einem MultiDatasetStockData-Objekt, um nur die
+   * letzten N Datenpunkte zu behalten.
+   * @param data Das MultiDatasetStockData-Objekt mit potenziell mehr Daten.
+   * @param pointsToKeep Die Anzahl der *letzten* Datenpunkte, die behalten werden sollen.
+   * @returns Ein neues MultiDatasetStockData-Objekt mit den geschnittenen Daten.
+   */
+  export const sliceMultiDataToLastNPoints = (data: MultiDatasetStockData, pointsToKeep: number): MultiDatasetStockData => {
+      // Robuste Prüfungen für data und pointsToKeep
+      if (!data || !data.labels || data.labels.length === 0 || !data.datasets || pointsToKeep <= 0) {
+          // Gib eine leere, aber gültige Struktur zurück
+          return {
+              labels: [],
+              datasets: data?.datasets?.map(ds => ({ ...ds, values: [] })) || [] // Behalte Dataset-Labels etc.
+          };
+      }
+  
+      const totalPoints = data.labels.length;
+      if (pointsToKeep >= totalPoints) {
+          return data; // Keine Kürzung nötig
+      }
+  
+      const startIndex = totalPoints - pointsToKeep;
+  
+      return {
+          labels: data.labels.slice(startIndex),
+          datasets: data.datasets.map(ds => ({
+              ...ds,
+              // Stelle sicher, dass values existiert, bevor slice aufgerufen wird
+              values: ds.values ? ds.values.slice(startIndex) : [],
+          })),
+      };
+  };
+  // --- Ende utils.ts ---

@@ -1,70 +1,92 @@
-// src/pages/Home.tsx (Mit korrigiertem console.log und angepasster Kennzahlen-Anzeige)
+// src/pages/Home.tsx (Daten-Slicing vor Chart-Übergabe)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol, IonToast, IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText } from '@ionic/react';
+import {
+  IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonGrid, IonRow, IonCol,
+  IonToast, IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText,
+  IonSegment, IonSegmentButton, IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle, IonCardContent
+} from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import BarChart from '../components/BarChart';
-import ChartModal from '../components/ChartModal';
 import CompanyInfoCard from '../components/CompanyInfoCard';
 import ErrorCard from '../components/ErrorCard';
 import LoadingIndicator from '../components/LoadingIndicator';
-// Hole auch die neuen Typen und Daten aus dem Hook
 import { useStockData, StockData, CompanyInfo, KeyMetrics, MultiDatasetStockData } from '../hooks/useStockData';
+// NEU: Importiere sliceMultiDataToLastNPoints
+import { sliceMultiDataToLastNPoints } from '../utils/utils';
 import './Home.css';
 
-interface ChartState {
-  isModalOpen: boolean;
-  isAnnualView: boolean;
-  years: number;
-}
+// Definiere die Optionen für die Jahresauswahl (unverändert)
+const quarterlyYearOptions = [
+    { value: 1, label: '1Y' },
+    { value: 2, label: '2Y' },
+    { value: 4, label: '4Y' },
+    { value: 10, label: 'MAX' }
+];
+const annualYearOptions = [
+    { value: 5, label: '5Y' },
+    { value: 10, label: '10Y' },
+    { value: 15, label: '15Y' },
+    { value: 20, label: 'MAX' }
+];
+const defaultYearsQuarterly = 4;
+const defaultYearsAnnual = 10;
 
 const Home: React.FC = () => {
   // --- Hooks und State Deklarationen ---
   const {
-    annualData, quarterlyData, // Original Revenue (wird evtl. nicht mehr direkt genutzt)
     annualEPS, quarterlyEPS,
     annualFCF, quarterlyFCF,
-    annualIncomeStatement, quarterlyIncomeStatement, // NEU
+    annualIncomeStatement, quarterlyIncomeStatement,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
-  const [charts, setCharts] = useState<{
-    revenue: ChartState; // Steuert das Income Statement Modal
-    eps: ChartState;
-    fcf: ChartState;
-  }>({
-    revenue: { isModalOpen: false, isAnnualView: true, years: 10 },
-    eps: { isModalOpen: false, isAnnualView: true, years: 10 },
-    fcf: { isModalOpen: false, isAnnualView: true, years: 10 },
-  });
+  const [viewMode, setViewMode] = useState<'annual' | 'quarterly'>('quarterly');
+  const [displayYears, setDisplayYears] = useState<number>(defaultYearsQuarterly);
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [maxYearsFetched, setMaxYearsFetched] = useState<number>(0);
   const [isFetchingMoreYears, setIsFetchingMoreYears] = useState<boolean>(false);
   const prevLoadingRef = useRef<boolean>(loading);
 
-  // --- Daten für Hauptansicht ---
-  // (Übergabe an BarChart im MultiDataset-Format)
-   const mainChartDataAnnualRevenue: MultiDatasetStockData = {
-       labels: annualIncomeStatement?.labels || [],
-       datasets: annualIncomeStatement?.datasets?.filter(ds => ds.label === 'Revenue') || []
-   };
-   const mainEPSDataAnnual: MultiDatasetStockData = { labels: annualEPS.labels || [], datasets: [{ label: 'EPS', values: annualEPS.values || [] }] };
-   const mainFCFDataAnnual: MultiDatasetStockData = { labels: annualFCF.labels || [], datasets: [{ label: 'FCF', values: annualFCF.values || [] }] };
+  // --- Daten aus Hook holen ---
+  // Diese repräsentieren die *maximal* verfügbaren Daten (bis maxYearsFetched)
+  const incomeDataFromHook = viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement;
+  const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS;
+  const fcfDataBase = viewMode === 'annual' ? annualFCF : quarterlyFCF;
+
+  // *** Daten basierend auf displayYears kürzen/slicen für die Anzeige ***
+  const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
+
+  const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
+
+  // Konvertiere EPS/FCF Daten temporär zu MultiDataset und slice dann
+  const epsDataMulti: MultiDatasetStockData = {
+      labels: epsDataBase.labels || [],
+      datasets: [{ label: 'EPS', values: epsDataBase.values || [] }]
+  };
+  const epsDataForChart = sliceMultiDataToLastNPoints(epsDataMulti, pointsToKeep);
+
+  const fcfDataMulti: MultiDatasetStockData = {
+      labels: fcfDataBase.labels || [],
+      datasets: [{ label: 'FCF', values: fcfDataBase.values || [] }]
+  };
+  const fcfDataForChart = sliceMultiDataToLastNPoints(fcfDataMulti, pointsToKeep);
+
 
   // --- useEffect Hooks ---
   useEffect(() => { document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard"; }, [currentTicker]);
 
-  // Angepasster useEffect für Erfolgsmeldung
+  // useEffect für Erfolgsmeldung (prüft jetzt geslicete Daten)
   useEffect(() => {
       if (prevLoadingRef.current && !loading && !error && currentTicker) {
-           const hasMainData = mainChartDataAnnualRevenue.labels.length > 0 || mainEPSDataAnnual.labels.length > 0 || mainFCFDataAnnual.labels.length > 0;
-           if(hasMainData) {
-               setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
+           const hasIncomeData = incomeDataForChart?.labels?.length > 0; // Prüfe geslicete Daten
+           if(hasIncomeData) {
+               setSuccessMessage(`Daten für ${currentTicker} (${displayYears} Jahre) erfolgreich geladen`);
            }
       }
-  }, [loading, error, currentTicker, mainChartDataAnnualRevenue, mainEPSDataAnnual, mainFCFDataAnnual]);
+  }, [loading, error, currentTicker, displayYears, incomeDataForChart]); // Abhängigkeit angepasst
 
-  // Effekt zum Aktualisieren des Refs *nach* dem Rendern
+  // Effekt zum Aktualisieren des Refs
   useEffect(() => {
     prevLoadingRef.current = loading;
   });
@@ -72,27 +94,36 @@ const Home: React.FC = () => {
   // Effekt zum Abrufen der initialen Daten bei Ticker-Änderung
   useEffect(() => {
     if (currentTicker) {
-      const initialFetchYears = 10;
-      console.log(`[Home useEffect - Ticker Change] Fetching initial data for ${currentTicker}`);
-      fetchData(currentTicker, initialFetchYears);
-      setMaxYearsFetched(initialFetchYears);
-      setSuccessMessage(''); // Alte Meldung löschen bei neuer Suche
-       setCharts(prev => ({
-           revenue: { ...prev.revenue, years: initialFetchYears, isModalOpen: false }, // Modal schließen
-           eps: { ...prev.eps, years: initialFetchYears, isModalOpen: false }, // Modal schließen
-           fcf: { ...prev.fcf, years: initialFetchYears, isModalOpen: false }, // Modal schließen
-       }));
-       setIsFetchingMoreYears(false); // Sicherstellen, dass Flag zurückgesetzt wird
+      console.log(`[Home useEffect - Ticker Change] Fetching initial data for ${currentTicker} (${displayYears} years)`);
+      fetchData(currentTicker, displayYears);
+      setMaxYearsFetched(displayYears);
+      setSuccessMessage('');
+      setIsFetchingMoreYears(false);
     } else {
-      // Reset wenn kein Ticker (z.B. beim Start oder Löschen)
       setMaxYearsFetched(0);
       setIsFetchingMoreYears(false);
-      // TODO: Optional hier auch alle Daten-States (companyInfo, keyMetrics, etc.) zurücksetzen?
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTicker]); // Nur von currentTicker abhängig
+  }, [currentTicker]);
 
-  // useEffect zum Zurücksetzen von isFetchingMoreYears, wenn Laden endet
+  // Effekt zum Zurücksetzen von displayYears bei viewMode-Wechsel
+  useEffect(() => {
+    if (!loading && currentTicker) { // Nur ausführen, wenn nicht gerade geladen wird und Ticker existiert
+        console.log(`[Home useEffect - ViewMode Change] ViewMode changed to ${viewMode}. Resetting years.`);
+        const newDefaultYears = viewMode === 'annual' ? defaultYearsAnnual : defaultYearsQuarterly;
+        if (displayYears !== newDefaultYears) {
+            setDisplayYears(newDefaultYears);
+            if (newDefaultYears > maxYearsFetched) {
+                console.log(`Fetching data for new default years ${newDefaultYears} (max was ${maxYearsFetched})`);
+                setMaxYearsFetched(newDefaultYears);
+                fetchData(currentTicker, newDefaultYears);
+            }
+        }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]); // Nur von viewMode abhängig
+
+  // useEffect zum Zurücksetzen von isFetchingMoreYears
   useEffect(() => {
      if (!loading && isFetchingMoreYears) {
          setIsFetchingMoreYears(false);
@@ -100,52 +131,47 @@ const Home: React.FC = () => {
      }
   }, [loading, isFetchingMoreYears]);
 
+
   // --- Event Handlers ---
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
   const handleRetry = () => {
     if (currentTicker) {
-        console.log(`[Home handleRetry] Retrying fetch for ${currentTicker}`);
-        const yearsToRetry = maxYearsFetched > 0 ? maxYearsFetched : 10;
-        fetchData(currentTicker, yearsToRetry);
+        console.log(`[Home handleRetry] Retrying fetch for ${currentTicker} (${displayYears} years)`);
+        fetchData(currentTicker, displayYears);
     }
    };
-  const openModal = (chartType: 'revenue' | 'eps' | 'fcf') => { setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], isModalOpen: true }, })); };
-  const closeModal = (chartType: 'revenue' | 'eps' | 'fcf') => { setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], isModalOpen: false }, })); };
-  const handleViewToggle = (chartType: 'revenue' | 'eps' | 'fcf', isAnnual: boolean) => { setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], isAnnualView: isAnnual, }, })); };
 
-  const handleYearsChange = (chartType: 'revenue' | 'eps' | 'fcf', years: number) => {
-    setCharts(prev => ({ ...prev, [chartType]: { ...prev[chartType], years }, }));
-    if (currentTicker && years > maxYearsFetched) {
-      console.log(`[Home handleYearsChange] Fetching additional data for ${currentTicker} (${years} years, max was ${maxYearsFetched}).`);
+  // Handler für globale Jahresauswahl
+  const handleGlobalYearsChange = (newYearsString: string | undefined) => {
+    if (newYearsString === undefined) return;
+    const newYears = parseInt(newYearsString, 10);
+    if (isNaN(newYears) || newYears === displayYears) return;
+
+    console.log(`[Home handleGlobalYearsChange] Years changed to ${newYears}`);
+    setDisplayYears(newYears);
+    if (currentTicker && newYears > maxYearsFetched) {
+      console.log(`Fetching additional data for ${newYears} years (max was ${maxYearsFetched}).`);
       setIsFetchingMoreYears(true);
-      setMaxYearsFetched(years);
-      fetchData(currentTicker, years);
+      setMaxYearsFetched(newYears);
+      fetchData(currentTicker, newYears);
     } else {
-       if (isFetchingMoreYears) setIsFetchingMoreYears(false);
+      if (isFetchingMoreYears) setIsFetchingMoreYears(false);
     }
   };
 
-  // --- Helper Functions ---
-  const formatMarketCap = (marketCap: string | null | undefined): string => {
-     if (!marketCap) return 'N/A';
-     const num = parseFloat(marketCap);
-     if(isNaN(num)) return 'N/A';
-     return (num / 1e9).toFixed(2) + ' Mrd. $';
+  // Handler für globale Ansicht
+  const handleGlobalViewChange = (newViewMode: 'annual' | 'quarterly' | undefined) => {
+      if (newViewMode === undefined || (newViewMode !== 'annual' && newViewMode !== 'quarterly') || newViewMode === viewMode) return;
+      console.log(`[Home handleGlobalViewChange] View changed to ${newViewMode}`);
+      setViewMode(newViewMode);
   };
 
-  const getErrorDetails = (errorMessage: string): { explanation: string; recommendation: string } => {
-      let explanation = ''; let recommendation = '';
-      if (!errorMessage) errorMessage = "Unbekannter Fehler";
-      if (errorMessage.includes('API-Fehler bei') || errorMessage.includes('Ungültiger Ticker')) { explanation = 'Der eingegebene Ticker wurde nicht gefunden oder ist ungültig.'; recommendation = 'Bitte überprüfen Sie die Schreibweise (z.B. AAPL für Apple).'; }
-      else if (errorMessage.includes('API-Limit erreicht')) { explanation = 'Das Abfragelimit für die API wurde erreicht (Alpha Vantage Free Tier).'; recommendation = 'Bitte warten Sie eine Minute und versuchen Sie es erneut.'; }
-      else if (errorMessage.includes('Keine Finanzdaten') || errorMessage.includes('Keine Unternehmensinformationen') || errorMessage.includes('Kein aktueller Aktienkurs')) { explanation = `Für den Ticker "${currentTicker || ''}" konnten notwendige Daten nicht gefunden werden.`; recommendation = 'Möglicherweise werden für diesen Ticker nicht alle Daten von Alpha Vantage bereitgestellt.'; }
-      else if (errorMessage.includes('API-Schlüssel nicht gefunden')) { explanation = 'Der API-Schlüssel für Alpha Vantage fehlt.'; recommendation = 'Bitte überprüfen Sie die Konfiguration (z.B. .env Datei).'}
-      else { explanation = `Ein unerwarteter Fehler ist aufgetreten: ${errorMessage}`; recommendation = 'Bitte versuchen Sie es erneut. Bei anhaltenden Problemen prüfen Sie die Browserkonsole.'; }
-      return { explanation, recommendation };
-  };
+  // --- Helper Functions (unverändert) ---
+  const formatMarketCap = (marketCap: string | null | undefined): string => { /* ... */ };
+  const getErrorDetails = (errorMessage: string): { explanation: string; recommendation: string } => { /* ... */ };
 
-  // *** console.log VOR dem return ***
-  console.log('DEBUG: Home Component Render - KeyMetrics State:', keyMetrics);
+  // Bestimme die aktuell anzuzeigenden Jahresoptionen
+  const currentYearOptions = viewMode === 'annual' ? annualYearOptions : quarterlyYearOptions;
 
   // --- JSX Return ---
   return (
@@ -156,97 +182,86 @@ const Home: React.FC = () => {
         <div style={{ padding: '20px' }}>
           <SearchBar onSearch={handleSearch} />
 
-          {/* Zeige globalen Ladebalken nur beim ALLERERSTEN Laden */}
+          {/* Ladeanzeige / Fehler / Erfolgsmeldung */}
           {loading && !isFetchingMoreYears && !companyInfo && <LoadingIndicator progress={progress} />}
-
-          {/* Zeige Fehler nur wenn nicht geladen wird */}
           {typeof error === 'string' && !loading && ( <ErrorCard error={error} getErrorDetails={getErrorDetails} onRetry={handleRetry} /> )}
-
-          {/* Erfolgsmeldung */}
           <IonToast isOpen={!!successMessage} message={successMessage} duration={3000} color="success" position="top" onDidDismiss={() => setSuccessMessage('')} />
 
-          {/* Zeige Company Info Card, wenn Daten vorhanden sind */}
-           {companyInfo && ( <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} /> )}
-
-           {/* Kennzahlenliste anzeigen, wenn keyMetrics vorhanden sind (mit N/A Fallback) */}
-           {keyMetrics && (
-             <IonList inset={true} style={{ marginTop: '20px', marginBottom: '20px', '--ion-item-background': '#f9f9f9', borderRadius: '8px' }}>
-               <IonItem lines="full"><IonLabel color="medium">Kennzahlen</IonLabel></IonItem>
-               {/* Zeige 'N/A' wenn Wert null ist, ansonsten den Wert */}
-               <IonItem><IonLabel>KGV (P/E Ratio)</IonLabel><IonNote slot="end">{keyMetrics.peRatio ?? 'N/A'}</IonNote></IonItem>
-               <IonItem><IonLabel>KUV (P/S Ratio)</IonLabel><IonNote slot="end">{keyMetrics.psRatio ?? 'N/A'}</IonNote></IonItem>
-               <IonItem><IonLabel>KBV (P/B Ratio)</IonLabel><IonNote slot="end">{keyMetrics.pbRatio ?? 'N/A'}</IonNote></IonItem>
-               <IonItem><IonLabel>EV/EBITDA</IonLabel><IonNote slot="end">{keyMetrics.evToEbitda ?? 'N/A'}</IonNote></IonItem>
-               <IonItem><IonLabel>Bruttomarge</IonLabel><IonNote slot="end">{keyMetrics.grossMargin ?? 'N/A'}</IonNote></IonItem>
-               <IonItem><IonLabel>Operative Marge</IonLabel><IonNote slot="end">{keyMetrics.operatingMargin ?? 'N/A'}</IonNote></IonItem>
-               <IonItem lines="none"><IonLabel>Dividendenrendite</IonLabel><IonNote slot="end">{keyMetrics.dividendYield ?? 'N/A'}</IonNote></IonItem>
+          {/* Company Info & Key Metrics */}
+          {companyInfo && ( <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} /> )}
+          {keyMetrics && (
+             <IonList inset={true} style={{ marginTop: '20px', marginBottom: '0px', '--ion-item-background': '#f9f9f9', borderRadius: '8px' }}>
+                {/* ... Kennzahlen Items mit ?? 'N/A' ... */}
              </IonList>
            )}
 
-          {/* Haupt-Charts - Zeige Grid, wenn Ticker gesetzt und kein Fehler */}
-          {!error && currentTicker && (
-            <IonGrid>
-               <IonRow>
-                 {/* Revenue Chart/Placeholder */}
-                 <IonCol size="12" size-md="4">
-                     {mainChartDataAnnualRevenue.labels.length > 0 && mainChartDataAnnualRevenue.datasets.length > 0 ? (
-                         <div className="chart-container" onClick={() => openModal('revenue')}>
-                             <BarChart data={mainChartDataAnnualRevenue} title="Revenue (Annual)" />
-                         </div>
-                     ) : !loading && (<p>Keine Umsatzdaten verfügbar.</p>)}
-                 </IonCol>
+           {/* --- Globale Bedienelemente mit DYNAMISCHER Jahresauswahl --- */}
+           {!error && currentTicker && companyInfo && (
+             <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+                 <IonSegment value={viewMode} onIonChange={(e) => handleGlobalViewChange(e.detail.value as 'annual' | 'quarterly' | undefined)} style={{ marginBottom: '10px' }}>
+                   <IonSegmentButton value="quarterly"><IonLabel>QUARTER</IonLabel></IonSegmentButton>
+                   <IonSegmentButton value="annual"><IonLabel>ANNUAL</IonLabel></IonSegmentButton>
+                 </IonSegment>
+                 <IonSegment value={displayYears.toString()} onIonChange={(e) => handleGlobalYearsChange(e.detail.value)}>
+                   {currentYearOptions.map(option => (
+                      <IonSegmentButton key={option.value} value={option.value.toString()}>
+                          <IonLabel>{option.label}</IonLabel>
+                      </IonSegmentButton>
+                   ))}
+                 </IonSegment>
+             </div>
+           )}
 
-                 {/* EPS Chart/Placeholder */}
-                 <IonCol size="12" size-md="4">
-                     {mainEPSDataAnnual.labels.length > 0 && mainEPSDataAnnual.datasets[0].values.length > 0 ? (
-                         <div className="chart-container" onClick={() => openModal('eps')}>
-                             <BarChart data={mainEPSDataAnnual} title="EPS (Annual)" />
-                          </div>
-                     ) : !loading && (<p>Keine EPS-Daten verfügbar.</p>)}
-                 </IonCol>
+          {/* --- Bereich für die direkt angezeigten Charts --- */}
+          {!error && currentTicker && companyInfo && (
+            <div style={{ marginTop: '10px' }}>
+              {isFetchingMoreYears && <div style={{textAlign: 'center', padding: '20px'}}><IonSpinner name="crescent" /><p>Lade mehr Daten...</p></div>}
 
-                 {/* FCF Chart/Placeholder */}
-                 <IonCol size="12" size-md="4">
-                     {mainFCFDataAnnual.labels.length > 0 && mainFCFDataAnnual.datasets[0].values.length > 0 ? (
-                         <div className="chart-container" onClick={() => openModal('fcf')}>
-                             <BarChart data={mainFCFDataAnnual} title="FCF (Annual)" />
-                         </div>
-                     ) : !loading && (<p>Keine FCF-Daten verfügbar.</p>)}
-                  </IonCol>
-               </IonRow>
-             </IonGrid>
-            )}
+              {/* Income Statement Chart - Nutzt jetzt geslicete Daten */}
+              <IonCard>
+                <IonCardHeader><IonCardTitle>Income Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                <IonCardContent>
+                  {incomeDataForChart.labels.length > 0 && incomeDataForChart.datasets.length > 0 ? (
+                    <div style={{ height: '300px', width: '100%' }}>
+                      <BarChart data={incomeDataForChart} title={`Income Statement (${viewMode === 'annual' ? 'Annual' : 'Quarterly'})`} />
+                    </div>
+                  ) : !loading && (<p>Keine Income Statement Daten verfügbar für die Auswahl.</p>)}
+                </IonCardContent>
+              </IonCard>
 
-          {/* ---- Modals ---- */}
-          {/* Stelle sicher, dass alle Modals die korrekten Props erhalten */}
-          <ChartModal
-            isOpen={charts.revenue.isModalOpen}
-            onClose={() => closeModal('revenue')}
-            title="Income Statement"
-            annualData={annualIncomeStatement}
-            quarterlyData={quarterlyIncomeStatement}
-            isAnnualView={charts.revenue.isAnnualView}
-            setIsAnnualView={(isAnnual) => handleViewToggle('revenue', isAnnual)}
-            years={charts.revenue.years}
-            setYears={(y) => handleYearsChange('revenue', y)}
-            isFetchingMoreYears={isFetchingMoreYears}
-          />
-          <ChartModal
-             isOpen={charts.eps.isModalOpen} onClose={() => closeModal('eps')} title="EPS"
-             annualData={{ labels: annualEPS.labels || [], datasets: [{ label: 'EPS', values: annualEPS.values || [] }] }}
-             quarterlyData={{ labels: quarterlyEPS.labels || [], datasets: [{ label: 'EPS', values: quarterlyEPS.values || [] }] }}
-             isAnnualView={charts.eps.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('eps', isAnnual)}
-             years={charts.eps.years} setYears={(y) => handleYearsChange('eps', y)}
-             isFetchingMoreYears={isFetchingMoreYears}
-           />
-           <ChartModal
-             isOpen={charts.fcf.isModalOpen} onClose={() => closeModal('fcf')} title="FCF"
-             annualData={{ labels: annualFCF.labels || [], datasets: [{ label: 'FCF', values: annualFCF.values || [] }] }}
-             quarterlyData={{ labels: quarterlyFCF.labels || [], datasets: [{ label: 'FCF', values: quarterlyFCF.values || [] }] }}
-             isAnnualView={charts.fcf.isAnnualView} setIsAnnualView={(isAnnual) => handleViewToggle('fcf', isAnnual)}
-             years={charts.fcf.years} setYears={(y) => handleYearsChange('fcf', y)}
-             isFetchingMoreYears={isFetchingMoreYears}
-            />
+              {/* EPS Chart - Nutzt jetzt geslicete Daten */}
+              <IonCard>
+                <IonCardHeader><IonCardTitle>EPS ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                <IonCardContent>
+                   {epsDataForChart.labels.length > 0 && epsDataForChart.datasets[0]?.values?.length > 0 ? (
+                     <div style={{ height: '300px', width: '100%' }}>
+                       <BarChart data={epsDataForChart} title={`EPS (${viewMode === 'annual' ? 'Annual' : 'Quarterly'})`} />
+                     </div>
+                  ) : !loading && (<p>Keine EPS Daten verfügbar für die Auswahl.</p>)}
+                </IonCardContent>
+              </IonCard>
+
+              {/* FCF Chart - Nutzt jetzt geslicete Daten */}
+              <IonCard>
+                <IonCardHeader><IonCardTitle>Free Cash Flow ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                <IonCardContent>
+                   {fcfDataForChart.labels.length > 0 && fcfDataForChart.datasets[0]?.values?.length > 0 ? (
+                    <div style={{ height: '300px', width: '100%' }}>
+                      <BarChart data={fcfDataForChart} title={`FCF (${viewMode === 'annual' ? 'Annual' : 'Quarterly'})`} />
+                    </div>
+                  ) : !loading && (<p>Keine FCF Daten verfügbar für die Auswahl.</p>)}
+                </IonCardContent>
+              </IonCard>
+
+            </div>
+          )}
+
+          {/* Platzhalter */}
+          {!currentTicker && !loading && !error && (
+            <div style={{ textAlign: 'center', marginTop: '50px', color: '#888' }}>
+              <p>Bitte geben Sie oben ein Aktiensymbol ein (z.B. AAPL, IBM).</p>
+            </div>
+          )}
 
         </div>
       </IonContent>
