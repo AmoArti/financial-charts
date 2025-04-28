@@ -1,29 +1,54 @@
-// src/utils/utils.ts (Potenziell angepasst)
+// src/utils/utils.ts (Korrigierte Version)
 
 // MultiDatasetStockData wurde nach src/types/stockDataTypes.ts verschoben
 // export interface MultiDatasetStockData { ... } // ENTFERNT
 
 // --- Bestehende Hilfsfunktionen ---
 
+// *** KORRIGIERTE VERSION ***
 export const formatQuarter = (dateString: string): string => {
-    if (!dateString || typeof dateString !== 'string') return '';
+    if (!dateString || typeof dateString !== 'string') return ''; // Grundlegende Prüfung
+
     const parts = dateString.split('-');
-    if (parts.length < 2) return dateString;
-    const [year, month] = parts;
-    const quarter = Math.ceil(parseInt(month) / 3);
+    // Prüfe, ob wir mindestens Jahr UND Monat haben
+    if (parts.length < 2 || !parts[0] || !parts[1]) {
+         return dateString; // Gib Original zurück, wenn Format unvollständig ist
+    }
+
+    const [year, monthStr] = parts;
+
+    // Prüfe, ob der Monatsteil eine gültige Zahl ist
+    const monthNum = parseInt(monthStr);
+    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+        return dateString; // Gib Original zurück, wenn Monat ungültig ist
+    }
+
+    // Jetzt können wir sicher das Quartal berechnen
+    const quarter = Math.ceil(monthNum / 3);
     return `Q${quarter} ${year}`;
 };
+// *** ENDE KORRIGIERTE VERSION ***
+
 
 export const getLast10Years = (): number[] => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
 };
 
+
 // --- trimMultiData Funktion ---
 // Wird im Processing verwendet, kann hier bleiben oder dorthin verschoben werden.
 // Hier belassen für jetzt. Importiert in stockDataProcessing.ts.
-import { MultiDatasetStockData } from '../types/stockDataTypes'; // Importiere den Typ
+// Wichtig: Importiere den Typ aus der neuen Datei!
+import { MultiDatasetStockData } from '../types/stockDataTypes';
 
+/**
+ * Kürzt die Daten in einem MultiDatasetStockData-Objekt, sodass sie erst
+ * beim ersten Nicht-Null-Wert im *ersten* Dataset beginnen.
+ * Alle Datasets werden auf dieselbe Länge gekürzt.
+ * @param data Das MultiDatasetStockData-Objekt.
+ * @returns Ein neues MultiDatasetStockData-Objekt mit den gekürzten Daten.
+ */
 export const trimMultiData = (data: MultiDatasetStockData): MultiDatasetStockData => {
     if (!data || !data.datasets || data.datasets.length === 0 || !data.datasets[0]?.values || data.datasets[0].values.length === 0) {
         // Stelle sicher, dass die Struktur erhalten bleibt, auch wenn Labels leer sind
@@ -52,15 +77,13 @@ export const trimMultiData = (data: MultiDatasetStockData): MultiDatasetStockDat
 };
 
 
-// --- Slice/Filter Funktionen (werden in Home.tsx verwendet) ---
-interface StockDataForFilter { // Einfache Struktur für Filterung
+// --- filterDataToYears Funktion (potenziell ungenutzt, aber noch vorhanden) ---
+// Interne Interface-Definition für diese Funktion
+interface StockDataForFilter {
     labels: (string | number)[];
     values: number[];
 }
 
-// Wird aktuell nicht mehr direkt verwendet, seit Daten im Hook getrimmt werden?
-// Könnte entfernt werden, wenn nicht in Home.tsx oder anderswo benötigt.
-// Belasse es vorerst zur Sicherheit hier.
 export const filterDataToYears = (data: StockDataForFilter | null | undefined, pointsToKeep: number): StockDataForFilter => {
     if (!data || !data.labels || !data.values || pointsToKeep <= 0 || data.labels.length === 0) {
         return { labels: [], values: [] };
@@ -77,10 +100,19 @@ export const filterDataToYears = (data: StockDataForFilter | null | undefined, p
     };
 };
 
-// Wird in Home.tsx verwendet
+
+// --- sliceMultiDataToLastNPoints Funktion (wird in Home.tsx verwendet) ---
+/**
+ * Schneidet die Daten in einem MultiDatasetStockData-Objekt, um nur die
+ * letzten N Datenpunkte zu behalten.
+ * @param data Das MultiDatasetStockData-Objekt mit potenziell mehr Daten.
+ * @param pointsToKeep Die Anzahl der *letzten* Datenpunkte, die behalten werden sollen.
+ * @returns Ein neues MultiDatasetStockData-Objekt mit den geschnittenen Daten.
+ */
 export const sliceMultiDataToLastNPoints = (data: MultiDatasetStockData, pointsToKeep: number): MultiDatasetStockData => {
     // Robuste Prüfungen für data und pointsToKeep
     if (!data || !data.labels || data.labels.length === 0 || !data.datasets || pointsToKeep <= 0) {
+        // Gib eine leere, aber gültige Struktur zurück
         return {
             labels: [],
             datasets: data?.datasets?.map(ds => ({ ...ds, values: [] })) || [] // Behalte Dataset-Labels etc.
