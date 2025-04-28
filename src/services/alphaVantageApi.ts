@@ -1,0 +1,95 @@
+// src/services/alphaVantageApi.ts
+import { RawApiData } from '../types/stockDataTypes';
+
+const BASE_URL = 'https://www.alphavantage.co/query?';
+
+/**
+ * Ruft die notwendigen Endpunkte von Alpha Vantage für einen gegebenen Ticker ab.
+ * @param ticker Das Aktiensymbol (z.B. AAPL).
+ * @param apiKey Der Alpha Vantage API-Schlüssel.
+ * @returns Ein Promise, das die Rohdaten von den APIs als Objekt zurückgibt.
+ * @throws Wirft einen Fehler bei Netzwerkproblemen oder wenn der API-Schlüssel fehlt.
+ */
+export const fetchAlphaVantageData = async (ticker: string, apiKey: string): Promise<RawApiData> => {
+  if (!apiKey) {
+    throw new Error('API-Schlüssel nicht gefunden...');
+  }
+  if (!ticker) {
+    throw new Error('Kein Ticker angegeben.');
+  }
+
+  const urls = {
+    income: `${BASE_URL}function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`,
+    earnings: `${BASE_URL}function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`,
+    cashflow: `${BASE_URL}function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`,
+    overview: `${BASE_URL}function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`,
+    quote: `${BASE_URL}function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`,
+  };
+
+  try {
+    // Parallele Abfragen starten
+    const [incomeResponse, earningsResponse, cashFlowResponse, overviewResponse, quoteResponse] = await Promise.all([
+      fetch(urls.income),
+      fetch(urls.earnings),
+      fetch(urls.cashflow),
+      fetch(urls.overview),
+      fetch(urls.quote),
+    ]);
+
+    // Prüfen, ob alle Antworten erfolgreich waren (Status 2xx)
+    const responses = [incomeResponse, earningsResponse, cashFlowResponse, overviewResponse, quoteResponse];
+    for (const response of responses) {
+      if (!response.ok) {
+        // Versuche, die Fehlermeldung aus der API-Antwort zu lesen
+        let apiError = `API-Fehler bei ${response.url} (Status: ${response.status})`;
+        try {
+          const errorData = await response.json();
+          // Alpha Vantage spezifische Fehlermeldungen könnten hier extrahiert werden
+          if (errorData?.Information) apiError += `: ${errorData.Information}`;
+          else if (errorData?.Note) apiError += `: ${errorData.Note}`; // Limit erreicht?
+          else if (errorData?.['Error Message']) apiError += `: ${errorData['Error Message']}`;
+        } catch (e) { /* Ignoriere JSON-Parse-Fehler bei der Fehlermeldung */ }
+        // Spezifische Fehler werfen, die im Hook gefangen werden können
+        if (response.status === 404) throw new Error(`Ticker ${ticker} nicht gefunden (Status 404)`);
+        if (apiError.includes('API call frequency')) throw new Error('API-Limit erreicht');
+        throw new Error(apiError);
+      }
+    }
+
+    // JSON-Daten aus den Antworten extrahieren
+    const [incomeData, earningsData, cashFlowData, overviewData, quoteData] = await Promise.all([
+      incomeResponse.json(),
+      earningsResponse.json(),
+      cashFlowResponse.json(),
+      overviewResponse.json(),
+      quoteResponse.json(),
+    ]);
+
+    // Hinweis auf API-Limit im Erfolgsfall (manchmal als 'Note' oder 'Information' enthalten)
+    if (overviewData?.Note || incomeData?.Note || earningsData?.Note || cashFlowData?.Note || quoteData?.Note) {
+       console.warn("Alpha Vantage API Note (möglicherweise Limit erreicht):", overviewData?.Note || incomeData?.Note || earningsData?.Note || cashFlowData?.Note || quoteData?.Note);
+       // Eventuell Fehler werfen, wenn 'Note' auf ein Limit hinweist?
+       // throw new Error('API-Limit erreicht');
+    }
+     if (overviewData?.Information || incomeData?.Information || earningsData?.Information || cashFlowData?.Information || quoteData?.Information) {
+       console.warn("Alpha Vantage API Information:", overviewData?.Information || incomeData?.Information || earningsData?.Information || cashFlowData?.Information || quoteData?.Information);
+     }
+
+    return {
+      income: incomeData,
+      earnings: earningsData,
+      cashflow: cashFlowData,
+      overview: overviewData,
+      quote: quoteData,
+    };
+
+  } catch (error) {
+    // Fehler weiterwerfen, damit der Hook ihn fangen kann
+    console.error("Fehler beim Abrufen der Alpha Vantage Daten:", error);
+    if (error instanceof Error) {
+        // Gib spezifische Fehler weiter
+        throw error;
+    }
+    throw new Error('Netzwerkfehler oder unbekannter Fehler beim API-Abruf.');
+  }
+};
