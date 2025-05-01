@@ -40,9 +40,9 @@ export interface KeyMetrics {
   operatingMargin: string | null; // Berechnet aus Income Statement
 }
 
-// Rückgabe-Typ des useStockData Hooks (ANGEPASST)
+// Rückgabe-Typ des useStockData Hooks (ERWEITERT)
 export interface UseStockDataResult {
-  // Umsatzdaten (umbenannt)
+  // Umsatzdaten
   annualRevenue: StockData;
   quarterlyRevenue: StockData;
 
@@ -56,9 +56,13 @@ export interface UseStockDataResult {
   annualMargins: MultiDatasetStockData;
   quarterlyMargins: MultiDatasetStockData;
 
-  // NEU: Cashflow Statement für den Chart
+  // Cashflow Statement für den Chart
   annualCashflowStatement: MultiDatasetStockData;
   quarterlyCashflowStatement: MultiDatasetStockData;
+
+  // NEU: Outstanding Shares Daten
+  annualSharesOutstanding: StockData;
+  quarterlySharesOutstanding: StockData;
 
   // Metadaten & Funktion
   loading: boolean;
@@ -67,21 +71,18 @@ export interface UseStockDataResult {
   companyInfo: CompanyInfo | null;
   keyMetrics: KeyMetrics | null;
   fetchData: (ticker: string) => void;
-
-  // Optional: Falls die alten FCF-Daten noch gebraucht werden (selten nötig jetzt)
-  // annualFCF?: StockData;
-  // quarterlyFCF?: StockData;
 }
 
 
 // Typ für die Rohdaten, wie sie von der API (nach json()) kommen könnten
-// (Optional, aber hilfreich für den API Service - Verbesserungswürdig!)
+// (Verbesserungswürdig - spezifische Typen statt 'any' wären besser)
 export interface RawApiData {
   income?: any;
   earnings?: any;
   cashflow?: any;
   overview?: any;
   quote?: any;
+  balanceSheet?: any; // NEU hinzugefügt
 }
 
 // --- Ende src/types/stockDataTypes.ts ---

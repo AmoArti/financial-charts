@@ -1,4 +1,4 @@
-// src/hooks/useStockData.ts (Refactored & Updated for Cashflow Chart)
+// src/hooks/useStockData.ts (Updated for Shares Outstanding)
 import { useState, useCallback } from 'react';
 import { fetchAlphaVantageData } from '../services/alphaVantageApi';
 import { processStockData } from '../utils/stockDataProcessing';
@@ -11,7 +11,7 @@ import {
   RawApiData
 } from '../types/stockDataTypes';
 
-// Leere Initialzustände für die Daten (ggf. auslagern, falls woanders benötigt)
+// Leere Initialzustände für die Daten
 const initialStockData: StockData = { labels: [], values: [] };
 const initialMultiData: MultiDatasetStockData = { labels: [], datasets: [] };
 
@@ -20,20 +20,20 @@ type CachedProcessedData = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'e
 
 export const useStockData = (): UseStockDataResult => {
   // --- States ---
-  // Beachte die Umbenennung von annualData -> annualRevenue etc.
-  // und das Hinzufügen von annualCashflowStatement etc.
+  // Beachte: Namen und Typen sollten zum UseStockDataResult-Interface passen
   const [annualRevenue, setAnnualRevenue] = useState<StockData>(initialStockData);
   const [quarterlyRevenue, setQuarterlyRevenue] = useState<StockData>(initialStockData);
   const [annualEPS, setAnnualEPS] = useState<StockData>(initialStockData);
   const [quarterlyEPS, setQuarterlyEPS] = useState<StockData>(initialStockData);
-  // Alte FCF States entfernt, da sie jetzt im CashflowStatement enthalten sind
   const [annualIncomeStatement, setAnnualIncomeStatement] = useState<MultiDatasetStockData>(initialMultiData);
   const [quarterlyIncomeStatement, setQuarterlyIncomeStatement] = useState<MultiDatasetStockData>(initialMultiData);
   const [annualMargins, setAnnualMargins] = useState<MultiDatasetStockData>(initialMultiData);
   const [quarterlyMargins, setQuarterlyMargins] = useState<MultiDatasetStockData>(initialMultiData);
-  // NEU: States für das Cashflow Statement Chart
   const [annualCashflowStatement, setAnnualCashflowStatement] = useState<MultiDatasetStockData>(initialMultiData);
   const [quarterlyCashflowStatement, setQuarterlyCashflowStatement] = useState<MultiDatasetStockData>(initialMultiData);
+  // NEU: States für Outstanding Shares
+  const [annualSharesOutstanding, setAnnualSharesOutstanding] = useState<StockData>(initialStockData);
+  const [quarterlySharesOutstanding, setQuarterlySharesOutstanding] = useState<StockData>(initialStockData);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export const useStockData = (): UseStockDataResult => {
     if (cachedData[ticker]) {
       console.log(`Using cached data for ${ticker}`);
       const cached = cachedData[ticker];
-      // Alle Daten-States aus dem Cache setzen (Namen angepasst, neue hinzugefügt)
+      // Alle Daten-States aus dem Cache setzen (inkl. Shares Outstanding)
       setAnnualRevenue(cached.annualRevenue);
       setQuarterlyRevenue(cached.quarterlyRevenue);
       setAnnualEPS(cached.annualEPS);
@@ -72,8 +72,10 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyIncomeStatement(cached.quarterlyIncomeStatement);
       setAnnualMargins(cached.annualMargins);
       setQuarterlyMargins(cached.quarterlyMargins);
-      setAnnualCashflowStatement(cached.annualCashflowStatement); // NEU
-      setQuarterlyCashflowStatement(cached.quarterlyCashflowStatement); // NEU
+      setAnnualCashflowStatement(cached.annualCashflowStatement);
+      setQuarterlyCashflowStatement(cached.quarterlyCashflowStatement);
+      setAnnualSharesOutstanding(cached.annualSharesOutstanding); // NEU
+      setQuarterlySharesOutstanding(cached.quarterlySharesOutstanding); // NEU
       setCompanyInfo(cached.companyInfo);
       setKeyMetrics(cached.keyMetrics);
       setProgress(100);
@@ -82,7 +84,7 @@ export const useStockData = (): UseStockDataResult => {
       return;
     }
 
-    // Reset States für neuen Fetch (Namen angepasst, neue hinzugefügt)
+    // Reset States für neuen Fetch (inkl. Shares Outstanding)
     console.log(`Workspaceing new data from API for ${ticker}`);
     setLoading(true);
     setError(null);
@@ -91,40 +93,41 @@ export const useStockData = (): UseStockDataResult => {
     setKeyMetrics(null);
     setAnnualRevenue(initialStockData); setQuarterlyRevenue(initialStockData);
     setAnnualEPS(initialStockData); setQuarterlyEPS(initialStockData);
-    // Alte FCF Resets entfernt
     setAnnualIncomeStatement(initialMultiData); setQuarterlyIncomeStatement(initialMultiData);
     setAnnualMargins(initialMultiData); setQuarterlyMargins(initialMultiData);
-    setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData); // NEU
+    setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData);
+    setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData); // NEU
 
 
     try {
       setProgress(10);
-      // Schritt 1: API-Daten abrufen
+      // Schritt 1: API-Daten abrufen (holt jetzt auch Balance Sheet)
       const rawData: RawApiData = await fetchAlphaVantageData(ticker, apiKey);
       setProgress(50); // Nach erfolgreichem API-Call
 
-      // Schritt 2: Rohdaten verarbeiten (Funktion gibt jetzt neue Struktur zurück)
+      // Schritt 2: Rohdaten verarbeiten (gibt jetzt auch Shares Outstanding zurück)
       const processedData = processStockData(rawData, ticker);
       setProgress(90); // Nach erfolgreicher Verarbeitung
 
-      // Schritt 3: State aktualisieren (Namen angepasst, neue hinzugefügt)
+      // Schritt 3: State aktualisieren (inkl. Shares Outstanding)
       setCompanyInfo(processedData.companyInfo);
       setKeyMetrics(processedData.keyMetrics);
       setAnnualRevenue(processedData.annualRevenue);
       setQuarterlyRevenue(processedData.quarterlyRevenue);
       setAnnualEPS(processedData.annualEPS);
       setQuarterlyEPS(processedData.quarterlyEPS);
-      // Alte FCF Sets entfernt
       setAnnualIncomeStatement(processedData.annualIncomeStatement);
       setQuarterlyIncomeStatement(processedData.quarterlyIncomeStatement);
       setAnnualMargins(processedData.annualMargins);
       setQuarterlyMargins(processedData.quarterlyMargins);
-      setAnnualCashflowStatement(processedData.annualCashflowStatement); // NEU
-      setQuarterlyCashflowStatement(processedData.quarterlyCashflowStatement); // NEU
+      setAnnualCashflowStatement(processedData.annualCashflowStatement);
+      setQuarterlyCashflowStatement(processedData.quarterlyCashflowStatement);
+      setAnnualSharesOutstanding(processedData.annualSharesOutstanding); // NEU
+      setQuarterlySharesOutstanding(processedData.quarterlySharesOutstanding); // NEU
 
       setProgress(100);
 
-      // Schritt 4: Cache aktualisieren (Namen angepasst, neue hinzugefügt)
+      // Schritt 4: Cache aktualisieren (inkl. Shares Outstanding)
       setCachedData(prev => ({
         ...prev,
         [ticker]: { // Speichere die verarbeiteten Daten
@@ -134,13 +137,14 @@ export const useStockData = (): UseStockDataResult => {
           quarterlyRevenue: processedData.quarterlyRevenue,
           annualEPS: processedData.annualEPS,
           quarterlyEPS: processedData.quarterlyEPS,
-          // Alte FCF entfernt
           annualIncomeStatement: processedData.annualIncomeStatement,
           quarterlyIncomeStatement: processedData.quarterlyIncomeStatement,
           annualMargins: processedData.annualMargins,
           quarterlyMargins: processedData.quarterlyMargins,
-          annualCashflowStatement: processedData.annualCashflowStatement, // NEU
-          quarterlyCashflowStatement: processedData.quarterlyCashflowStatement, // NEU
+          annualCashflowStatement: processedData.annualCashflowStatement,
+          quarterlyCashflowStatement: processedData.quarterlyCashflowStatement,
+          annualSharesOutstanding: processedData.annualSharesOutstanding, // NEU
+          quarterlySharesOutstanding: processedData.quarterlySharesOutstanding, // NEU
         },
       }));
 
@@ -148,29 +152,29 @@ export const useStockData = (): UseStockDataResult => {
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler beim Datenabruf';
       setError(errorMessage);
       console.error("Fehler in fetchData (Hook):", err);
-      // Sicherstellen, dass alle Daten zurückgesetzt werden bei Fehler (Namen angepasst, neue hinzugefügt)
+      // Sicherstellen, dass alle Daten zurückgesetzt werden bei Fehler (inkl. Shares Outstanding)
       setCompanyInfo(null); setKeyMetrics(null);
       setAnnualRevenue(initialStockData); setQuarterlyRevenue(initialStockData);
       setAnnualEPS(initialStockData); setQuarterlyEPS(initialStockData);
-      // Alte FCF Resets entfernt
       setAnnualIncomeStatement(initialMultiData); setQuarterlyIncomeStatement(initialMultiData);
       setAnnualMargins(initialMultiData); setQuarterlyMargins(initialMultiData);
-      setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData); // NEU
+      setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData);
+      setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData); // NEU
     } finally {
       setLoading(false); // Ladezustand immer beenden
     }
   }, [apiKey, cachedData]); // Abhängigkeiten: apiKey und Cache
 
   // --- Rückgabe des Hooks ---
-  // (Angepasst an das neue UseStockDataResult Interface)
+  // (Angepasst an das neue UseStockDataResult Interface inkl. Shares Outstanding)
   return {
     // Daten-States
-    annualRevenue, quarterlyRevenue, // Umbenannt
+    annualRevenue, quarterlyRevenue,
     annualEPS, quarterlyEPS,
-    // Alte FCF entfernt
     annualIncomeStatement, quarterlyIncomeStatement,
     annualMargins, quarterlyMargins,
-    annualCashflowStatement, quarterlyCashflowStatement, // NEU
+    annualCashflowStatement, quarterlyCashflowStatement,
+    annualSharesOutstanding, quarterlySharesOutstanding, // NEU
     // Metadaten-States
     loading, error, progress, companyInfo, keyMetrics,
     // Funktion zum Triggern

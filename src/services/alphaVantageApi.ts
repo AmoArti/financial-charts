@@ -1,10 +1,11 @@
 // src/services/alphaVantageApi.ts
-import { RawApiData } from '../types/stockDataTypes';
+import { RawApiData } from '../types/stockDataTypes'; // RawApiData muss ggf. erweitert werden
 
 const BASE_URL = 'https://www.alphavantage.co/query?';
 
 /**
  * Ruft die notwendigen Endpunkte von Alpha Vantage für einen gegebenen Ticker ab.
+ * NEU: Inklusive BALANCE_SHEET.
  * @param ticker Das Aktiensymbol (z.B. AAPL).
  * @param apiKey Der Alpha Vantage API-Schlüssel.
  * @returns Ein Promise, das die Rohdaten von den APIs als Objekt zurückgibt.
@@ -18,26 +19,43 @@ export const fetchAlphaVantageData = async (ticker: string, apiKey: string): Pro
     throw new Error('Kein Ticker angegeben.');
   }
 
+  // URLs für die API-Endpunkte (inkl. Balance Sheet)
   const urls = {
     income: `${BASE_URL}function=INCOME_STATEMENT&symbol=${ticker}&apikey=${apiKey}`,
     earnings: `${BASE_URL}function=EARNINGS&symbol=${ticker}&apikey=${apiKey}`,
     cashflow: `${BASE_URL}function=CASH_FLOW&symbol=${ticker}&apikey=${apiKey}`,
     overview: `${BASE_URL}function=OVERVIEW&symbol=${ticker}&apikey=${apiKey}`,
     quote: `${BASE_URL}function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${apiKey}`,
+    balanceSheet: `${BASE_URL}function=BALANCE_SHEET&symbol=${ticker}&apikey=${apiKey}`, // NEU
   };
 
   try {
-    // Parallele Abfragen starten
-    const [incomeResponse, earningsResponse, cashFlowResponse, overviewResponse, quoteResponse] = await Promise.all([
+    // Parallele Abfragen starten (inkl. Balance Sheet)
+    const [
+        incomeResponse,
+        earningsResponse,
+        cashFlowResponse,
+        overviewResponse,
+        quoteResponse,
+        balanceSheetResponse // NEU
+    ] = await Promise.all([
       fetch(urls.income),
       fetch(urls.earnings),
       fetch(urls.cashflow),
       fetch(urls.overview),
       fetch(urls.quote),
+      fetch(urls.balanceSheet), // NEU
     ]);
 
     // Prüfen, ob alle Antworten erfolgreich waren (Status 2xx)
-    const responses = [incomeResponse, earningsResponse, cashFlowResponse, overviewResponse, quoteResponse];
+    const responses = [
+        incomeResponse,
+        earningsResponse,
+        cashFlowResponse,
+        overviewResponse,
+        quoteResponse,
+        balanceSheetResponse // NEU
+    ];
     for (const response of responses) {
       if (!response.ok) {
         // Versuche, die Fehlermeldung aus der API-Antwort zu lesen
@@ -51,36 +69,52 @@ export const fetchAlphaVantageData = async (ticker: string, apiKey: string): Pro
         } catch (e) { /* Ignoriere JSON-Parse-Fehler bei der Fehlermeldung */ }
         // Spezifische Fehler werfen, die im Hook gefangen werden können
         if (response.status === 404) throw new Error(`Ticker ${ticker} nicht gefunden (Status 404)`);
-        if (apiError.includes('API call frequency')) throw new Error('API-Limit erreicht');
+        if (apiError.includes('API call frequency') || apiError.includes('higher API call frequency')) throw new Error('API-Limit erreicht'); // Prüfe auf beide Varianten
         throw new Error(apiError);
       }
     }
 
-    // JSON-Daten aus den Antworten extrahieren
-    const [incomeData, earningsData, cashFlowData, overviewData, quoteData] = await Promise.all([
+    // JSON-Daten aus den Antworten extrahieren (inkl. Balance Sheet)
+    const [
+        incomeData,
+        earningsData,
+        cashFlowData,
+        overviewData,
+        quoteData,
+        balanceSheetData // NEU
+    ] = await Promise.all([
       incomeResponse.json(),
       earningsResponse.json(),
       cashFlowResponse.json(),
       overviewResponse.json(),
       quoteResponse.json(),
+      balanceSheetResponse.json(), // NEU
     ]);
 
-    // Hinweis auf API-Limit im Erfolgsfall (manchmal als 'Note' oder 'Information' enthalten)
-    if (overviewData?.Note || incomeData?.Note || earningsData?.Note || cashFlowData?.Note || quoteData?.Note) {
-       console.warn("Alpha Vantage API Note (möglicherweise Limit erreicht):", overviewData?.Note || incomeData?.Note || earningsData?.Note || cashFlowData?.Note || quoteData?.Note);
-       // Eventuell Fehler werfen, wenn 'Note' auf ein Limit hinweist?
-       // throw new Error('API-Limit erreicht');
-    }
-     if (overviewData?.Information || incomeData?.Information || earningsData?.Information || cashFlowData?.Information || quoteData?.Information) {
-       console.warn("Alpha Vantage API Information:", overviewData?.Information || incomeData?.Information || earningsData?.Information || cashFlowData?.Information || quoteData?.Information);
-     }
+    // Hinweis auf API-Limit/Info im Erfolgsfall (manchmal als 'Note' oder 'Information' enthalten)
+    const notesOrInfo = [
+        overviewData?.Note, incomeData?.Note, earningsData?.Note, cashFlowData?.Note, quoteData?.Note, balanceSheetData?.Note, // NEU
+        overviewData?.Information, incomeData?.Information, earningsData?.Information, cashFlowData?.Information, quoteData?.Information, balanceSheetData?.Information // NEU
+    ].filter(Boolean); // Entferne undefined/null Einträge
 
+    if (notesOrInfo.length > 0) {
+        console.warn("Alpha Vantage API Note/Information:", notesOrInfo.join(' | '));
+        // Prüfe explizit auf Limit-Nachricht, auch wenn der Call erfolgreich war
+        if (notesOrInfo.some(note => note.includes('API call frequency') || note.includes('higher API call frequency'))) {
+            // Optional: Fehler werfen oder nur warnen? Vorerst nur Warnung.
+            console.warn("Mögliches API-Limit trotz erfolgreicher Antwort erkannt.");
+            // throw new Error('API-Limit erreicht'); // Bei Bedarf aktivieren
+        }
+    }
+
+    // Rückgabe der Rohdaten (inkl. Balance Sheet)
     return {
       income: incomeData,
       earnings: earningsData,
       cashflow: cashFlowData,
       overview: overviewData,
       quote: quoteData,
+      balanceSheet: balanceSheetData, // NEU
     };
 
   } catch (error) {
@@ -93,3 +127,5 @@ export const fetchAlphaVantageData = async (ticker: string, apiKey: string): Pro
     throw new Error('Netzwerkfehler oder unbekannter Fehler beim API-Abruf.');
   }
 };
+
+// --- Ende alphaVantageApi.ts ---
