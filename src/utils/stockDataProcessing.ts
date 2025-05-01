@@ -1,48 +1,41 @@
-// src/utils/stockDataProcessing.ts
+// src/utils/stockDataProcessing.ts (Bereinigte Version)
 import {
   StockData,
   CompanyInfo,
   KeyMetrics,
   MultiDatasetStockData,
   RawApiData,
-} from '../types/stockDataTypes'; // Stelle sicher, dass die Typen korrekt importiert werden
-import { formatQuarter, trimMultiData } from './utils'; // Importiere Helfer aus utils
+} from '../types/stockDataTypes';
+import { formatQuarter, trimMultiData } from './utils';
 
 // --- Interne Hilfsfunktionen ---
 
-// Skaliert Werte (z.B. auf Mrd. für Charts)
 const parseAndScale = (value: string | undefined | null): number => {
   if (value === undefined || value === null || value === "None" || value === "-") return 0;
   const num = parseFloat(value);
   return isNaN(num) ? 0 : num / 1e9; // Skaliert auf Mrd.
 };
 
-// Skaliert Werte ohne "None"-Check für FCF-Berechnung
 const parseFloatOrZero = (value: string | undefined | null): number => {
   if (value === undefined || value === null) return 0;
   const num = parseFloat(value);
   return isNaN(num) ? 0 : num;
 };
 
-// Trimmt einzelne Datensätze (Labels + Werte)
 const trimData = (labels: (string | number)[], values: number[]): StockData => {
   if (!Array.isArray(labels) || !Array.isArray(values)) {
     return { labels: [], values: [] };
   }
-  // Finde den ersten Index, der nicht 0 ODER nicht null/undefined ist (falls Werte null sein könnten)
   const firstValidIndex = values.findIndex(value => value !== 0 && value !== null && value !== undefined);
   if (firstValidIndex === -1 || values.length === 0 || labels.length === 0 || labels.length !== values.length) {
-     // Wenn alles 0 ist oder Daten ungültig sind, leere Struktur zurückgeben
     return { labels: [], values: [] };
   }
-  // Slice ab dem ersten gültigen Index
   return { labels: labels.slice(firstValidIndex), values: values.slice(firstValidIndex) };
 };
 
-// Berechnet Margen aus einem Income Statement Report
 const calculateMargins = (report: any): { gm: number | null, om: number | null, nm: number | null } => {
   if (!report || typeof report !== 'object') {
-    console.warn("calculateMargins received invalid report:", report);
+    // Optional: console.warn("calculateMargins received invalid report:", report);
     return { gm: null, om: null, nm: null };
   }
   const revenue = parseFloat(report.totalRevenue);
@@ -68,8 +61,8 @@ const processIncomeData = (incomeData: any): {
   quarterlyIncomeStatement: MultiDatasetStockData;
   annualMargins: MultiDatasetStockData;
   quarterlyMargins: MultiDatasetStockData;
-  latestAnnualGrossMargin: number | null; // Für KeyMetrics
-  latestAnnualOperatingMargin: number | null; // Für KeyMetrics
+  latestAnnualGrossMargin: number | null;
+  latestAnnualOperatingMargin: number | null;
 } => {
   let result = {
     annualRevenue: { labels: [], values: [] } as StockData,
@@ -257,7 +250,6 @@ const processCashflowData = (cashFlowData: any): {
   return result;
 };
 
-// +++ NEUE Funktion zum Verarbeiten der Bilanzdaten +++
 const processBalanceSheetData = (balanceSheetData: any): {
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
@@ -303,26 +295,39 @@ const processBalanceSheetData = (balanceSheetData: any): {
 
   return result;
 };
-// +++ ENDE NEUE Funktion +++
-
 
 // --- Hilfsfunktionen für KeyMetrics Formatierung ---
-// (Diese bleiben unverändert)
-const formatMetric = (value: string | number | null | undefined): string | null => { /* ... */ };
-const formatPercentage = (value: string | number | null | undefined): string | null => { /* ... */ };
-const formatPriceChange = (value: string | number | null | undefined): string | null => { /* ... */ };
-const formatMarginForDisplay = (value: number | null): string | null => { /* ... */ };
-// HINWEIS: Die Implementierungen für diese Formatierungshelfer habe ich oben zur Kürze weggelassen,
-//          bitte stelle sicher, dass sie in deinem Code noch vorhanden sind!
-//          Hier nochmal zur Sicherheit:
-// const formatMetric = ... (wie oben)
-// const formatPercentage = ... (wie oben)
-// const formatPriceChange = ... (wie oben)
-// const formatMarginForDisplay = ... (wie oben)
+const formatMetric = (value: string | number | null | undefined): string | null => {
+    if (value === undefined || value === null || value === "None" || value === "-") return null;
+    const stringValue = String(value);
+    const num = parseFloat(stringValue);
+    return isNaN(num) ? null : stringValue;
+};
+const formatPercentage = (value: string | number | null | undefined): string | null => {
+    if (value === undefined || value === null || value === "None" || value === "-") return null;
+    const stringValue = String(value).includes('%') ? String(value).replace('%', '') : String(value);
+    const numValue = parseFloat(stringValue);
+    if (isNaN(numValue)) return null;
+    if (String(value).includes('%')) {
+        return `${numValue.toFixed(2)}%`;
+    } else if (Math.abs(numValue) > 0 && Math.abs(numValue) <= 1) {
+        return `${(numValue * 100).toFixed(2)}%`;
+    } else {
+        return `${numValue.toFixed(2)}%`;
+    }
+};
+const formatPriceChange = (value: string | number | null | undefined): string | null => {
+    if (value === undefined || value === null || value === "None" || value === "-") return null;
+    const num = parseFloat(String(value));
+    return isNaN(num) ? null : num.toFixed(2);
+};
+const formatMarginForDisplay = (value: number | null): string | null => {
+    if (value === null || isNaN(value) || !isFinite(value)) return null;
+    return `${value.toFixed(2)}%`;
+};
 
 
 // --- Hauptfunktion zur Verarbeitung aller Rohdaten ---
-// *** RÜCKGABETYP ERWEITERT ***
 export const processStockData = (rawData: RawApiData, ticker: string): {
   companyInfo: CompanyInfo | null;
   keyMetrics: KeyMetrics | null;
@@ -336,56 +341,67 @@ export const processStockData = (rawData: RawApiData, ticker: string): {
   quarterlyMargins: MultiDatasetStockData;
   annualCashflowStatement: MultiDatasetStockData;
   quarterlyCashflowStatement: MultiDatasetStockData;
-  // NEU:
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
 } => {
   // Destructure jetzt auch balanceSheet
   const { income, earnings, cashflow, overview, quote, balanceSheet } = rawData;
 
-  // Grundlegende Fehlerprüfung der Rohdaten
+  // Grundlegende Fehlerprüfung
   if (!overview?.Symbol) {
+    console.error("Processing Error: Overview data or Symbol missing!", overview);
     throw new Error(`Keine Unternehmensinformationen (OVERVIEW) für Ticker "${ticker}" verfügbar.`);
   }
   const globalQuote = quote?.['Global Quote'];
-  if (!globalQuote?.['05. price']) {
-    console.warn(`Kein aktueller Aktienkurs (GLOBAL_QUOTE) für Ticker "${ticker}" verfügbar.`);
+  if (!globalQuote) {
+     console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar. Quote data:`, quote);
   }
 
   const hasIncomeData = !!(income?.annualReports || income?.quarterlyReports);
   const hasEarningsData = !!(earnings?.annualEarnings || earnings?.quarterlyEarnings);
   const hasCashflowData = !!(cashflow?.annualReports || cashflow?.quarterlyReports);
-  // Prüfe auch, ob Bilanzdaten vorhanden sind (optional, aber gut für Fehlerbehandlung)
   const hasBalanceSheetData = !!(balanceSheet?.annualReports || balanceSheet?.quarterlyReports);
 
-  // Wirf nur einen Fehler, wenn GAR KEINE Finanzdaten vorhanden sind
-  // (Man könnte hier spezifischer sein, wenn z.B. Bilanzdaten *zwingend* benötigt werden)
   if (!hasIncomeData && !hasEarningsData && !hasCashflowData && !hasBalanceSheetData) {
-    throw new Error(`Keine Finanzdaten (Income, Earnings, Cashflow, BalanceSheet) für Ticker "${ticker}" verfügbar.`);
+    console.warn(`Für Ticker "${ticker}" fehlen möglicherweise einige Finanzdaten.`);
+    // Optional: Fehler werfen, wenn GAR NICHTS da ist
+    // throw new Error(`Keine Finanzdaten (Income, Earnings, Cashflow, BalanceSheet) für Ticker "${ticker}" verfügbar.`);
   }
 
   // --- Datenverarbeitung ---
   const incomeProcessed = processIncomeData(income);
   const earningsProcessed = processEarningsData(earnings);
   const cashflowProcessed = processCashflowData(cashflow);
-  // NEU: Rufe die Verarbeitung für Bilanzdaten auf
   const balanceSheetProcessed = processBalanceSheetData(balanceSheet);
 
-  // --- Company Info zusammenstellen ---
-  // (bleibt unverändert)
+  // --- Company Info ---
   const currentPrice = globalQuote?.['05. price'];
-  const companyInfo: CompanyInfo = { /* ... */ }; // Implementierung wie oben beibehalten
+  const companyInfo: CompanyInfo = {
+     Name: overview?.Name || ticker,
+     Industry: overview?.Industry || 'N/A',
+     Address: overview?.Address || 'N/A',
+     MarketCapitalization: overview?.MarketCapitalization || 'N/A',
+     LastSale: currentPrice ? parseFloat(currentPrice).toFixed(2) : 'N/A',
+  };
 
-  // --- Key Metrics zusammenstellen ---
-  // (bleibt unverändert)
+  // --- Key Metrics ---
   const rawChange = globalQuote?.['09. change'];
   const rawChangePercent = globalQuote?.['10. change percent'];
   const numChange = parseFloat(rawChange || '');
-  const keyMetrics: KeyMetrics = { /* ... */ }; // Implementierung wie oben beibehalten
-
+  const keyMetrics: KeyMetrics = {
+      peRatio: formatMetric(overview?.PERatio),
+      psRatio: formatMetric(overview?.PriceToSalesRatioTTM),
+      pbRatio: formatMetric(overview?.PriceToBookRatio),
+      evToEbitda: formatMetric(overview?.EVToEBITDA),
+      dividendYield: formatPercentage(overview?.DividendYield),
+      priceChange: formatPriceChange(rawChange),
+      priceChangePercent: formatPercentage(rawChangePercent),
+      isPositiveChange: !isNaN(numChange) && numChange >= 0,
+      grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin),
+      operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin),
+   };
 
   // --- Rückgabe aller verarbeiteten Daten ---
-  // *** RÜCKGABEOBJEKT ERWEITERT ***
   return {
     companyInfo,
     keyMetrics,
@@ -399,7 +415,6 @@ export const processStockData = (rawData: RawApiData, ticker: string): {
     quarterlyMargins: incomeProcessed.quarterlyMargins,
     annualCashflowStatement: cashflowProcessed.annualCashflowStatement,
     quarterlyCashflowStatement: cashflowProcessed.quarterlyCashflowStatement,
-    // NEU:
     annualSharesOutstanding: balanceSheetProcessed.annualSharesOutstanding,
     quarterlySharesOutstanding: balanceSheetProcessed.quarterlySharesOutstanding,
   };
