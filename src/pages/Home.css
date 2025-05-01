@@ -1,4 +1,6 @@
 /* src/pages/Home.css */
+
+/* Container für Chart-Vorschauen (ggf. anpassen/entfernen, falls nicht mehr genutzt) */
 .chart-container {
   width: 400px;
   height: 300px;
@@ -7,12 +9,13 @@
 }
 
 .chart-container:hover {
-  border: 2px solid #3880ff;
+  border: 2px solid var(--ion-color-primary, #3880ff); /* Nutze Theme-Variable */
   border-radius: 8px;
 }
 
+/* Styling für das benutzerdefinierte Modal */
 .custom-modal {
-  --background: #fff;
+  --background: var(--ion-background-color, #fff); /* Nutze Theme-Variable */
   --border-radius: 10px;
   --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   --width: 90%;
@@ -29,17 +32,21 @@
   position: relative; /* Für absolut positionierte Kinder */
   display: flex;
   align-items: center;
+  justify-content: space-between; /* Justiert Inhalt (Titel links, Button rechts) */
   margin-bottom: 20px;
-  padding: 10px 0;
+  padding: 10px 20px; /* Mehr Padding */
   width: 100%;
+  border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0); /* Leichte Trennlinie */
 }
 
 .toggle-wrapper {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%); /* Zentriert den Toggle-Schalter */
-  display: flex;
-  justify-content: center;
+  /* Nicht mehr absolut zentriert, sondern Teil des flex layouts im Header */
+  /* Kann entfernt werden, wenn Toggle woanders platziert wird */
+   position: absolute;
+   left: 50%;
+   transform: translateX(-50%); /* Zentriert den Toggle-Schalter */
+   display: flex;
+   justify-content: center;
 }
 
 .toggle-container {
@@ -50,82 +57,104 @@
 
 .toggle-container ion-label {
   font-size: 16px;
-  color: #666;
+  color: var(--ion-color-step-600, #666);
 }
 
 .modal-chart-container {
   width: 100%;
-  height: 80%; /* Platz für den Header lassen */
+  /* Höhe dynamischer machen, z.B. mit flex-grow */
+  flex-grow: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0 auto;
+  padding: 0 20px 20px 20px; /* Padding hinzufügen */
+  overflow: hidden; /* Verhindert überlauf */
 }
 
 .close-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: #000;
+  /* Nicht mehr absolut, wenn im modal-header mit space-between */
+  /* position: absolute; */
+  /* top: 10px; */
+  /* right: 10px; */
+  color: var(--ion-text-color, #000);
   z-index: 10;
+  /* Standard Button Styling nutzen */
 }
 
 .close-button ion-icon {
   font-size: 24px;
 }
 
-/* Styling für die Infobox (ohne Ränder und Akzente) */
+/* Styling für die Infobox (Zentriert, Inhalt wird begrenzt & zentriert) */
 .company-info-card {
-  box-shadow: none; /* Entfernt den Schatten */
-  border: none; /* Entfernt den Rand */
-  text-align: center; /* Zentriert den Text */
+  box-shadow: none;
+  border: none;
+  text-align: center; /* Titel und Content-Block werden zentriert */
+  margin: 20px 0;
 }
 
 .company-info-card ion-card-header {
-  background-color: transparent; /* Entfernt den grauen Hintergrund */
-  padding-bottom: 0; /* Reduziert den Abstand */
+  background-color: transparent;
+  padding-bottom: 0;
 }
 
 .company-info-card ion-card-title {
   font-size: 1.2rem;
-  color: #333;
+  color: var(--ion-color-step-850, #333);
+  /* Zentrierung wird von .company-info-card geerbt */
 }
 
 .company-info-card ion-card-content {
-  padding-top: 0; /* Reduziert den Abstand */
+  padding-top: 5px;
+  /* === NEU: Breite begrenzen und zentrieren === */
+  max-width: 350px; /* Beispiel: Maximale Breite. Passe diesen Wert an! */
+  margin-left: auto;  /* Zentriert den Block horizontal */
+  margin-right: auto; /* Zentriert den Block horizontal */
+  /* ============================================ */
 }
 
-.company-info-card ion-card-content p {
-  margin: 5px 0;
-  color: #555;
+/* Optional: Sicherstellen, dass die Items innerhalb transparent sind und keinen Rand-Abstand haben */
+.company-info-card ion-card-content ion-item {
+   --background: transparent;
+   --inner-padding-end: 0px; /* Standard Ionic Padding entfernen */
+   --padding-start: 0px; /* Standard Ionic Padding entfernen */
 }
 
-.company-info-card ion-card-content strong {
-  color: #000;
-}
 
 /* Styling für die Fehlermeldung */
+.error-card {
+  margin: 20px 0;
+  border: 1px solid var(--ion-color-danger, #ff4d4f);
+}
+
 .error-card ion-card-header {
-  background-color: #fff1f0;
+  background-color: rgba(var(--ion-color-danger-rgb, 255, 77, 79), 0.1); /* Heller Rotton basierend auf Theme */
+  padding-bottom: 0;
+}
+
+.error-card ion-card-title {
+  color: var(--ion-color-danger, #ff4d4f);
+  padding-top: 5px;
 }
 
 .error-card ion-card-content {
-  background-color: #fff;
+  /* Hintergrund kann normal bleiben */
+  padding-top: 5px;
 }
 
 .error-card ion-button {
   margin-top: 10px;
 }
 
-/* Styling für den Fortschrittsbalken */
+/* Globales Styling für den Fortschrittsbalken */
 ion-progress-bar {
-  --background: #e0e0e0; /* Hintergrundfarbe */
-  --progress-background: #4bc0c0; /* Fortschrittsfarbe */
+  --background: var(--ion-color-step-150, #e0e0e0); /* Hintergrundfarbe */
+  --progress-background: var(--ion-color-secondary, #4bc0c0); /* Fortschrittsfarbe (Beispiel: secondary) */
   height: 10px;
   border-radius: 5px;
 }
 
-/* Styling für die Ladeanimation */
+/* Styling für die Ladeanimation (Container) */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -137,102 +166,19 @@ ion-progress-bar {
 .chart-header {
   display: flex;
   justify-content: flex-start; /* Dropdown-Menü links ausrichten */
+  /* Passt evtl. in den .modal-header ? */
+  padding-bottom: 10px;
 }
 
 .chart-header ion-select {
   font-size: 0.9rem;
   padding: 5px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--ion-color-step-200, #ccc);
   border-radius: 5px;
-  background-color: #f9f9f9;
-}
-/* Styles for LoadingIndicator component */
-.loading-indicator-wrapper {
-  text-align: center;
-  margin: 20px 0; /* Kombiniert vorherige Inline-Styles */
+  background-color: var(--ion-color-step-50, #f9f9f9);
 }
 
-.loading-indicator-wrapper ion-progress-bar {
-  margin-top: 10px; /* Vorheriger Inline-Style für die ProgressBar */
-  /* Optional: Bestehende Styles für .loading-container können hierher verschoben
-     oder beibehalten werden, je nachdem, ob die Klasse noch verwendet wird */
-}
-
-/* Optional: Falls du .loading-container beibehältst und es
-   spezifische Styles hatte, die nicht nur margin-top waren: */
-/*
-.loading-indicator-wrapper .loading-container {
-   // Bestehende Styles für .loading-container hier
-}
-*/
-
-/* src/pages/Home.css */
-
-/* ... andere Styles ... */
-
-/* Styling für die Infobox */
-.company-info-card {
-  box-shadow: none;
-  border: none;
-  text-align: center;
-  margin: 20px 0; /* Hinzugefügt (ersetzt Inline-Style) */
-  /* Bestehende Styles beibehalten */
-}
-
-.company-info-card ion-card-header {
-  background-color: transparent;
-  padding-bottom: 0;
-}
-
-.company-info-card ion-card-title {
-  font-size: 1.2rem;
-  color: #333;
-}
-
-.company-info-card ion-card-content {
-  padding-top: 0;
-}
-
-.company-info-card ion-card-content p {
-  margin: 5px 0;
-  color: #555;
-}
-
-.company-info-card ion-card-content strong {
-  color: #000;
-}
-
-
-/* Styling für die Fehlermeldung */
-.error-card {
-  margin: 20px 0; /* Hinzugefügt (ersetzt Inline-Style) */
-  border: 1px solid #ff4d4f; /* Hinzugefügt (ersetzt Inline-Style) */
-  /* Behalte evtl. bestehende Styles für error-card bei */
-}
-
-.error-card ion-card-header {
-  background-color: #fff1f0;
-  padding-bottom: 0;
-}
-
-.error-card ion-card-title {
-  color: #ff4d4f; /* Hinzugefügt (ersetzt Inline-Style) */
-  padding-top: 5px;
-}
-
-.error-card ion-card-content {
-  background-color: #fff;
-  padding-top: 5px;
-}
-
-/* Stelle sicher, dass diese Regel existiert und korrekt ist */
-.error-card ion-button {
-  margin-top: 10px;
-}
-
-/* ... andere Styles ... */
-
-/* Styles for LoadingIndicator component (bereits vorhanden) */
+/* Styles für LoadingIndicator component */
 .loading-indicator-wrapper {
   text-align: center;
   margin: 20px 0;
@@ -241,3 +187,5 @@ ion-progress-bar {
 .loading-indicator-wrapper ion-progress-bar {
   margin-top: 10px;
 }
+
+/* --- Ende src/pages/Home.css --- */
