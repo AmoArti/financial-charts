@@ -1,4 +1,4 @@
-// src/utils/stockDataProcessing.ts (Refactored - V2: Income & Earnings ausgelagert)
+// src/utils/stockDataProcessing.ts (Refactored - V3: Income, Earnings, Cashflow ausgelagert)
 import {
   StockData,
   CompanyInfo,
@@ -12,74 +12,9 @@ import { formatQuarter, trimMultiData, parseAndScale, parseFloatOrZero, trimData
 // Importiere ausgelagerte Verarbeitungsfunktionen
 import { processIncomeData } from './processing/incomeProcessing';
 import { processEarningsData } from './processing/earningsProcessing';
+import { processCashflowData } from './processing/cashflowProcessing';
 
-// --- Verarbeitungsfunktionen für spezifische API-Daten (CF, Balance Sheet) ---
-
-const processCashflowData = (cashFlowData: any): {
-  annualCashflowStatement: MultiDatasetStockData;
-  quarterlyCashflowStatement: MultiDatasetStockData;
-} => {
-  let result = {
-    annualCashflowStatement: { labels: [], datasets: [] } as MultiDatasetStockData,
-    quarterlyCashflowStatement: { labels: [], datasets: [] } as MultiDatasetStockData,
-  };
-
-  if (!cashFlowData || (!cashFlowData.annualReports && !cashFlowData.quarterlyReports)) {
-    return result;
-  }
-
-  // Jahresdaten
-  const annualCashFlowReports = (Array.isArray(cashFlowData.annualReports) ? cashFlowData.annualReports : [])
-    .sort((a: any, b: any) => parseInt(a.fiscalDateEnding.substring(0, 4)) - parseInt(b.fiscalDateEnding.substring(0, 4)));
-
-  if (annualCashFlowReports.length > 0) {
-    const annualLabels = annualCashFlowReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0, 4)));
-    // Nutze Helfer aus utils
-    const annualOCF = annualCashFlowReports.map(r => parseAndScale(r.operatingCashflow));
-    const annualCapEx = annualCashFlowReports.map(r => Math.abs(parseAndScale(r.capitalExpenditures)));
-    const annualFCFValues = annualCashFlowReports.map(r => {
-      const ocf = parseFloatOrZero(r.operatingCashflow);
-      const capex = parseFloatOrZero(r.capitalExpenditures);
-      return (ocf - Math.abs(capex)) / 1e9; // Skaliert auf Mrd.
-    });
-    // Nutze Helfer aus utils
-    result.annualCashflowStatement = trimMultiData({
-      labels: annualLabels,
-      datasets: [
-        { label: 'Operating Cash Flow', values: annualOCF },
-        { label: 'Capital Expenditure', values: annualCapEx },
-        { label: 'Free Cash Flow', values: annualFCFValues }
-      ]
-    });
-  }
-
-  // Quartalsdaten
-  const quarterlyCashFlowReports = (Array.isArray(cashFlowData.quarterlyReports) ? cashFlowData.quarterlyReports : [])
-    .sort((a: any, b: any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
-
-  if (quarterlyCashFlowReports.length > 0) {
-    const quarterlyLabels = quarterlyCashFlowReports.map((r: any) => formatQuarter(r.fiscalDateEnding)); // Nutzt formatQuarter aus utils
-    // Nutze Helfer aus utils
-    const quarterlyOCF = quarterlyCashFlowReports.map(r => parseAndScale(r.operatingCashflow));
-    const quarterlyCapEx = quarterlyCashFlowReports.map(r => Math.abs(parseAndScale(r.capitalExpenditures)));
-    const quarterlyFCFValues = quarterlyCashFlowReports.map(r => {
-      const ocf = parseFloatOrZero(r.operatingCashflow);
-      const capex = parseFloatOrZero(r.capitalExpenditures);
-      return (ocf - Math.abs(capex)) / 1e9; // Skaliert auf Mrd.
-    });
-    // Nutze Helfer aus utils
-    result.quarterlyCashflowStatement = trimMultiData({
-      labels: quarterlyLabels,
-      datasets: [
-        { label: 'Operating Cash Flow', values: quarterlyOCF },
-        { label: 'Capital Expenditure', values: quarterlyCapEx },
-        { label: 'Free Cash Flow', values: quarterlyFCFValues }
-      ]
-    });
-  }
-
-  return result;
-};
+// --- Verarbeitungsfunktion für Balance Sheet (bleibt vorerst hier) ---
 
 const processBalanceSheetData = (balanceSheetData: any): {
   annualSharesOutstanding: StockData;
@@ -103,19 +38,35 @@ const processBalanceSheetData = (balanceSheetData: any): {
 
   // Jahresdaten
   const annualReports = (Array.isArray(balanceSheetData.annualReports) ? balanceSheetData.annualReports : [])
-    .sort((a: any, b: any) => parseInt(a.fiscalDateEnding.substring(0, 4)) - parseInt(b.fiscalDateEnding.substring(0, 4)));
+    .sort((a: any, b: any) => {
+       const yearA = parseInt(a?.fiscalDateEnding?.substring(0, 4));
+       const yearB = parseInt(b?.fiscalDateEnding?.substring(0, 4));
+       if (isNaN(yearA) && isNaN(yearB)) return 0;
+       if (isNaN(yearA)) return 1;
+       if (isNaN(yearB)) return -1;
+       return yearA - yearB;
+    });
   if (annualReports.length > 0) {
-      const annualLabels = annualReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0, 4)));
-      const annualValues = annualReports.map(r => parseAndScaleShares(r.commonStockSharesOutstanding));
+      const validAnnualReports = annualReports.filter((r:any) => r?.fiscalDateEnding && r?.commonStockSharesOutstanding);
+      const annualLabels = validAnnualReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0, 4)));
+      const annualValues = validAnnualReports.map(r => parseAndScaleShares(r.commonStockSharesOutstanding));
       result.annualSharesOutstanding = trimData(annualLabels, annualValues); // Nutzt trimData aus utils
   }
 
   // Quartalsdaten
   const quarterlyReports = (Array.isArray(balanceSheetData.quarterlyReports) ? balanceSheetData.quarterlyReports : [])
-    .sort((a: any, b: any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
+    .sort((a: any, b: any) => {
+        const dateA = a?.fiscalDateEnding ? new Date(a.fiscalDateEnding).getTime() : 0;
+        const dateB = b?.fiscalDateEnding ? new Date(b.fiscalDateEnding).getTime() : 0;
+        if (isNaN(dateA) && isNaN(dateB)) return 0;
+        if (isNaN(dateA)) return 1;
+        if (isNaN(dateB)) return -1;
+        return dateA - dateB;
+    });
   if (quarterlyReports.length > 0) {
-      const quarterlyLabels = quarterlyReports.map((r: any) => formatQuarter(r.fiscalDateEnding)); // Nutzt formatQuarter aus utils
-      const quarterlyValues = quarterlyReports.map(r => parseAndScaleShares(r.commonStockSharesOutstanding));
+      const validQuarterlyReports = quarterlyReports.filter((r:any) => r?.fiscalDateEnding && r?.commonStockSharesOutstanding);
+      const quarterlyLabels = validQuarterlyReports.map((r: any) => formatQuarter(r.fiscalDateEnding)); // Nutzt formatQuarter aus utils
+      const quarterlyValues = validQuarterlyReports.map(r => parseAndScaleShares(r.commonStockSharesOutstanding));
       result.quarterlySharesOutstanding = trimData(quarterlyLabels, quarterlyValues); // Nutzt trimData aus utils
   }
 
@@ -138,8 +89,10 @@ const formatPercentage = (value: string | number | null | undefined): string | n
     if (String(value).includes('%')) {
         return `${numValue.toFixed(2)}%`;
     } else if (Math.abs(numValue) > 0 && Math.abs(numValue) <= 1) {
+        // Assume decimal yield needs multiplying
         return `${(numValue * 100).toFixed(2)}%`;
     } else {
+         // Assume it's already a percentage value (like margin) or needs formatting as such
         return `${numValue.toFixed(2)}%`;
     }
 };
@@ -182,8 +135,8 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   // --- Datenverarbeitung ---
   // Rufe die importierten Funktionen auf
   const incomeProcessed = processIncomeData(income);
-  const earningsProcessed = processEarningsData(earnings); // Importierte Funktion
-  const cashflowProcessed = processCashflowData(cashflow); // Lokale Funktion (noch)
+  const earningsProcessed = processEarningsData(earnings);
+  const cashflowProcessed = processCashflowData(cashflow); // Importierte Funktion
   const balanceSheetProcessed = processBalanceSheetData(balanceSheet); // Lokale Funktion (noch)
 
   // --- Company Info ---
