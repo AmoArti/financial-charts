@@ -1,46 +1,84 @@
-// src/utils/utils.ts (Korrigierte Version)
+// src/utils/utils.ts (Erweitert um allgemeine Helfer aus der Verarbeitung)
 
-// MultiDatasetStockData wurde nach src/types/stockDataTypes.ts verschoben
-// export interface MultiDatasetStockData { ... } // ENTFERNT
+import { MultiDatasetStockData, StockData } from '../types/stockDataTypes'; // Importiere Typen
 
-// --- Bestehende Hilfsfunktionen ---
+// --- Formatierungs- & Datumshelfer ---
 
-// *** KORRIGIERTE VERSION ***
-export const formatQuarter = (dateString: string): string => {
-    if (!dateString || typeof dateString !== 'string') return ''; // Grundlegende Prüfung
-
-    const parts = dateString.split('-');
-    // Prüfe, ob wir mindestens Jahr UND Monat haben
-    if (parts.length < 2 || !parts[0] || !parts[1]) {
-         return dateString; // Gib Original zurück, wenn Format unvollständig ist
-    }
-
-    const [year, monthStr] = parts;
-
-    // Prüfe, ob der Monatsteil eine gültige Zahl ist
-    const monthNum = parseInt(monthStr);
-    if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
-        return dateString; // Gib Original zurück, wenn Monat ungültig ist
-    }
-
-    // Jetzt können wir sicher das Quartal berechnen
-    const quarter = Math.ceil(monthNum / 3);
-    return `Q${quarter} ${year}`;
+/**
+ * Formatiert einen Datumsstring (YYYY-MM-DD) in ein Quartalsformat (z.B. "Q1 2023").
+ * Gibt bei ungültiger Eingabe den Originalstring oder einen Leerstring zurück.
+ */
+export const formatQuarter = (dateString: string | null | undefined): string => {
+  if (!dateString || typeof dateString !== 'string') return '';
+  const parts = dateString.split('-');
+  if (parts.length < 2 || !parts[0] || !parts[1]) {
+    return dateString;
+  }
+  const [year, monthStr] = parts;
+  const monthNum = parseInt(monthStr);
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+    return dateString;
+  }
+  const quarter = Math.ceil(monthNum / 3);
+  return `Q${quarter} ${year}`;
 };
-// *** ENDE KORRIGIERTE VERSION ***
 
-
+/**
+ * Gibt ein Array der letzten 10 Jahre inklusive des aktuellen Jahres zurück.
+ */
 export const getLast10Years = (): number[] => {
-    const currentYear = new Date().getFullYear();
-    return Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 10 }, (_, i) => currentYear - 9 + i);
+};
+
+// --- Parsing & Skalierungshelfer ---
+
+/**
+ * Wandelt einen String in eine Zahl um und skaliert ihn auf Milliarden (teilt durch 1e9).
+ * Behandelt "None", "-", null und undefined als 0.
+ * @param value Der zu parsende String-Wert.
+ * @returns Der skalierte Zahlenwert oder 0.
+ */
+export const parseAndScale = (value: string | undefined | null): number => {
+  if (value === undefined || value === null || value === "None" || value === "-") return 0;
+  const num = parseFloat(value);
+  return isNaN(num) ? 0 : num / 1e9; // Skaliert auf Mrd.
+};
+
+/**
+ * Wandelt einen String in eine Zahl um.
+ * Behandelt null und undefined als 0. Behandelt "None" oder "-" NICHT speziell (wird zu NaN -> 0).
+ * Nützlich für Berechnungen vor der Skalierung.
+ * @param value Der zu parsende String-Wert.
+ * @returns Der Zahlenwert oder 0.
+ */
+export const parseFloatOrZero = (value: string | undefined | null): number => {
+  if (value === undefined || value === null) return 0;
+  const num = parseFloat(value);
+  return isNaN(num) ? 0 : num;
 };
 
 
-// --- trimMultiData Funktion ---
-// Wird im Processing verwendet, kann hier bleiben oder dorthin verschoben werden.
-// Hier belassen für jetzt. Importiert in stockDataProcessing.ts.
-// Wichtig: Importiere den Typ aus der neuen Datei!
-import { MultiDatasetStockData } from '../types/stockDataTypes';
+// --- Datenmanipulationshelfer ---
+
+/**
+ * Kürzt einen einzelnen Datensatz (StockData), sodass er erst beim ersten
+ * gültigen Wert (nicht 0, null oder undefined) beginnt.
+ * @param labels Array mit Labels.
+ * @param values Array mit Werten.
+ * @returns Ein neues StockData-Objekt mit den gekürzten Daten.
+ */
+export const trimData = (labels: (string | number)[], values: number[]): StockData => {
+  if (!Array.isArray(labels) || !Array.isArray(values)) {
+    return { labels: [], values: [] };
+  }
+  const firstValidIndex = values.findIndex(value => value !== 0 && value !== null && value !== undefined);
+  if (firstValidIndex === -1 || values.length === 0 || labels.length === 0 || labels.length !== values.length) {
+    return { labels: [], values: [] };
+  }
+  return { labels: labels.slice(firstValidIndex), values: values.slice(firstValidIndex) };
+};
+
 
 /**
  * Kürzt die Daten in einem MultiDatasetStockData-Objekt, sodass sie erst
@@ -50,58 +88,47 @@ import { MultiDatasetStockData } from '../types/stockDataTypes';
  * @returns Ein neues MultiDatasetStockData-Objekt mit den gekürzten Daten.
  */
 export const trimMultiData = (data: MultiDatasetStockData): MultiDatasetStockData => {
-    if (!data || !data.datasets || data.datasets.length === 0 || !data.datasets[0]?.values || data.datasets[0].values.length === 0) {
-        // Stelle sicher, dass die Struktur erhalten bleibt, auch wenn Labels leer sind
-        return { labels: [], datasets: data?.datasets?.map(ds => ({ ...ds, values: [] })) || [] };
-    }
-    // Finde den ersten Index im *ersten* Dataset (z.B. Revenue), der nicht 0 ist.
-    const firstNonZeroIndex = data.datasets[0].values.findIndex(value => value !== 0);
+  // Robuste Prüfung auf gültige Eingabedaten
+  if (!data || !Array.isArray(data.labels) || !Array.isArray(data.datasets) || data.datasets.length === 0 || !data.datasets[0]?.values || !Array.isArray(data.datasets[0].values) || data.datasets[0].values.length === 0) {
+    // Gib eine leere, aber gültige Struktur zurück, behalte Dataset-Struktur bei
+    return { labels: [], datasets: data?.datasets?.map(ds => ({ ...(ds || {}), values: [] })) || [] };
+  }
+  // Finde den ersten Index im *ersten* Dataset, der nicht 0 ist.
+  const firstNonZeroIndex = data.datasets[0].values.findIndex(value => value !== 0 && value !== null && value !== undefined);
 
-    // Wenn alle Werte im ersten Dataset 0 sind oder keine Werte vorhanden sind, leere Daten zurückgeben.
-    if (firstNonZeroIndex === -1) {
-        return {
-             labels: [], // Leere Labels
-             datasets: data.datasets.map(ds => ({ ...ds, values: [] })) // Leere Werte in allen Datasets
-        };
-    }
-
-    // Kürze Labels und *alle* Datasets ab diesem Index.
+  // Wenn alle Werte im ersten Dataset 0 oder ungültig sind, leere Daten zurückgeben.
+  if (firstNonZeroIndex === -1) {
     return {
-        labels: data.labels.slice(firstNonZeroIndex),
-        datasets: data.datasets.map(ds => ({
-            ...ds,
-            // Stelle sicher, dass values existiert, bevor slice aufgerufen wird
-            values: ds.values ? ds.values.slice(firstNonZeroIndex) : [],
-        })),
+        labels: [],
+        datasets: data.datasets.map(ds => ({ ...(ds || {}), values: [] }))
     };
+  }
+
+  // Stelle sicher, dass Labels und Values im ersten Dataset synchron sind
+  if (data.labels.length !== data.datasets[0].values.length) {
+     console.warn("trimMultiData: Label count doesn't match value count in first dataset.");
+      return { labels: [], datasets: data.datasets.map(ds => ({ ...(ds || {}), values: [] })) };
+  }
+
+  // Kürze Labels und *alle* Datasets ab diesem Index.
+  const trimmedLabels = data.labels.slice(firstNonZeroIndex);
+  const trimmedDatasets = data.datasets.map(ds => {
+    // Stelle sicher, dass das Dataset und dessen Werte gültig sind
+    const originalValues = (ds && Array.isArray(ds.values)) ? ds.values : [];
+    // Kürze nur, wenn die Originallänge mit den Labels übereinstimmt
+    const trimmedValues = originalValues.length === data.labels.length ? originalValues.slice(firstNonZeroIndex) : [];
+    return {
+      ...(ds || {}), // Behalte andere Dataset-Eigenschaften
+      values: trimmedValues,
+    };
+  });
+
+  return {
+      labels: trimmedLabels,
+      datasets: trimmedDatasets,
+  };
 };
 
-
-// --- filterDataToYears Funktion (potenziell ungenutzt, aber noch vorhanden) ---
-// Interne Interface-Definition für diese Funktion
-interface StockDataForFilter {
-    labels: (string | number)[];
-    values: number[];
-}
-
-export const filterDataToYears = (data: StockDataForFilter | null | undefined, pointsToKeep: number): StockDataForFilter => {
-    if (!data || !data.labels || !data.values || pointsToKeep <= 0 || data.labels.length === 0) {
-        return { labels: [], values: [] };
-    }
-    if (pointsToKeep >= data.labels.length) {
-        return data; // Keine Kürzung nötig, wenn pointsToKeep >= Länge ist
-    }
-    const startIndex = data.labels.length - pointsToKeep;
-    // Stelle sicher, dass startIndex nicht negativ ist (sollte nicht passieren, aber sicher ist sicher)
-    const validStartIndex = Math.max(0, startIndex);
-    return {
-        labels: data.labels.slice(validStartIndex),
-        values: data.values.slice(validStartIndex),
-    };
-};
-
-
-// --- sliceMultiDataToLastNPoints Funktion (wird in Home.tsx verwendet) ---
 /**
  * Schneidet die Daten in einem MultiDatasetStockData-Objekt, um nur die
  * letzten N Datenpunkte zu behalten.
@@ -111,11 +138,10 @@ export const filterDataToYears = (data: StockDataForFilter | null | undefined, p
  */
 export const sliceMultiDataToLastNPoints = (data: MultiDatasetStockData, pointsToKeep: number): MultiDatasetStockData => {
     // Robuste Prüfungen für data und pointsToKeep
-    if (!data || !data.labels || data.labels.length === 0 || !data.datasets || pointsToKeep <= 0) {
-        // Gib eine leere, aber gültige Struktur zurück
+    if (!data || !Array.isArray(data.labels) || data.labels.length === 0 || !Array.isArray(data.datasets) || pointsToKeep <= 0) {
         return {
             labels: [],
-            datasets: data?.datasets?.map(ds => ({ ...ds, values: [] })) || [] // Behalte Dataset-Labels etc.
+            datasets: data?.datasets?.map(ds => ({ ...(ds || {}), values: [] })) || []
         };
     }
 
@@ -125,17 +151,41 @@ export const sliceMultiDataToLastNPoints = (data: MultiDatasetStockData, pointsT
     }
 
     const startIndex = totalPoints - pointsToKeep;
-     // Stelle sicher, dass startIndex nicht negativ ist
-     const validStartIndex = Math.max(0, startIndex);
+    // Stelle sicher, dass startIndex nicht negativ ist
+    const validStartIndex = Math.max(0, startIndex);
+
+    const slicedLabels = data.labels.slice(validStartIndex);
+    const slicedDatasets = data.datasets.map(ds => {
+       const originalValues = (ds && Array.isArray(ds.values)) ? ds.values : [];
+       // Slice nur, wenn Längen übereinstimmen
+       const slicedValues = originalValues.length === totalPoints ? originalValues.slice(validStartIndex) : [];
+        return {
+            ...(ds || {}),
+            values: slicedValues,
+        };
+    });
 
     return {
-        labels: data.labels.slice(validStartIndex),
-        datasets: data.datasets.map(ds => ({
-            ...ds,
-            // Stelle sicher, dass values existiert, bevor slice aufgerufen wird
-            values: ds.values ? ds.values.slice(validStartIndex) : [],
-        })),
+        labels: slicedLabels,
+        datasets: slicedDatasets,
     };
 };
+
+// --- filterDataToYears Funktion (Beispielhaft, falls du sie behalten willst) ---
+// export const filterDataToYears = (data: StockData | null | undefined, pointsToKeep: number): StockData => {
+//   if (!data || !data.labels || !data.values || pointsToKeep <= 0 || data.labels.length === 0) {
+//     return { labels: [], values: [] };
+//   }
+//   if (pointsToKeep >= data.labels.length) {
+//     return data;
+//   }
+//   const startIndex = data.labels.length - pointsToKeep;
+//   const validStartIndex = Math.max(0, startIndex);
+//   return {
+//     labels: data.labels.slice(validStartIndex),
+//     values: data.values.slice(validStartIndex),
+//   };
+// };
+
 
 // --- Ende utils.ts ---
