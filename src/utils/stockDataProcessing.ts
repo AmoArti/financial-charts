@@ -1,56 +1,19 @@
-// src/utils/stockDataProcessing.ts (Refactored - V1: processIncomeData ausgelagert)
+// src/utils/stockDataProcessing.ts (Refactored - V2: Income & Earnings ausgelagert)
 import {
   StockData,
   CompanyInfo,
   KeyMetrics,
   MultiDatasetStockData,
   RawApiData,
+  UseStockDataResult // Behalte den vollen Typ für den Rückgabewert
 } from '../types/stockDataTypes';
-// Importiere ausgelagerte Funktion und allgemeine Helfer
-import { formatQuarter, trimMultiData, parseAndScale, parseFloatOrZero, trimData } from '../utils/utils'; // Angepasste Imports
-import { processIncomeData } from './processing/incomeProcessing'; // NEUER Import
+// Importiere allgemeine Helfer
+import { formatQuarter, trimMultiData, parseAndScale, parseFloatOrZero, trimData } from '../utils/utils';
+// Importiere ausgelagerte Verarbeitungsfunktionen
+import { processIncomeData } from './processing/incomeProcessing';
+import { processEarningsData } from './processing/earningsProcessing';
 
-// --- Interne Hilfsfunktionen ---
-// calculateMargins wurde nach incomeProcessing.ts verschoben
-// parseAndScale wurde nach utils.ts verschoben
-// parseFloatOrZero wurde nach utils.ts verschoben
-// trimData wurde nach utils.ts verschoben
-
-// --- Verarbeitungsfunktionen für spezifische API-Daten (Earnings, CF, Balance Sheet) ---
-
-const processEarningsData = (earningsData: any): {
-  annualEPS: StockData;
-  quarterlyEPS: StockData;
-} => {
-  let result = {
-    annualEPS: { labels: [], values: [] } as StockData,
-    quarterlyEPS: { labels: [], values: [] } as StockData,
-  };
-
-  if (!earningsData || (!earningsData.annualEarnings && !earningsData.quarterlyEarnings)) {
-    return result;
-  }
-
-  // Jahresdaten
-  const annualEarnings = (Array.isArray(earningsData.annualEarnings) ? earningsData.annualEarnings : [])
-    .sort((a: any, b: any) => parseInt(a.fiscalDateEnding.substring(0, 4)) - parseInt(b.fiscalDateEnding.substring(0, 4)));
-  if (annualEarnings.length > 0) {
-    const annualLabelsEPS = annualEarnings.map((e: any) => parseInt(e.fiscalDateEnding.substring(0, 4)));
-    const annualValuesEPS = annualEarnings.map((e: any) => parseFloat(e.reportedEPS) || 0);
-    result.annualEPS = trimData(annualLabelsEPS, annualValuesEPS); // Nutzt trimData aus utils
-  }
-
-  // Quartalsdaten
-  const quarterlyEarnings = (Array.isArray(earningsData.quarterlyEarnings) ? earningsData.quarterlyEarnings : [])
-    .sort((a: any, b: any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
-  if (quarterlyEarnings.length > 0) {
-    const quarterlyLabelsEPS = quarterlyEarnings.map((e: any) => formatQuarter(e.fiscalDateEnding)); // Nutzt formatQuarter aus utils
-    const quarterlyValuesEPS = quarterlyEarnings.map((e: any) => parseFloat(e.reportedEPS) || 0);
-    result.quarterlyEPS = trimData(quarterlyLabelsEPS, quarterlyValuesEPS); // Nutzt trimData aus utils
-  }
-
-  return result;
-};
+// --- Verarbeitungsfunktionen für spezifische API-Daten (CF, Balance Sheet) ---
 
 const processCashflowData = (cashFlowData: any): {
   annualCashflowStatement: MultiDatasetStockData;
@@ -77,7 +40,7 @@ const processCashflowData = (cashFlowData: any): {
     const annualFCFValues = annualCashFlowReports.map(r => {
       const ocf = parseFloatOrZero(r.operatingCashflow);
       const capex = parseFloatOrZero(r.capitalExpenditures);
-      return (ocf - Math.abs(capex)) / 1e9;
+      return (ocf - Math.abs(capex)) / 1e9; // Skaliert auf Mrd.
     });
     // Nutze Helfer aus utils
     result.annualCashflowStatement = trimMultiData({
@@ -102,7 +65,7 @@ const processCashflowData = (cashFlowData: any): {
     const quarterlyFCFValues = quarterlyCashFlowReports.map(r => {
       const ocf = parseFloatOrZero(r.operatingCashflow);
       const capex = parseFloatOrZero(r.capitalExpenditures);
-      return (ocf - Math.abs(capex)) / 1e9;
+      return (ocf - Math.abs(capex)) / 1e9; // Skaliert auf Mrd.
     });
     // Nutze Helfer aus utils
     result.quarterlyCashflowStatement = trimMultiData({
@@ -159,6 +122,7 @@ const processBalanceSheetData = (balanceSheetData: any): {
   return result;
 };
 
+
 // --- Hilfsfunktionen für KeyMetrics Formatierung (bleiben hier) ---
 const formatMetric = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
@@ -190,7 +154,7 @@ const formatMarginForDisplay = (value: number | null): string | null => {
 };
 
 // --- Hauptfunktion zur Verarbeitung aller Rohdaten ---
-// Der Rückgabetyp muss mit UseStockDataResult übereinstimmen (ohne die Hook-Metadaten)
+// Definiere den Rückgabetyp basierend auf UseStockDataResult ohne die Hook-Metadaten
 type ProcessedStockDataResult = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'error' | 'progress'>;
 
 export const processStockData = (rawData: RawApiData, ticker: string): ProcessedStockDataResult => {
@@ -213,15 +177,14 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   const hasBalanceSheetData = !!(balanceSheet?.annualReports || balanceSheet?.quarterlyReports);
   if (!hasIncomeData && !hasEarningsData && !hasCashflowData && !hasBalanceSheetData) {
     console.warn(`Für Ticker "${ticker}" fehlen möglicherweise einige Finanzdaten.`);
-    // Hier könnte man entscheiden, ob man einen Fehler wirft oder mit leeren Daten weitermacht
   }
 
   // --- Datenverarbeitung ---
-  // Rufe die importierte Funktion für Income Data auf
-  const incomeProcessed = processIncomeData(income); // !!! NEU: Importierte Funktion
-  const earningsProcessed = processEarningsData(earnings);
-  const cashflowProcessed = processCashflowData(cashflow);
-  const balanceSheetProcessed = processBalanceSheetData(balanceSheet);
+  // Rufe die importierten Funktionen auf
+  const incomeProcessed = processIncomeData(income);
+  const earningsProcessed = processEarningsData(earnings); // Importierte Funktion
+  const cashflowProcessed = processCashflowData(cashflow); // Lokale Funktion (noch)
+  const balanceSheetProcessed = processBalanceSheetData(balanceSheet); // Lokale Funktion (noch)
 
   // --- Company Info ---
   const currentPrice = globalQuote?.['05. price'];
@@ -251,11 +214,9 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
    };
 
   // --- Rückgabe aller verarbeiteten Daten ---
-  // Stelle sicher, dass die zurückgegebene Struktur mit UseStockDataResult übereinstimmt
   return {
-    // companyInfo und keyMetrics können null sein, wenn overview fehlt, aber die Typen erlauben das
-    companyInfo: companyInfo, // companyInfo ist nie null wegen der Prüfung oben, aber Typ erlaubt es
-    keyMetrics: keyMetrics,   // keyMetrics ist nie null, aber Typ erlaubt es
+    companyInfo,
+    keyMetrics,
     annualRevenue: incomeProcessed.annualRevenue,
     quarterlyRevenue: incomeProcessed.quarterlyRevenue,
     annualEPS: earningsProcessed.annualEPS,
