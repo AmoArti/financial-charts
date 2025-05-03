@@ -1,4 +1,4 @@
-// src/pages/Home.tsx (Version Schritt 12 - Alle Charts wiederhergestellt - Vollständig)
+// src/pages/Home.tsx (Final - Mit allen Charts inkl. Debt-to-Equity)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
@@ -28,13 +28,14 @@ const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
 const Home: React.FC = () => {
-  console.log("Rendering Home Component (Step 12 - All Charts)...");
+  console.log("Rendering Home Component (Final with D/E Chart)...");
 
   // --- Hooks und State Deklarationen ---
   const {
     annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS,
     annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
-    annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding, // Shares werden jetzt gebraucht
+    annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
+    annualDebtToEquity, quarterlyDebtToEquity, // D/E Daten holen
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
@@ -50,7 +51,8 @@ const Home: React.FC = () => {
   const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS;
   const marginsDataFromHook = viewMode === 'annual' ? annualMargins : quarterlyMargins;
   const cashflowStatementFromHook = viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement;
-  const sharesDataBase = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding; // Wird jetzt gebraucht
+  const sharesDataBase = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding;
+  const debtToEquityDataBase = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity; // D/E Daten auswählen
 
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
 
@@ -61,7 +63,13 @@ const Home: React.FC = () => {
   const marginsDataForChart = sliceMultiDataToLastNPoints(marginsDataFromHook, pointsToKeep);
   const cashflowStatementDataForChart = sliceMultiDataToLastNPoints(cashflowStatementFromHook, pointsToKeep);
   const sharesDataMulti: MultiDatasetStockData = { labels: sharesDataBase?.labels || [], datasets: [{ label: 'Shares Out (M)', values: sharesDataBase?.values || [] }]};
-  const sharesDataForChart = sliceMultiDataToLastNPoints(sharesDataMulti, pointsToKeep); // Wird jetzt gebraucht
+  const sharesDataForChart = sliceMultiDataToLastNPoints(sharesDataMulti, pointsToKeep);
+  const debtToEquityDataMulti: MultiDatasetStockData = {
+      labels: debtToEquityDataBase?.labels || [],
+      datasets: [{ label: 'D/E Ratio', values: debtToEquityDataBase?.values || [] }]
+  };
+  const debtToEquityDataForChart = sliceMultiDataToLastNPoints(debtToEquityDataMulti, pointsToKeep); // D/E Daten slicen
+
 
   // --- Event Handlers ---
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
@@ -263,18 +271,18 @@ const Home: React.FC = () => {
                         </IonCardContent>
                       </IonCard>
 
-                      {/* +++ NEU: Shares Outstanding Chart +++ */}
+                      {/* Shares Outstanding Chart */}
                       <IonCard>
                         <IonCardHeader><IonCardTitle>Outstanding Shares ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
                         <IonCardContent>
-                          {/* Prüfe auf gültige Daten (sharesDataForChart hat nur ein Dataset) */}
                           {sharesDataForChart && sharesDataForChart.labels && sharesDataForChart.labels.length > 0 && sharesDataForChart.datasets[0]?.values?.length > 0 ? (
                              <div style={{ height: '300px', width: '100%' }}>
                                 <BarChart
                                     data={sharesDataForChart}
                                     title={`Outstanding Shares (${viewMode})`}
-                                    yAxisFormat="number" // Einfache Zahl
-                                    yAxisLabel="Shares (Millions)" // Annahme: Skalierung auf Millionen
+                                    // *** HIER die Änderung ***
+                                    yAxisFormat="ratio" // War vorher "number", "ratio" nutzt toFixed(2)
+                                    yAxisLabel="Shares (Millions)"
                                 />
                              </div>
                            ) : !loading && (
@@ -282,7 +290,26 @@ const Home: React.FC = () => {
                            )}
                         </IonCardContent>
                       </IonCard>
-                      {/* +++ ENDE Shares Outstanding Chart +++ */}
+
+                      {/* Debt-to-Equity Ratio Chart */}
+                      <IonCard>
+                        <IonCardHeader><IonCardTitle>Debt-to-Equity Ratio ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                        <IonCardContent>
+                          {debtToEquityDataForChart && debtToEquityDataForChart.labels && debtToEquityDataForChart.labels.length > 0 && debtToEquityDataForChart.datasets[0]?.values?.length > 0 ? (
+                             <div style={{ height: '300px', width: '100%' }}>
+                                <BarChart
+                                    data={debtToEquityDataForChart}
+                                    title={`Debt-to-Equity Ratio (${viewMode})`}
+                                    // *** HIER die Änderung ***
+                                    yAxisFormat="ratio" // War vorher "number"
+                                    yAxisLabel="D/E Ratio"
+                                />
+                             </div>
+                           ) : !loading && (
+                             <p>Keine Debt-to-Equity Daten verfügbar.</p>
+                           )}
+                        </IonCardContent>
+                      </IonCard>
 
                     </div>
                  </>

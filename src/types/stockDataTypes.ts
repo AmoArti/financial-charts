@@ -1,4 +1,4 @@
-// src/types/stockDataTypes.ts
+// src/types/stockDataTypes.ts (ERWEITERT um Debt-to-Equity Ratio)
 
 // Basis-Struktur für einfache Chart-Daten (Labels + Werte)
 export interface StockData {
@@ -60,9 +60,13 @@ export interface UseStockDataResult {
   annualCashflowStatement: MultiDatasetStockData;
   quarterlyCashflowStatement: MultiDatasetStockData;
 
-  // NEU: Outstanding Shares Daten
+  // Outstanding Shares Daten
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
+
+  // NEU: Debt-to-Equity Ratio Daten
+  annualDebtToEquity: StockData;
+  quarterlyDebtToEquity: StockData;
 
   // Metadaten & Funktion
   loading: boolean;
@@ -82,7 +86,7 @@ export interface RawApiData {
   cashflow?: any;
   overview?: any;
   quote?: any;
-  balanceSheet?: any; // NEU hinzugefügt
+  balanceSheet?: any;
 }
 
 // --- Ende src/types/stockDataTypes.ts ---

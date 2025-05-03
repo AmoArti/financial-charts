@@ -1,13 +1,13 @@
-// src/hooks/useStockData.ts (Updated for Shares Outstanding)
+// src/hooks/useStockData.ts (Updated for Debt-to-Equity Ratio)
 import { useState, useCallback } from 'react';
 import { fetchAlphaVantageData } from '../services/alphaVantageApi';
-import { processStockData } from '../utils/stockDataProcessing';
+import { processStockData } from '../utils/stockDataProcessing'; // Haupt-Processing-Funktion
 import {
   StockData,
   CompanyInfo,
   KeyMetrics,
   MultiDatasetStockData,
-  UseStockDataResult, // Importiere den AKTUALISIERTEN Typ
+  UseStockDataResult, // Importiere den AKTUALISIERTEN Typ mit D/E
   RawApiData
 } from '../types/stockDataTypes';
 
@@ -20,7 +20,6 @@ type CachedProcessedData = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'e
 
 export const useStockData = (): UseStockDataResult => {
   // --- States ---
-  // Beachte: Namen und Typen sollten zum UseStockDataResult-Interface passen
   const [annualRevenue, setAnnualRevenue] = useState<StockData>(initialStockData);
   const [quarterlyRevenue, setQuarterlyRevenue] = useState<StockData>(initialStockData);
   const [annualEPS, setAnnualEPS] = useState<StockData>(initialStockData);
@@ -31,9 +30,11 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyMargins, setQuarterlyMargins] = useState<MultiDatasetStockData>(initialMultiData);
   const [annualCashflowStatement, setAnnualCashflowStatement] = useState<MultiDatasetStockData>(initialMultiData);
   const [quarterlyCashflowStatement, setQuarterlyCashflowStatement] = useState<MultiDatasetStockData>(initialMultiData);
-  // NEU: States für Outstanding Shares
   const [annualSharesOutstanding, setAnnualSharesOutstanding] = useState<StockData>(initialStockData);
   const [quarterlySharesOutstanding, setQuarterlySharesOutstanding] = useState<StockData>(initialStockData);
+  // NEU: States für Debt-to-Equity Ratio
+  const [annualDebtToEquity, setAnnualDebtToEquity] = useState<StockData>(initialStockData);
+  const [quarterlyDebtToEquity, setQuarterlyDebtToEquity] = useState<StockData>(initialStockData);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,7 @@ export const useStockData = (): UseStockDataResult => {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [keyMetrics, setKeyMetrics] = useState<KeyMetrics | null>(null);
 
-  // Cache für verarbeitete Daten (Typ angepasst)
+  // Cache für verarbeitete Daten (Typ angepasst via Omit<UseStockDataResult,...>)
   const [cachedData, setCachedData] = useState<{ [ticker: string]: CachedProcessedData }>({});
 
   const apiKey = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
@@ -59,11 +60,11 @@ export const useStockData = (): UseStockDataResult => {
       return;
     }
 
-    // Cache prüfen (Zugriffe angepasst)
+    // Cache prüfen (Zugriffe angepasst inkl. D/E)
     if (cachedData[ticker]) {
       console.log(`Using cached data for ${ticker}`);
       const cached = cachedData[ticker];
-      // Alle Daten-States aus dem Cache setzen (inkl. Shares Outstanding)
+      // Alle Daten-States aus dem Cache setzen
       setAnnualRevenue(cached.annualRevenue);
       setQuarterlyRevenue(cached.quarterlyRevenue);
       setAnnualEPS(cached.annualEPS);
@@ -74,8 +75,10 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyMargins(cached.quarterlyMargins);
       setAnnualCashflowStatement(cached.annualCashflowStatement);
       setQuarterlyCashflowStatement(cached.quarterlyCashflowStatement);
-      setAnnualSharesOutstanding(cached.annualSharesOutstanding); // NEU
-      setQuarterlySharesOutstanding(cached.quarterlySharesOutstanding); // NEU
+      setAnnualSharesOutstanding(cached.annualSharesOutstanding);
+      setQuarterlySharesOutstanding(cached.quarterlySharesOutstanding);
+      setAnnualDebtToEquity(cached.annualDebtToEquity); // NEU
+      setQuarterlyDebtToEquity(cached.quarterlyDebtToEquity); // NEU
       setCompanyInfo(cached.companyInfo);
       setKeyMetrics(cached.keyMetrics);
       setProgress(100);
@@ -84,8 +87,8 @@ export const useStockData = (): UseStockDataResult => {
       return;
     }
 
-    // Reset States für neuen Fetch (inkl. Shares Outstanding)
-    console.log(`Workspaceing new data from API for ${ticker}`);
+    // Reset States für neuen Fetch (inkl. D/E)
+    console.log(`Workspaceing new data from API for ${ticker}`); // Nachricht ggf. anpassen
     setLoading(true);
     setError(null);
     setProgress(0);
@@ -96,20 +99,21 @@ export const useStockData = (): UseStockDataResult => {
     setAnnualIncomeStatement(initialMultiData); setQuarterlyIncomeStatement(initialMultiData);
     setAnnualMargins(initialMultiData); setQuarterlyMargins(initialMultiData);
     setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData);
-    setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData); // NEU
+    setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData);
+    setAnnualDebtToEquity(initialStockData); setQuarterlyDebtToEquity(initialStockData); // NEU
 
 
     try {
       setProgress(10);
-      // Schritt 1: API-Daten abrufen (holt jetzt auch Balance Sheet)
+      // Schritt 1: API-Daten abrufen (inkl. Balance Sheet)
       const rawData: RawApiData = await fetchAlphaVantageData(ticker, apiKey);
-      setProgress(50); // Nach erfolgreichem API-Call
+      setProgress(50);
 
-      // Schritt 2: Rohdaten verarbeiten (gibt jetzt auch Shares Outstanding zurück)
+      // Schritt 2: Rohdaten verarbeiten (gibt jetzt auch D/E zurück)
       const processedData = processStockData(rawData, ticker);
-      setProgress(90); // Nach erfolgreicher Verarbeitung
+      setProgress(90);
 
-      // Schritt 3: State aktualisieren (inkl. Shares Outstanding)
+      // Schritt 3: State aktualisieren (inkl. D/E)
       setCompanyInfo(processedData.companyInfo);
       setKeyMetrics(processedData.keyMetrics);
       setAnnualRevenue(processedData.annualRevenue);
@@ -122,12 +126,14 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyMargins(processedData.quarterlyMargins);
       setAnnualCashflowStatement(processedData.annualCashflowStatement);
       setQuarterlyCashflowStatement(processedData.quarterlyCashflowStatement);
-      setAnnualSharesOutstanding(processedData.annualSharesOutstanding); // NEU
-      setQuarterlySharesOutstanding(processedData.quarterlySharesOutstanding); // NEU
+      setAnnualSharesOutstanding(processedData.annualSharesOutstanding);
+      setQuarterlySharesOutstanding(processedData.quarterlySharesOutstanding);
+      setAnnualDebtToEquity(processedData.annualDebtToEquity); // NEU
+      setQuarterlyDebtToEquity(processedData.quarterlyDebtToEquity); // NEU
 
       setProgress(100);
 
-      // Schritt 4: Cache aktualisieren (inkl. Shares Outstanding)
+      // Schritt 4: Cache aktualisieren (inkl. D/E)
       setCachedData(prev => ({
         ...prev,
         [ticker]: { // Speichere die verarbeiteten Daten
@@ -143,8 +149,10 @@ export const useStockData = (): UseStockDataResult => {
           quarterlyMargins: processedData.quarterlyMargins,
           annualCashflowStatement: processedData.annualCashflowStatement,
           quarterlyCashflowStatement: processedData.quarterlyCashflowStatement,
-          annualSharesOutstanding: processedData.annualSharesOutstanding, // NEU
-          quarterlySharesOutstanding: processedData.quarterlySharesOutstanding, // NEU
+          annualSharesOutstanding: processedData.annualSharesOutstanding,
+          quarterlySharesOutstanding: processedData.quarterlySharesOutstanding,
+          annualDebtToEquity: processedData.annualDebtToEquity, // NEU
+          quarterlyDebtToEquity: processedData.quarterlyDebtToEquity, // NEU
         },
       }));
 
@@ -152,21 +160,22 @@ export const useStockData = (): UseStockDataResult => {
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler beim Datenabruf';
       setError(errorMessage);
       console.error("Fehler in fetchData (Hook):", err);
-      // Sicherstellen, dass alle Daten zurückgesetzt werden bei Fehler (inkl. Shares Outstanding)
+      // Sicherstellen, dass alle Daten zurückgesetzt werden bei Fehler (inkl. D/E)
       setCompanyInfo(null); setKeyMetrics(null);
       setAnnualRevenue(initialStockData); setQuarterlyRevenue(initialStockData);
       setAnnualEPS(initialStockData); setQuarterlyEPS(initialStockData);
       setAnnualIncomeStatement(initialMultiData); setQuarterlyIncomeStatement(initialMultiData);
       setAnnualMargins(initialMultiData); setQuarterlyMargins(initialMultiData);
       setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData);
-      setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData); // NEU
+      setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData);
+      setAnnualDebtToEquity(initialStockData); setQuarterlyDebtToEquity(initialStockData); // NEU
     } finally {
       setLoading(false); // Ladezustand immer beenden
     }
-  }, [apiKey, cachedData]); // Abhängigkeiten: apiKey und Cache
+  }, [apiKey, cachedData]); // Abhängigkeiten prüfen, sollte so passen
 
   // --- Rückgabe des Hooks ---
-  // (Angepasst an das neue UseStockDataResult Interface inkl. Shares Outstanding)
+  // (Angepasst an das neue UseStockDataResult Interface inkl. D/E)
   return {
     // Daten-States
     annualRevenue, quarterlyRevenue,
@@ -174,10 +183,12 @@ export const useStockData = (): UseStockDataResult => {
     annualIncomeStatement, quarterlyIncomeStatement,
     annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement,
-    annualSharesOutstanding, quarterlySharesOutstanding, // NEU
+    annualSharesOutstanding, quarterlySharesOutstanding,
+    annualDebtToEquity, quarterlyDebtToEquity, // NEU
     // Metadaten-States
     loading, error, progress, companyInfo, keyMetrics,
     // Funktion zum Triggern
     fetchData,
   };
 };
+// --- Ende useStockData.ts ---

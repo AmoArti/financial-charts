@@ -1,17 +1,18 @@
-// src/utils/stockDataProcessing.ts (Refactored - V4: Alle Verarbeitungen ausgelagert)
+// src/utils/stockDataProcessing.ts (Final Refactored Version)
 import {
   CompanyInfo,
   KeyMetrics,
   RawApiData,
-  UseStockDataResult // Behalte den vollen Typ für den Rückgabewert
+  UseStockDataResult // Importiere den finalen Typ
 } from '../types/stockDataTypes';
-// Importiere ausgelagerte Verarbeitungsfunktionen
+
+// Importiere die ausgelagerten Verarbeitungsfunktionen
 import { processIncomeData } from './processing/incomeProcessing';
 import { processEarningsData } from './processing/earningsProcessing';
 import { processCashflowData } from './processing/cashflowProcessing';
 import { processBalanceSheetData } from './processing/balanceSheetProcessing';
 
-// --- Hilfsfunktionen für KeyMetrics Formatierung (bleiben hier) ---
+// --- Hilfsfunktionen NUR für KeyMetrics Formatierung (bleiben hier) ---
 // Diese Funktionen formatieren die Daten aus 'overview' und 'quote' für die KeyMetrics Anzeige
 const formatMetric = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
@@ -21,20 +22,16 @@ const formatMetric = (value: string | number | null | undefined): string | null 
 };
 const formatPercentage = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
-    // Ersetze '%' nur, wenn es tatsächlich vorkommt, um Doppelung zu vermeiden
     const stringValue = String(value).includes('%') ? String(value).replace('%', '') : String(value);
     const numValue = parseFloat(stringValue);
     if (isNaN(numValue)) return null;
-    // Alpha Vantage liefert DividendYield oft als Dezimal (0.015), ChangePercent als String mit % (-0.5%)
     if (String(value).includes('%')) {
-        // Bereits ein %-Zeichen vorhanden -> nur formatieren
         return `${numValue.toFixed(2)}%`;
     } else if (Math.abs(numValue) > 0 && Math.abs(numValue) <= 1) {
-        // Wahrscheinlich Dezimalzahl für Rendite/Yield (z.B. 0.015) -> * 100
+        // Assume decimal yield needs multiplying
         return `${(numValue * 100).toFixed(2)}%`;
     } else {
-        // Wahrscheinlich schon eine Prozentzahl (wie Marge aus calculateMargins) oder eine Zahl > 1
-         // Behandle als Zahl und füge % hinzu (Fallback)
+         // Assume it's already a percentage value (like margin) or needs formatting as such
         return `${numValue.toFixed(2)}%`;
     }
 };
@@ -57,7 +54,7 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   // Destructure alle erwarteten Rohdaten-Teile
   const { income, earnings, cashflow, overview, quote, balanceSheet } = rawData;
 
-  // --- Grundlegende Fehlerprüfung der essentiellen Daten ---
+  // Grundlegende Fehlerprüfung der essentiellen Daten
   if (!overview?.Symbol) {
     // Wenn Overview fehlt, können wir kaum sinnvolle Infos anzeigen -> Fehler
     console.error("Processing Error: Overview data or Symbol missing!", overview);
@@ -69,8 +66,13 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
      console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar. Quote data:`, quote);
   }
 
+  // Optional: Prüfen, ob Finanzdaten vorhanden sind (kann auch in Sub-Funktionen passieren)
+  // const hasIncomeData = !!(income?.annualReports || income?.quarterlyReports);
+  // ... etc ...
+  // if (!hasIncomeData && ...) { console.warn(...) }
+
   // --- Datenverarbeitung durch Aufruf der importierten Funktionen ---
-  // Rufe alle Verarbeitungsfunktionen auf. Sie geben leere Strukturen zurück, wenn ihre Eingabedaten fehlen.
+  // Rufe alle spezialisierten Verarbeitungsfunktionen auf
   const incomeProcessed = processIncomeData(income);
   const earningsProcessed = processEarningsData(earnings);
   const cashflowProcessed = processCashflowData(cashflow);
@@ -104,7 +106,7 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
       priceChange: formatPriceChange(rawChange), // Wird null, wenn Quote fehlt oder 'change' fehlt/ungültig
       priceChangePercent: formatPercentage(rawChangePercent), // Wird null, wenn Quote fehlt oder 'change percent' fehlt/ungültig
       isPositiveChange: !isNaN(numChange) && numChange >= 0, // False, wenn Quote fehlt/ungültig ist
-      // Werte aus Income Statement Verarbeitung
+      // Werte aus Income Statement Verarbeitung (Ergebnis von processIncomeData)
       grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin),
       operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin),
    };
@@ -127,6 +129,8 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
     quarterlyCashflowStatement: cashflowProcessed.quarterlyCashflowStatement,
     annualSharesOutstanding: balanceSheetProcessed.annualSharesOutstanding,
     quarterlySharesOutstanding: balanceSheetProcessed.quarterlySharesOutstanding,
+    annualDebtToEquity: balanceSheetProcessed.annualDebtToEquity, // von balanceSheetProcessed
+    quarterlyDebtToEquity: balanceSheetProcessed.quarterlyDebtToEquity, // von balanceSheetProcessed
   };
 };
 
