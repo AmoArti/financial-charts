@@ -1,10 +1,11 @@
-// src/pages/Home.tsx (Final - Mit allen Charts inkl. Debt-to-Equity)
+// src/pages/Home.tsx (Layout mit IonGrid für Charts)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
   IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText,
   IonSegment, IonSegmentButton,
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent
+  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+  IonGrid, IonRow, IonCol // NEU: Grid-Komponenten importieren
 } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -28,14 +29,14 @@ const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
 const Home: React.FC = () => {
-  console.log("Rendering Home Component (Final with D/E Chart)...");
+  console.log("Rendering Home Component (Grid Layout)...");
 
   // --- Hooks und State Deklarationen ---
   const {
     annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS,
     annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
-    annualDebtToEquity, quarterlyDebtToEquity, // D/E Daten holen
+    annualDebtToEquity, quarterlyDebtToEquity,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
@@ -52,7 +53,7 @@ const Home: React.FC = () => {
   const marginsDataFromHook = viewMode === 'annual' ? annualMargins : quarterlyMargins;
   const cashflowStatementFromHook = viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement;
   const sharesDataBase = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding;
-  const debtToEquityDataBase = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity; // D/E Daten auswählen
+  const debtToEquityDataBase = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity;
 
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
 
@@ -64,11 +65,8 @@ const Home: React.FC = () => {
   const cashflowStatementDataForChart = sliceMultiDataToLastNPoints(cashflowStatementFromHook, pointsToKeep);
   const sharesDataMulti: MultiDatasetStockData = { labels: sharesDataBase?.labels || [], datasets: [{ label: 'Shares Out (M)', values: sharesDataBase?.values || [] }]};
   const sharesDataForChart = sliceMultiDataToLastNPoints(sharesDataMulti, pointsToKeep);
-  const debtToEquityDataMulti: MultiDatasetStockData = {
-      labels: debtToEquityDataBase?.labels || [],
-      datasets: [{ label: 'D/E Ratio', values: debtToEquityDataBase?.values || [] }]
-  };
-  const debtToEquityDataForChart = sliceMultiDataToLastNPoints(debtToEquityDataMulti, pointsToKeep); // D/E Daten slicen
+  const debtToEquityDataMulti: MultiDatasetStockData = { labels: debtToEquityDataBase?.labels || [], datasets: [{ label: 'D/E Ratio', values: debtToEquityDataBase?.values || [] }]};
+  const debtToEquityDataForChart = sliceMultiDataToLastNPoints(debtToEquityDataMulti, pointsToKeep);
 
 
   // --- Event Handlers ---
@@ -202,116 +200,99 @@ const Home: React.FC = () => {
                       </IonSegment>
                     </div>
 
-                    {/* Bereich für die Charts */}
-                    <div style={{ marginTop: '10px' }}>
-                      {/* Income Statement Chart */}
-                      <IonCard>
-                        <IonCardHeader><IonCardTitle>Income Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                        <IonCardContent>
-                          {incomeDataForChart && incomeDataForChart.labels && incomeDataForChart.labels.length > 0 && incomeDataForChart.datasets.length > 0 ? (
-                            <div style={{ height: '300px', width: '100%' }}>
-                              <BarChart
-                                data={incomeDataForChart}
-                                title={`Income Statement (${viewMode})`}
-                                yAxisFormat="currency"
-                                yAxisLabel="Billions ($B)" />
-                            </div>)
-                          : !loading && (<p>Keine Income Statement Daten verfügbar.</p>)}
-                        </IonCardContent>
-                      </IonCard>
+                    {/* === Bereich für die Charts mit IonGrid === */}
+                    <IonGrid fixed={true}>
+                      <IonRow>
+                        {/* Chart 1: Income Statement */}
+                        <IonCol size="12" size-lg="6">
+                          <IonCard>
+                            <IonCardHeader><IonCardTitle>Income Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                            <IonCardContent>
+                              {incomeDataForChart && incomeDataForChart.labels && incomeDataForChart.labels.length > 0 && incomeDataForChart.datasets.length > 0 ? (
+                                <div style={{ height: '300px', width: '100%' }}>
+                                  <BarChart data={incomeDataForChart} title={`Income Statement (${viewMode})`} yAxisFormat="currency" yAxisLabel="Billions ($B)" />
+                                </div>)
+                              : !loading && (<p>Keine Income Statement Daten verfügbar.</p>)}
+                            </IonCardContent>
+                          </IonCard>
+                        </IonCol>
 
-                      {/* Cashflow Statement Chart */}
-                      <IonCard>
-                        <IonCardHeader><IonCardTitle>Cash Flow Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                        <IonCardContent>
-                          {cashflowStatementDataForChart && cashflowStatementDataForChart.labels && cashflowStatementDataForChart.labels.length > 0 && cashflowStatementDataForChart.datasets.length > 0 ? (
-                              <div style={{ height: '300px', width: '100%' }}>
-                                  <BarChart
-                                      data={cashflowStatementDataForChart}
-                                      title={`Cash Flow (${viewMode})`}
-                                      yAxisFormat="currency"
-                                      yAxisLabel="Billions ($B)"
-                                  />
-                              </div>
-                          ) : !loading && (
-                              <p>Keine Cashflow Daten verfügbar.</p>
-                          )}
-                        </IonCardContent>
-                      </IonCard>
+                        {/* Chart 2: Cash Flow Statement */}
+                        <IonCol size="12" size-lg="6">
+                           <IonCard>
+                            <IonCardHeader><IonCardTitle>Cash Flow Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                            <IonCardContent>
+                              {cashflowStatementDataForChart && cashflowStatementDataForChart.labels && cashflowStatementDataForChart.labels.length > 0 && cashflowStatementDataForChart.datasets.length > 0 ? (
+                                  <div style={{ height: '300px', width: '100%' }}>
+                                      <BarChart data={cashflowStatementDataForChart} title={`Cash Flow (${viewMode})`} yAxisFormat="currency" yAxisLabel="Billions ($B)" />
+                                  </div>
+                              ) : !loading && ( <p>Keine Cashflow Daten verfügbar.</p> )}
+                            </IonCardContent>
+                          </IonCard>
+                        </IonCol>
+                      </IonRow>
 
-                      {/* Margins Chart */}
-                      <IonCard>
-                        <IonCardHeader><IonCardTitle>Margins ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                        <IonCardContent>
-                          {marginsDataForChart && marginsDataForChart.labels && marginsDataForChart.labels.length > 0 && marginsDataForChart.datasets.length > 0 ? (
-                            <div style={{ height: '300px', width: '100%' }}>
-                              <BarChart
-                                data={marginsDataForChart}
-                                title={`Margins (%) (${viewMode})`}
-                                yAxisFormat="percent"
-                                yAxisLabel="Margin (%)" />
-                            </div>)
-                          : !loading && (<p>Keine Margen-Daten verfügbar.</p>)}
-                        </IonCardContent>
-                      </IonCard>
+                      <IonRow>
+                         {/* Chart 3: Margins */}
+                        <IonCol size="12" size-lg="6">
+                          <IonCard>
+                            <IonCardHeader><IonCardTitle>Margins ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                            <IonCardContent>
+                              {marginsDataForChart && marginsDataForChart.labels && marginsDataForChart.labels.length > 0 && marginsDataForChart.datasets.length > 0 ? (
+                                <div style={{ height: '300px', width: '100%' }}>
+                                  <BarChart data={marginsDataForChart} title={`Margins (%) (${viewMode})`} yAxisFormat="percent" yAxisLabel="Margin (%)" />
+                                </div>)
+                              : !loading && (<p>Keine Margen-Daten verfügbar.</p>)}
+                            </IonCardContent>
+                          </IonCard>
+                        </IonCol>
 
-                      {/* EPS Chart */}
-                      <IonCard>
-                        <IonCardHeader><IonCardTitle>EPS ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                        <IonCardContent>
-                          {epsDataForChart && epsDataForChart.labels && epsDataForChart.labels.length > 0 && epsDataForChart.datasets[0]?.values?.length > 0 ? (
-                            <div style={{ height: '300px', width: '100%' }}>
-                              <BarChart
-                                data={epsDataForChart}
-                                title={`EPS (${viewMode})`}
-                                yAxisFormat="number"
-                                yAxisLabel="EPS ($)" />
-                            </div> )
-                          : !loading && (<p>Keine EPS Daten verfügbar.</p>)}
-                        </IonCardContent>
-                      </IonCard>
+                        {/* Chart 4: EPS */}
+                        <IonCol size="12" size-lg="6">
+                          <IonCard>
+                            <IonCardHeader><IonCardTitle>EPS ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                            <IonCardContent>
+                              {epsDataForChart && epsDataForChart.labels && epsDataForChart.labels.length > 0 && epsDataForChart.datasets[0]?.values?.length > 0 ? (
+                                <div style={{ height: '300px', width: '100%' }}>
+                                  <BarChart data={epsDataForChart} title={`EPS (${viewMode})`} yAxisFormat="number" yAxisLabel="EPS ($)" />
+                                </div> )
+                              : !loading && (<p>Keine EPS Daten verfügbar.</p>)}
+                            </IonCardContent>
+                          </IonCard>
+                        </IonCol>
+                      </IonRow>
 
-                      {/* Shares Outstanding Chart */}
-                      <IonCard>
-                        <IonCardHeader><IonCardTitle>Outstanding Shares ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                        <IonCardContent>
-                          {sharesDataForChart && sharesDataForChart.labels && sharesDataForChart.labels.length > 0 && sharesDataForChart.datasets[0]?.values?.length > 0 ? (
-                             <div style={{ height: '300px', width: '100%' }}>
-                                <BarChart
-                                    data={sharesDataForChart}
-                                    title={`Outstanding Shares (${viewMode})`}
-                                    // *** HIER die Änderung ***
-                                    yAxisFormat="ratio" // War vorher "number", "ratio" nutzt toFixed(2)
-                                    yAxisLabel="Shares (Millions)"
-                                />
-                             </div>
-                           ) : !loading && (
-                             <p>Keine Daten zu ausstehenden Aktien verfügbar.</p>
-                           )}
-                        </IonCardContent>
-                      </IonCard>
+                      <IonRow>
+                         {/* Chart 5: Shares Outstanding */}
+                        <IonCol size="12" size-lg="6">
+                          <IonCard>
+                            <IonCardHeader><IonCardTitle>Outstanding Shares ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                            <IonCardContent>
+                              {sharesDataForChart && sharesDataForChart.labels && sharesDataForChart.labels.length > 0 && sharesDataForChart.datasets[0]?.values?.length > 0 ? (
+                                 <div style={{ height: '300px', width: '100%' }}>
+                                    <BarChart data={sharesDataForChart} title={`Outstanding Shares (${viewMode})`} yAxisFormat="ratio" yAxisLabel="Shares (Millions)" />
+                                 </div>
+                               ) : !loading && ( <p>Keine Daten zu ausstehenden Aktien verfügbar.</p> )}
+                            </IonCardContent>
+                          </IonCard>
+                        </IonCol>
 
-                      {/* Debt-to-Equity Ratio Chart */}
-                      <IonCard>
-                        <IonCardHeader><IonCardTitle>Debt-to-Equity Ratio ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                        <IonCardContent>
-                          {debtToEquityDataForChart && debtToEquityDataForChart.labels && debtToEquityDataForChart.labels.length > 0 && debtToEquityDataForChart.datasets[0]?.values?.length > 0 ? (
-                             <div style={{ height: '300px', width: '100%' }}>
-                                <BarChart
-                                    data={debtToEquityDataForChart}
-                                    title={`Debt-to-Equity Ratio (${viewMode})`}
-                                    // *** HIER die Änderung ***
-                                    yAxisFormat="ratio" // War vorher "number"
-                                    yAxisLabel="D/E Ratio"
-                                />
-                             </div>
-                           ) : !loading && (
-                             <p>Keine Debt-to-Equity Daten verfügbar.</p>
-                           )}
-                        </IonCardContent>
-                      </IonCard>
-
-                    </div>
+                        {/* Chart 6: Debt-to-Equity Ratio */}
+                         <IonCol size="12" size-lg="6">
+                          <IonCard>
+                            <IonCardHeader><IonCardTitle>Debt-to-Equity Ratio ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
+                            <IonCardContent>
+                              {debtToEquityDataForChart && debtToEquityDataForChart.labels && debtToEquityDataForChart.labels.length > 0 && debtToEquityDataForChart.datasets[0]?.values?.length > 0 ? (
+                                 <div style={{ height: '300px', width: '100%' }}>
+                                    <BarChart data={debtToEquityDataForChart} title={`Debt-to-Equity Ratio (${viewMode})`} yAxisFormat="ratio" yAxisLabel="D/E Ratio" />
+                                 </div>
+                               ) : !loading && ( <p>Keine Debt-to-Equity Daten verfügbar.</p> )}
+                            </IonCardContent>
+                          </IonCard>
+                        </IonCol>
+                      </IonRow>
+                    </IonGrid>
+                    {/* === Ende IonGrid === */}
                  </>
               )} {/* Ende if(companyInfo) */}
             </>
