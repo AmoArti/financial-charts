@@ -1,17 +1,18 @@
-// src/pages/Home.tsx (Layout mit IonGrid für Charts)
+// src/pages/Home.tsx (Final Refactored Version - KeyMetricsList, ChartControls, ChartGrid ausgelagert)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
-  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText,
-  IonSegment, IonSegmentButton,
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-  IonGrid, IonRow, IonCol // NEU: Grid-Komponenten importieren
+  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText // Behalten für Fallbacks/Info
 } from '@ionic/react';
+// Importiere Kernkomponenten
 import SearchBar from '../components/SearchBar';
 import LoadingIndicator from '../components/LoadingIndicator';
 import ErrorCard from '../components/ErrorCard';
 import CompanyInfoCard from '../components/CompanyInfoCard';
-import BarChart from '../components/BarChart';
+// Importiere ausgelagerte Komponenten
+import KeyMetricsList from '../components/KeyMetricsList';
+import ChartControls from '../components/ChartControls';
+import ChartGrid from '../components/ChartGrid';
 // Importiere Typen
 import { useStockData, StockData, CompanyInfo, KeyMetrics, MultiDatasetStockData } from '../hooks/useStockData';
 // Importiere die Slicing-Funktion
@@ -29,16 +30,21 @@ const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
 const Home: React.FC = () => {
-  console.log("Rendering Home Component (Grid Layout)...");
+  console.log("Rendering Home Component (Fully Refactored)...");
 
   // --- Hooks und State Deklarationen ---
-  const {
+   const {
+    // Hole alle Daten vom Hook
     annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS,
     annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
     annualDebtToEquity, quarterlyDebtToEquity,
-    loading, error, progress, companyInfo, keyMetrics, fetchData
+    // Metadaten
+    loading, error, progress, companyInfo, keyMetrics,
+    // Funktion
+    fetchData
   } = useStockData();
+
 
   // States für Controls und App-Zustand
   const [viewMode, setViewMode] = useState<'annual' | 'quarterly'>('quarterly');
@@ -48,6 +54,8 @@ const Home: React.FC = () => {
   const prevLoadingRef = useRef<boolean>(loading);
 
   // --- Daten für Anzeige vorbereiten und slicen ---
+  // Diese Logik bleibt hier, da sie viewMode/displayYears (lokale States)
+  // mit den Daten aus dem Hook kombiniert, um Props für ChartGrid zu erzeugen.
   const incomeDataFromHook = viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement;
   const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS;
   const marginsDataFromHook = viewMode === 'annual' ? annualMargins : quarterlyMargins;
@@ -57,7 +65,7 @@ const Home: React.FC = () => {
 
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
 
-  // Slicing für alle Charts
+  // Slicing für alle Charts -> Ergebnisse werden als Props an ChartGrid weitergegeben
   const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
   const epsDataMulti: MultiDatasetStockData = { labels: epsDataBase?.labels || [], datasets: [{ label: 'EPS', values: epsDataBase?.values || [] }] };
   const epsDataForChart = sliceMultiDataToLastNPoints(epsDataMulti, pointsToKeep);
@@ -70,6 +78,7 @@ const Home: React.FC = () => {
 
 
   // --- Event Handlers ---
+  // Bleiben hier, da sie lokalen State (currentTicker, viewMode, displayYears) ändern
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
   const handleRetry = () => { if (currentTicker) fetchData(currentTicker); };
   const handleGlobalYearsChange = (newYearsString: string | undefined) => {
@@ -86,6 +95,7 @@ const Home: React.FC = () => {
   };
 
   // --- useEffect Hooks ---
+  // Bleiben hier, da sie auf lokalen State oder Hook-Daten reagieren
   useEffect(() => {
      document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
   }, [currentTicker]);
@@ -110,6 +120,7 @@ const Home: React.FC = () => {
   }, [currentTicker, viewMode, fetchData]);
 
   // --- Helper Functions ---
+  // Bleiben hier, da sie an Kindkomponenten als Props gehen
   const formatMarketCap = (marketCap: string | null | undefined): string => {
     if (!marketCap || marketCap === 'None') return 'N/A';
     const num = parseFloat(marketCap);
@@ -142,10 +153,11 @@ const Home: React.FC = () => {
     return { explanation, recommendation };
   };
 
-  // Aktuelle Jahresoptionen bestimmen
+  // Aktuelle Jahresoptionen bestimmen (bleibt hier)
   const currentYearOptions = viewMode === 'annual' ? annualYearOptions : quarterlyYearOptions;
 
   // --- JSX Return ---
+  // Deutlich kürzer durch ausgelagerte Komponenten
   return (
     <IonPage>
       <IonHeader><IonToolbar><IonTitle>Stock Dashboard</IonTitle></IonToolbar></IonHeader>
@@ -164,141 +176,37 @@ const Home: React.FC = () => {
             <>
               {/* --- Info & Kennzahlen --- */}
               <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} />
-              <IonList inset={true} style={{ marginTop: '20px', marginBottom: '0px', '--ion-item-background': '#f9f9f9', borderRadius: '8px' }}>
-                 {keyMetrics && (
-                   <>
-                     <IonItem lines="full"><IonLabel color="medium">Kennzahlen</IonLabel></IonItem>
-                     <IonItem><IonLabel>KGV (P/E Ratio)</IonLabel><IonNote slot="end">{keyMetrics.peRatio ?? 'N/A'}</IonNote></IonItem>
-                     <IonItem><IonLabel>KUV (P/S Ratio)</IonLabel><IonNote slot="end">{keyMetrics.psRatio ?? 'N/A'}</IonNote></IonItem>
-                     <IonItem><IonLabel>KBV (P/B Ratio)</IonLabel><IonNote slot="end">{keyMetrics.pbRatio ?? 'N/A'}</IonNote></IonItem>
-                     <IonItem><IonLabel>EV/EBITDA</IonLabel><IonNote slot="end">{keyMetrics.evToEbitda ?? 'N/A'}</IonNote></IonItem>
-                     <IonItem><IonLabel>Bruttomarge</IonLabel><IonNote slot="end">{keyMetrics.grossMargin ?? 'N/A'}</IonNote></IonItem>
-                     <IonItem><IonLabel>Operative Marge</IonLabel><IonNote slot="end">{keyMetrics.operatingMargin ?? 'N/A'}</IonNote></IonItem>
-                     <IonItem lines="none"><IonLabel>Dividendenrendite</IonLabel><IonNote slot="end">{keyMetrics.dividendYield ?? 'N/A'}</IonNote></IonItem>
-                   </>
-                 )}
-                 {!keyMetrics && companyInfo && !loading && (
-                    <IonItem lines="none"><IonLabel color="medium">Kennzahlen nicht verfügbar.</IonLabel></IonItem>
-                 )}
-              </IonList>
+              <KeyMetricsList keyMetrics={keyMetrics} />
 
               {/* --- Steuerung & Charts (nur wenn Company Info geladen) --- */}
               {companyInfo && (
                  <>
-                    {/* Globale Bedienelemente */}
-                    <div style={{ marginTop: '20px', marginBottom: '20px' }}>
-                      <IonSegment value={viewMode} onIonChange={(e) => handleGlobalViewChange(e.detail.value as 'annual' | 'quarterly' | undefined)} style={{ marginBottom: '10px' }}>
-                        <IonSegmentButton value="quarterly"><IonLabel>QUARTER</IonLabel></IonSegmentButton>
-                        <IonSegmentButton value="annual"><IonLabel>ANNUAL</IonLabel></IonSegmentButton>
-                      </IonSegment>
-                      <IonSegment value={displayYears.toString()} onIonChange={(e) => handleGlobalYearsChange(e.detail.value)}>
-                        {currentYearOptions.map(option => (
-                          <IonSegmentButton key={option.value} value={option.value.toString()}>
-                            <IonLabel>{option.label}</IonLabel>
-                          </IonSegmentButton>
-                        ))}
-                      </IonSegment>
-                    </div>
+                    {/* Ausgelagerte ChartControls Komponente */}
+                    <ChartControls
+                      viewMode={viewMode}
+                      displayYears={displayYears}
+                      yearOptions={currentYearOptions}
+                      onViewModeChange={handleGlobalViewChange}
+                      onYearsChange={handleGlobalYearsChange}
+                    />
 
-                    {/* === Bereich für die Charts mit IonGrid === */}
-                    <IonGrid fixed={true}>
-                      <IonRow>
-                        {/* Chart 1: Income Statement */}
-                        <IonCol size="12" size-lg="6">
-                          <IonCard>
-                            <IonCardHeader><IonCardTitle>Income Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                            <IonCardContent>
-                              {incomeDataForChart && incomeDataForChart.labels && incomeDataForChart.labels.length > 0 && incomeDataForChart.datasets.length > 0 ? (
-                                <div style={{ height: '300px', width: '100%' }}>
-                                  <BarChart data={incomeDataForChart} title={`Income Statement (${viewMode})`} yAxisFormat="currency" yAxisLabel="Billions ($B)" />
-                                </div>)
-                              : !loading && (<p>Keine Income Statement Daten verfügbar.</p>)}
-                            </IonCardContent>
-                          </IonCard>
-                        </IonCol>
-
-                        {/* Chart 2: Cash Flow Statement */}
-                        <IonCol size="12" size-lg="6">
-                           <IonCard>
-                            <IonCardHeader><IonCardTitle>Cash Flow Statement ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                            <IonCardContent>
-                              {cashflowStatementDataForChart && cashflowStatementDataForChart.labels && cashflowStatementDataForChart.labels.length > 0 && cashflowStatementDataForChart.datasets.length > 0 ? (
-                                  <div style={{ height: '300px', width: '100%' }}>
-                                      <BarChart data={cashflowStatementDataForChart} title={`Cash Flow (${viewMode})`} yAxisFormat="currency" yAxisLabel="Billions ($B)" />
-                                  </div>
-                              ) : !loading && ( <p>Keine Cashflow Daten verfügbar.</p> )}
-                            </IonCardContent>
-                          </IonCard>
-                        </IonCol>
-                      </IonRow>
-
-                      <IonRow>
-                         {/* Chart 3: Margins */}
-                        <IonCol size="12" size-lg="6">
-                          <IonCard>
-                            <IonCardHeader><IonCardTitle>Margins ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                            <IonCardContent>
-                              {marginsDataForChart && marginsDataForChart.labels && marginsDataForChart.labels.length > 0 && marginsDataForChart.datasets.length > 0 ? (
-                                <div style={{ height: '300px', width: '100%' }}>
-                                  <BarChart data={marginsDataForChart} title={`Margins (%) (${viewMode})`} yAxisFormat="percent" yAxisLabel="Margin (%)" />
-                                </div>)
-                              : !loading && (<p>Keine Margen-Daten verfügbar.</p>)}
-                            </IonCardContent>
-                          </IonCard>
-                        </IonCol>
-
-                        {/* Chart 4: EPS */}
-                        <IonCol size="12" size-lg="6">
-                          <IonCard>
-                            <IonCardHeader><IonCardTitle>EPS ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                            <IonCardContent>
-                              {epsDataForChart && epsDataForChart.labels && epsDataForChart.labels.length > 0 && epsDataForChart.datasets[0]?.values?.length > 0 ? (
-                                <div style={{ height: '300px', width: '100%' }}>
-                                  <BarChart data={epsDataForChart} title={`EPS (${viewMode})`} yAxisFormat="number" yAxisLabel="EPS ($)" />
-                                </div> )
-                              : !loading && (<p>Keine EPS Daten verfügbar.</p>)}
-                            </IonCardContent>
-                          </IonCard>
-                        </IonCol>
-                      </IonRow>
-
-                      <IonRow>
-                         {/* Chart 5: Shares Outstanding */}
-                        <IonCol size="12" size-lg="6">
-                          <IonCard>
-                            <IonCardHeader><IonCardTitle>Outstanding Shares ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                            <IonCardContent>
-                              {sharesDataForChart && sharesDataForChart.labels && sharesDataForChart.labels.length > 0 && sharesDataForChart.datasets[0]?.values?.length > 0 ? (
-                                 <div style={{ height: '300px', width: '100%' }}>
-                                    <BarChart data={sharesDataForChart} title={`Outstanding Shares (${viewMode})`} yAxisFormat="ratio" yAxisLabel="Shares (Millions)" />
-                                 </div>
-                               ) : !loading && ( <p>Keine Daten zu ausstehenden Aktien verfügbar.</p> )}
-                            </IonCardContent>
-                          </IonCard>
-                        </IonCol>
-
-                        {/* Chart 6: Debt-to-Equity Ratio */}
-                         <IonCol size="12" size-lg="6">
-                          <IonCard>
-                            <IonCardHeader><IonCardTitle>Debt-to-Equity Ratio ({viewMode === 'annual' ? 'Annual' : 'Quarterly'})</IonCardTitle></IonCardHeader>
-                            <IonCardContent>
-                              {debtToEquityDataForChart && debtToEquityDataForChart.labels && debtToEquityDataForChart.labels.length > 0 && debtToEquityDataForChart.datasets[0]?.values?.length > 0 ? (
-                                 <div style={{ height: '300px', width: '100%' }}>
-                                    <BarChart data={debtToEquityDataForChart} title={`Debt-to-Equity Ratio (${viewMode})`} yAxisFormat="ratio" yAxisLabel="D/E Ratio" />
-                                 </div>
-                               ) : !loading && ( <p>Keine Debt-to-Equity Daten verfügbar.</p> )}
-                            </IonCardContent>
-                          </IonCard>
-                        </IonCol>
-                      </IonRow>
-                    </IonGrid>
-                    {/* === Ende IonGrid === */}
+                    {/* Ausgelagerte ChartGrid Komponente */}
+                    <ChartGrid
+                       loading={loading}
+                       viewMode={viewMode}
+                       incomeData={incomeDataForChart}
+                       cashflowData={cashflowStatementDataForChart}
+                       marginsData={marginsDataForChart}
+                       epsData={epsDataForChart}
+                       sharesData={sharesDataForChart}
+                       debtToEquityData={debtToEquityDataForChart}
+                    />
                  </>
               )} {/* Ende if(companyInfo) */}
             </>
           )} {/* Ende if(currentTicker && !error) */}
 
-          {/* Platzhalter (falls kein Ticker gesucht wurde) */}
+          {/* Platzhalter */}
           {!currentTicker && !loading && !error && (
             <div style={{ textAlign: 'center', marginTop: '50px', color: '#888' }}>
               <p>Bitte geben Sie oben ein Aktiensymbol ein (z.B. AAPL, IBM).</p>
