@@ -1,4 +1,4 @@
-// src/types/stockDataTypes.ts (ERWEITERT um Total Dividends Paid & Flag)
+// src/types/stockDataTypes.ts (Angepasst für DIVIDENDS Endpoint)
 
 // Basis-Struktur für einfache Chart-Daten (Labels + Werte)
 export interface StockData {
@@ -36,19 +36,23 @@ export interface KeyMetrics {
   priceChange: string | null;
   priceChangePercent: string | null;
   isPositiveChange: boolean;
-  grossMargin: string | null; // Berechnet aus Income Statement
-  operatingMargin: string | null; // Berechnet aus Income Statement
+  grossMargin: string | null;
+  operatingMargin: string | null;
 }
 
-// Rückgabe-Typ des useStockData Hooks (ERWEITERT)
+// Rückgabe-Typ des useStockData Hooks
 export interface UseStockDataResult {
   // Umsatzdaten
   annualRevenue: StockData;
   quarterlyRevenue: StockData;
 
-  // EPS Daten
+  // EPS Daten (aus Earnings)
   annualEPS: StockData;
   quarterlyEPS: StockData;
+
+  // Dividend Per Share Daten (aus Dividends History verarbeitet)
+  annualDPS: StockData;
+  quarterlyDPS: StockData;
 
   // Income Statement & Margen
   annualIncomeStatement: MultiDatasetStockData;
@@ -60,19 +64,19 @@ export interface UseStockDataResult {
   annualCashflowStatement: MultiDatasetStockData;
   quarterlyCashflowStatement: MultiDatasetStockData;
 
-  // NEU: Total Dividends Paid Daten
+  // Total Dividends Paid Daten (aus Cashflow)
   annualTotalDividendsPaid: StockData;
   quarterlyTotalDividendsPaid: StockData;
 
-  // Outstanding Shares Daten
+  // Outstanding Shares Daten (aus Balance Sheet)
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
 
-  // Debt-to-Equity Ratio Daten
+  // Debt-to-Equity Ratio Daten (aus Balance Sheet)
   annualDebtToEquity: StockData;
   quarterlyDebtToEquity: StockData;
 
-  // NEU: Flag, ob Dividenden gezahlt werden
+  // Flag, ob Dividenden gezahlt werden (aus Overview)
   paysDividends: boolean;
 
   // Metadaten & Funktion
@@ -86,13 +90,15 @@ export interface UseStockDataResult {
 
 
 // Typ für die Rohdaten, wie sie von der API (nach json()) kommen könnten
+// (Verbesserungswürdig - spezifische Typen statt 'any' wären besser)
 export interface RawApiData {
   income?: any;
-  earnings?: any;
-  cashflow?: any;
-  overview?: any;
-  quote?: any;
-  balanceSheet?: any;
+  earnings?: any; // Enthält Rohdaten für EPS
+  cashflow?: any; // Enthält Rohdaten für Total Dividends Paid
+  overview?: any; // Enthält Rohdaten für CompanyInfo, KeyMetrics, paysDividends Flag
+  quote?: any;    // Enthält Rohdaten für CompanyInfo, KeyMetrics
+  balanceSheet?: any; // Enthält Rohdaten für Shares Outstanding, D/E Ratio
+  dividends?: any; // NEU: Enthält Rohdaten für DPS (Liste einzelner Zahlungen)
 }
 
 // --- Ende src/types/stockDataTypes.ts ---

@@ -1,21 +1,20 @@
-// src/utils/stockDataProcessing.ts (Angepasst für paysDividends Flag & Total Dividends - Vollständig)
+// src/utils/stockDataProcessing.ts (Final Refactored Version mit neuer DPS Logik)
 import {
-  StockData, // Wird für Typ-Definition unten gebraucht
   CompanyInfo,
   KeyMetrics,
-  MultiDatasetStockData,
   RawApiData,
-  UseStockDataResult // Importiere den (bald) aktualisierten Typ
+  UseStockDataResult // Importiere den finalen Typ
 } from '../types/stockDataTypes';
-// Importiere allgemeine Helfer
-import { formatQuarter, trimMultiData, parseAndScale, parseFloatOrZero, trimData } from '../utils/utils';
-// Importiere ausgelagerte Verarbeitungsfunktionen
+// Importiere allgemeine Helfer (nur die hier direkt gebrauchten)
+import { parseFloatOrZero } from '../utils/utils';
+// Importiere ALLE ausgelagerten Verarbeitungsfunktionen
 import { processIncomeData } from './processing/incomeProcessing';
-import { processEarningsData } from './processing/earningsProcessing';
-import { processCashflowData } from './processing/cashflowProcessing'; // Gibt jetzt Total Dividends mit zurück
-import { processBalanceSheetData } from './processing/balanceSheetProcessing';
+import { processEarningsData } from './processing/earningsProcessing'; // Gibt nur noch EPS zurück
+import { processCashflowData } from './processing/cashflowProcessing'; // Gibt CF Statement & Total Dividends zurück
+import { processBalanceSheetData } from './processing/balanceSheetProcessing'; // Gibt Shares & D/E zurück
+import { processDividendHistory } from './processing/dividendProcessing'; // NEU: Gibt DPS zurück
 
-// --- Hilfsfunktionen für KeyMetrics Formatierung ---
+// --- Hilfsfunktionen NUR für KeyMetrics Formatierung (bleiben hier) ---
 const formatMetric = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
     const stringValue = String(value);
@@ -29,10 +28,10 @@ const formatPercentage = (value: string | number | null | undefined): string | n
     if (isNaN(numValue)) return null;
     if (String(value).includes('%')) {
         return `${numValue.toFixed(2)}%`;
-    } else if (Math.abs(numValue) > 0 && Math.abs(numValue) <= 1) {
+    } else if (Math.abs(numValue) > 0 && Math.abs(numValue) <= 1) { // Speziell für DividendYield wichtig
         return `${(numValue * 100).toFixed(2)}%`;
     } else {
-        return `${numValue.toFixed(2)}%`;
+        return `${numValue.toFixed(2)}%`; // Fallback
     }
 };
 const formatPriceChange = (value: string | number | null | undefined): string | null => {
@@ -46,13 +45,12 @@ const formatMarginForDisplay = (value: number | null): string | null => {
 };
 
 // --- Hauptfunktion zur Verarbeitung aller Rohdaten ---
-// Definiere den Rückgabetyp basierend auf dem (bald) aktualisierten UseStockDataResult
-// Füge paysDividends hinzu
+// Definiere den Rückgabetyp basierend auf dem finalen UseStockDataResult
 type ProcessedStockDataResult = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'error' | 'progress'>;
 
-// Die Funktion Signatur muss den aktualisierten Typ widerspiegeln
 export const processStockData = (rawData: RawApiData, ticker: string): ProcessedStockDataResult => {
-  const { income, earnings, cashflow, overview, quote, balanceSheet } = rawData;
+  // Destructure alle Rohdaten-Teile
+  const { income, earnings, cashflow, overview, quote, balanceSheet, dividends } = rawData;
 
   // Grundlegende Fehlerprüfung
   if (!overview?.Symbol) {
@@ -61,14 +59,15 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   }
   const globalQuote = quote?.['Global Quote'];
   if (!globalQuote) {
-     console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar. Quote data:`, quote);
+     console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar.`);
   }
 
-  // --- Datenverarbeitung ---
+  // --- Datenverarbeitung durch Aufruf der importierten Funktionen ---
   const incomeProcessed = processIncomeData(income);
-  const earningsProcessed = processEarningsData(earnings);
-  const cashflowProcessed = processCashflowData(cashflow); // Enthält jetzt Total Dividends Paid
-  const balanceSheetProcessed = processBalanceSheetData(balanceSheet);
+  const earningsProcessed = processEarningsData(earnings); // Enthält jetzt nur EPS
+  const cashflowProcessed = processCashflowData(cashflow); // Enthält CF Statement & Total Dividends
+  const balanceSheetProcessed = processBalanceSheetData(balanceSheet); // Enthält Shares & D/E
+  const dividendProcessed = processDividendHistory(dividends); // NEU: Enthält DPS
 
   // --- Company Info ---
   const currentPrice = globalQuote?.['05. price'];
@@ -93,37 +92,42 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
       priceChange: formatPriceChange(rawChange),
       priceChangePercent: formatPercentage(rawChangePercent),
       isPositiveChange: !isNaN(numChange) && numChange >= 0,
-      grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin),
-      operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin),
+      grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin), // Nutzt Ergebnis von incomeProcessed
+      operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin), // Nutzt Ergebnis von incomeProcessed
    };
 
-  // --- NEU: Prüfen, ob Dividenden gezahlt werden ---
-  // Prüft ob DividendYield ODER DividendPerShare einen positiven Wert haben
-  const paysDividends = (parseFloatOrZero(overview?.DividendYield) > 0 || parseFloatOrZero(overview?.DividendPerShare) > 0);
-
+   // Flag für Dividenden basierend auf Overview
+   const paysDividends = (parseFloatOrZero(overview?.DividendYield) > 0 || parseFloatOrZero(overview?.DividendPerShare) > 0);
 
   // --- Rückgabe aller verarbeiteten Daten ---
-  // Füge paysDividends und TotalDividendsPaid hinzu
+  // Kombiniere die Ergebnisse aller Verarbeitungsfunktionen + Infos/Metriken
   return {
     companyInfo,
     keyMetrics,
-    paysDividends, // NEU
+    paysDividends,
+    // Ergebnisse aus Income Processing
     annualRevenue: incomeProcessed.annualRevenue,
     quarterlyRevenue: incomeProcessed.quarterlyRevenue,
-    annualEPS: earningsProcessed.annualEPS,
-    quarterlyEPS: earningsProcessed.quarterlyEPS,
     annualIncomeStatement: incomeProcessed.annualIncomeStatement,
     quarterlyIncomeStatement: incomeProcessed.quarterlyIncomeStatement,
     annualMargins: incomeProcessed.annualMargins,
     quarterlyMargins: incomeProcessed.quarterlyMargins,
+    // Ergebnisse aus Earnings Processing
+    annualEPS: earningsProcessed.annualEPS,
+    quarterlyEPS: earningsProcessed.quarterlyEPS,
+    // Ergebnisse aus Cashflow Processing
     annualCashflowStatement: cashflowProcessed.annualCashflowStatement,
     quarterlyCashflowStatement: cashflowProcessed.quarterlyCashflowStatement,
-    annualTotalDividendsPaid: cashflowProcessed.annualTotalDividendsPaid, // NEU
-    quarterlyTotalDividendsPaid: cashflowProcessed.quarterlyTotalDividendsPaid, // NEU
+    annualTotalDividendsPaid: cashflowProcessed.annualTotalDividendsPaid,
+    quarterlyTotalDividendsPaid: cashflowProcessed.quarterlyTotalDividendsPaid,
+    // Ergebnisse aus Balance Sheet Processing
     annualSharesOutstanding: balanceSheetProcessed.annualSharesOutstanding,
     quarterlySharesOutstanding: balanceSheetProcessed.quarterlySharesOutstanding,
     annualDebtToEquity: balanceSheetProcessed.annualDebtToEquity,
     quarterlyDebtToEquity: balanceSheetProcessed.quarterlyDebtToEquity,
+    // Ergebnisse aus Dividend History Processing
+    annualDPS: dividendProcessed.annualDPS,
+    quarterlyDPS: dividendProcessed.quarterlyDPS,
   };
 };
 
