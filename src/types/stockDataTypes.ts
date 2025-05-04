@@ -1,4 +1,4 @@
-// src/types/stockDataTypes.ts (ERWEITERT um Debt-to-Equity Ratio)
+// src/types/stockDataTypes.ts (ERWEITERT um Total Dividends Paid & Flag)
 
 // Basis-Struktur für einfache Chart-Daten (Labels + Werte)
 export interface StockData {
@@ -60,13 +60,20 @@ export interface UseStockDataResult {
   annualCashflowStatement: MultiDatasetStockData;
   quarterlyCashflowStatement: MultiDatasetStockData;
 
+  // NEU: Total Dividends Paid Daten
+  annualTotalDividendsPaid: StockData;
+  quarterlyTotalDividendsPaid: StockData;
+
   // Outstanding Shares Daten
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
 
-  // NEU: Debt-to-Equity Ratio Daten
+  // Debt-to-Equity Ratio Daten
   annualDebtToEquity: StockData;
   quarterlyDebtToEquity: StockData;
+
+  // NEU: Flag, ob Dividenden gezahlt werden
+  paysDividends: boolean;
 
   // Metadaten & Funktion
   loading: boolean;
@@ -79,7 +86,6 @@ export interface UseStockDataResult {
 
 
 // Typ für die Rohdaten, wie sie von der API (nach json()) kommen könnten
-// (Verbesserungswürdig - spezifische Typen statt 'any' wären besser)
 export interface RawApiData {
   income?: any;
   earnings?: any;

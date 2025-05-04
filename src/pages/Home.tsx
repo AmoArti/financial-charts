@@ -1,18 +1,19 @@
-// src/pages/Home.tsx (Final Refactored Version - KeyMetricsList, ChartControls, ChartGrid ausgelagert)
+// src/pages/Home.tsx (Mit Debug Logs)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
-  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText // Behalten für Fallbacks/Info
+  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText, // Core Ionic für Fallbacks etc.
+  IonGrid, IonRow, IonCol // Behalte Grid für ChartGrid
 } from '@ionic/react';
-// Importiere Kernkomponenten
 import SearchBar from '../components/SearchBar';
 import LoadingIndicator from '../components/LoadingIndicator';
 import ErrorCard from '../components/ErrorCard';
 import CompanyInfoCard from '../components/CompanyInfoCard';
-// Importiere ausgelagerte Komponenten
+// import BarChart from '../components/BarChart'; // Nicht mehr direkt hier gebraucht
 import KeyMetricsList from '../components/KeyMetricsList';
 import ChartControls from '../components/ChartControls';
 import ChartGrid from '../components/ChartGrid';
+import TotalDividendsChartCard from '../components/TotalDividendsChartCard';
 // Importiere Typen
 import { useStockData, StockData, CompanyInfo, KeyMetrics, MultiDatasetStockData } from '../hooks/useStockData';
 // Importiere die Slicing-Funktion
@@ -30,19 +31,17 @@ const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
 const Home: React.FC = () => {
-  console.log("Rendering Home Component (Fully Refactored)...");
+  console.log("--- Rendering Home Component ---"); // Log jeden Render
 
   // --- Hooks und State Deklarationen ---
    const {
-    // Hole alle Daten vom Hook
     annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS,
     annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
     annualDebtToEquity, quarterlyDebtToEquity,
-    // Metadaten
-    loading, error, progress, companyInfo, keyMetrics,
-    // Funktion
-    fetchData
+    annualTotalDividendsPaid, quarterlyTotalDividendsPaid,
+    paysDividends,
+    loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
 
@@ -53,19 +52,20 @@ const Home: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const prevLoadingRef = useRef<boolean>(loading);
 
+  // --- Logge wichtige States bei jedem Render ---
+  console.log(`Home States: loading=${loading}, error=${error}, currentTicker='${currentTicker}', companyInfo?=${!!companyInfo}, keyMetrics?=${!!keyMetrics}, paysDividends?=${paysDividends}`);
+
   // --- Daten für Anzeige vorbereiten und slicen ---
-  // Diese Logik bleibt hier, da sie viewMode/displayYears (lokale States)
-  // mit den Daten aus dem Hook kombiniert, um Props für ChartGrid zu erzeugen.
   const incomeDataFromHook = viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement;
   const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS;
   const marginsDataFromHook = viewMode === 'annual' ? annualMargins : quarterlyMargins;
   const cashflowStatementFromHook = viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement;
   const sharesDataBase = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding;
   const debtToEquityDataBase = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity;
+  const totalDividendsDataBase = viewMode === 'annual' ? annualTotalDividendsPaid : quarterlyTotalDividendsPaid;
 
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
 
-  // Slicing für alle Charts -> Ergebnisse werden als Props an ChartGrid weitergegeben
   const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
   const epsDataMulti: MultiDatasetStockData = { labels: epsDataBase?.labels || [], datasets: [{ label: 'EPS', values: epsDataBase?.values || [] }] };
   const epsDataForChart = sliceMultiDataToLastNPoints(epsDataMulti, pointsToKeep);
@@ -75,12 +75,22 @@ const Home: React.FC = () => {
   const sharesDataForChart = sliceMultiDataToLastNPoints(sharesDataMulti, pointsToKeep);
   const debtToEquityDataMulti: MultiDatasetStockData = { labels: debtToEquityDataBase?.labels || [], datasets: [{ label: 'D/E Ratio', values: debtToEquityDataBase?.values || [] }]};
   const debtToEquityDataForChart = sliceMultiDataToLastNPoints(debtToEquityDataMulti, pointsToKeep);
+  const totalDividendsDataMulti: MultiDatasetStockData = { labels: totalDividendsDataBase?.labels || [], datasets: [{ label: 'Total Dividends Paid', values: totalDividendsDataBase?.values || [] }]};
+  const totalDividendsDataForChart = sliceMultiDataToLastNPoints(totalDividendsDataMulti, pointsToKeep);
 
 
   // --- Event Handlers ---
-  // Bleiben hier, da sie lokalen State (currentTicker, viewMode, displayYears) ändern
-  const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
-  const handleRetry = () => { if (currentTicker) fetchData(currentTicker); };
+  const handleSearch = (query: string) => {
+    const upperQuery = query.toUpperCase();
+    console.log(`handleSearch: Setting currentTicker to '${upperQuery}'`);
+    setCurrentTicker(upperQuery);
+  };
+  const handleRetry = () => {
+      if (currentTicker) {
+          console.log(`Retrying fetch for ${currentTicker}`);
+          fetchData(currentTicker);
+      }
+  };
   const handleGlobalYearsChange = (newYearsString: string | undefined) => {
     if (newYearsString === undefined) return;
     const newYears = parseInt(newYearsString, 10);
@@ -95,12 +105,13 @@ const Home: React.FC = () => {
   };
 
   // --- useEffect Hooks ---
-  // Bleiben hier, da sie auf lokalen State oder Hook-Daten reagieren
   useEffect(() => {
      document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
   }, [currentTicker]);
   useEffect(() => {
     if (prevLoadingRef.current && !loading && !error && currentTicker) {
+      // Optional: Log hier drin, wenn nötig
+      // console.log("[Success Effect] Checking incomeDataForChart:", incomeDataForChart);
       const hasIncomeData = incomeDataForChart?.labels?.length > 0;
       if (hasIncomeData) {
         setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
@@ -111,16 +122,18 @@ const Home: React.FC = () => {
     prevLoadingRef.current = loading;
   });
   useEffect(() => {
+    console.log(`Effect Ticker Change: currentTicker='${currentTicker}', viewMode='${viewMode}'`);
     if (currentTicker) {
-      console.log(`Workspaceing initial data for ${currentTicker}`);
+      console.log(`>>> Calling fetchData for '${currentTicker}' <<<`);
       fetchData(currentTicker);
       setSuccessMessage('');
       setDisplayYears(viewMode === 'annual' ? defaultYearsAnnual : defaultYearsQuarterly);
+    } else {
+       console.log("Effect Ticker Change: No currentTicker, doing nothing.");
     }
   }, [currentTicker, viewMode, fetchData]);
 
   // --- Helper Functions ---
-  // Bleiben hier, da sie an Kindkomponenten als Props gehen
   const formatMarketCap = (marketCap: string | null | undefined): string => {
     if (!marketCap || marketCap === 'None') return 'N/A';
     const num = parseFloat(marketCap);
@@ -153,17 +166,17 @@ const Home: React.FC = () => {
     return { explanation, recommendation };
   };
 
-  // Aktuelle Jahresoptionen bestimmen (bleibt hier)
+  // Aktuelle Jahresoptionen bestimmen
   const currentYearOptions = viewMode === 'annual' ? annualYearOptions : quarterlyYearOptions;
 
   // --- JSX Return ---
-  // Deutlich kürzer durch ausgelagerte Komponenten
   return (
     <IonPage>
       <IonHeader><IonToolbar><IonTitle>Stock Dashboard</IonTitle></IonToolbar></IonHeader>
       <IonContent fullscreen>
         <IonHeader collapse="condense"><IonToolbar><IonTitle size="large">Stock Dashboard</IonTitle></IonToolbar></IonHeader>
         <div style={{ padding: '20px' }}>
+          {console.log("Rendering JSX...")} {/* Logge, ob JSX gerendert wird */}
           <SearchBar onSearch={handleSearch} />
 
           {/* === Lade-, Fehler-, Erfolgsanzeigen === */}
@@ -201,6 +214,15 @@ const Home: React.FC = () => {
                        sharesData={sharesDataForChart}
                        debtToEquityData={debtToEquityDataForChart}
                     />
+
+                    {/* Ausgelagerte TotalDividendsChartCard (nur wenn paysDividends true ist) */}
+                    {paysDividends && (
+                       <TotalDividendsChartCard
+                          loading={loading}
+                          viewMode={viewMode}
+                          data={totalDividendsDataForChart}
+                       />
+                    )}
                  </>
               )} {/* Ende if(companyInfo) */}
             </>

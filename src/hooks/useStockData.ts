@@ -1,4 +1,4 @@
-// src/hooks/useStockData.ts (Updated for Debt-to-Equity Ratio)
+// src/hooks/useStockData.ts (Updated for Total Dividends Paid)
 import { useState, useCallback } from 'react';
 import { fetchAlphaVantageData } from '../services/alphaVantageApi';
 import { processStockData } from '../utils/stockDataProcessing'; // Haupt-Processing-Funktion
@@ -7,7 +7,7 @@ import {
   CompanyInfo,
   KeyMetrics,
   MultiDatasetStockData,
-  UseStockDataResult, // Importiere den AKTUALISIERTEN Typ mit D/E
+  UseStockDataResult, // Importiere den AKTUALISIERTEN Typ mit Total Dividends & Flag
   RawApiData
 } from '../types/stockDataTypes';
 
@@ -32,9 +32,12 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyCashflowStatement, setQuarterlyCashflowStatement] = useState<MultiDatasetStockData>(initialMultiData);
   const [annualSharesOutstanding, setAnnualSharesOutstanding] = useState<StockData>(initialStockData);
   const [quarterlySharesOutstanding, setQuarterlySharesOutstanding] = useState<StockData>(initialStockData);
-  // NEU: States für Debt-to-Equity Ratio
   const [annualDebtToEquity, setAnnualDebtToEquity] = useState<StockData>(initialStockData);
   const [quarterlyDebtToEquity, setQuarterlyDebtToEquity] = useState<StockData>(initialStockData);
+  // NEU: States für Total Dividends Paid & paysDividends Flag
+  const [annualTotalDividendsPaid, setAnnualTotalDividendsPaid] = useState<StockData>(initialStockData);
+  const [quarterlyTotalDividendsPaid, setQuarterlyTotalDividendsPaid] = useState<StockData>(initialStockData);
+  const [paysDividends, setPaysDividends] = useState<boolean>(false); // Default: false
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ export const useStockData = (): UseStockDataResult => {
       return;
     }
 
-    // Cache prüfen (Zugriffe angepasst inkl. D/E)
+    // Cache prüfen (Zugriffe angepasst inkl. Total Dividends)
     if (cachedData[ticker]) {
       console.log(`Using cached data for ${ticker}`);
       const cached = cachedData[ticker];
@@ -77,8 +80,11 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyCashflowStatement(cached.quarterlyCashflowStatement);
       setAnnualSharesOutstanding(cached.annualSharesOutstanding);
       setQuarterlySharesOutstanding(cached.quarterlySharesOutstanding);
-      setAnnualDebtToEquity(cached.annualDebtToEquity); // NEU
-      setQuarterlyDebtToEquity(cached.quarterlyDebtToEquity); // NEU
+      setAnnualDebtToEquity(cached.annualDebtToEquity);
+      setQuarterlyDebtToEquity(cached.quarterlyDebtToEquity);
+      setAnnualTotalDividendsPaid(cached.annualTotalDividendsPaid); // NEU
+      setQuarterlyTotalDividendsPaid(cached.quarterlyTotalDividendsPaid); // NEU
+      setPaysDividends(cached.paysDividends); // NEU
       setCompanyInfo(cached.companyInfo);
       setKeyMetrics(cached.keyMetrics);
       setProgress(100);
@@ -87,8 +93,8 @@ export const useStockData = (): UseStockDataResult => {
       return;
     }
 
-    // Reset States für neuen Fetch (inkl. D/E)
-    console.log(`Workspaceing new data from API for ${ticker}`); // Nachricht ggf. anpassen
+    // Reset States für neuen Fetch (inkl. Total Dividends)
+    console.log(`Workspaceing new data from API for ${ticker}`);
     setLoading(true);
     setError(null);
     setProgress(0);
@@ -100,20 +106,22 @@ export const useStockData = (): UseStockDataResult => {
     setAnnualMargins(initialMultiData); setQuarterlyMargins(initialMultiData);
     setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData);
     setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData);
-    setAnnualDebtToEquity(initialStockData); setQuarterlyDebtToEquity(initialStockData); // NEU
+    setAnnualDebtToEquity(initialStockData); setQuarterlyDebtToEquity(initialStockData);
+    setAnnualTotalDividendsPaid(initialStockData); setQuarterlyTotalDividendsPaid(initialStockData); // NEU
+    setPaysDividends(false); // NEU
 
 
     try {
       setProgress(10);
-      // Schritt 1: API-Daten abrufen (inkl. Balance Sheet)
+      // Schritt 1: API-Daten abrufen
       const rawData: RawApiData = await fetchAlphaVantageData(ticker, apiKey);
       setProgress(50);
 
-      // Schritt 2: Rohdaten verarbeiten (gibt jetzt auch D/E zurück)
+      // Schritt 2: Rohdaten verarbeiten (gibt jetzt auch Total Dividends & Flag zurück)
       const processedData = processStockData(rawData, ticker);
       setProgress(90);
 
-      // Schritt 3: State aktualisieren (inkl. D/E)
+      // Schritt 3: State aktualisieren (inkl. Total Dividends & Flag)
       setCompanyInfo(processedData.companyInfo);
       setKeyMetrics(processedData.keyMetrics);
       setAnnualRevenue(processedData.annualRevenue);
@@ -128,17 +136,21 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyCashflowStatement(processedData.quarterlyCashflowStatement);
       setAnnualSharesOutstanding(processedData.annualSharesOutstanding);
       setQuarterlySharesOutstanding(processedData.quarterlySharesOutstanding);
-      setAnnualDebtToEquity(processedData.annualDebtToEquity); // NEU
-      setQuarterlyDebtToEquity(processedData.quarterlyDebtToEquity); // NEU
+      setAnnualDebtToEquity(processedData.annualDebtToEquity);
+      setQuarterlyDebtToEquity(processedData.quarterlyDebtToEquity);
+      setAnnualTotalDividendsPaid(processedData.annualTotalDividendsPaid); // NEU
+      setQuarterlyTotalDividendsPaid(processedData.quarterlyTotalDividendsPaid); // NEU
+      setPaysDividends(processedData.paysDividends); // NEU
 
       setProgress(100);
 
-      // Schritt 4: Cache aktualisieren (inkl. D/E)
+      // Schritt 4: Cache aktualisieren (inkl. Total Dividends & Flag)
       setCachedData(prev => ({
         ...prev,
         [ticker]: { // Speichere die verarbeiteten Daten
           companyInfo: processedData.companyInfo,
           keyMetrics: processedData.keyMetrics,
+          paysDividends: processedData.paysDividends, // NEU
           annualRevenue: processedData.annualRevenue,
           quarterlyRevenue: processedData.quarterlyRevenue,
           annualEPS: processedData.annualEPS,
@@ -149,10 +161,12 @@ export const useStockData = (): UseStockDataResult => {
           quarterlyMargins: processedData.quarterlyMargins,
           annualCashflowStatement: processedData.annualCashflowStatement,
           quarterlyCashflowStatement: processedData.quarterlyCashflowStatement,
+          annualTotalDividendsPaid: processedData.annualTotalDividendsPaid, // NEU
+          quarterlyTotalDividendsPaid: processedData.quarterlyTotalDividendsPaid, // NEU
           annualSharesOutstanding: processedData.annualSharesOutstanding,
           quarterlySharesOutstanding: processedData.quarterlySharesOutstanding,
-          annualDebtToEquity: processedData.annualDebtToEquity, // NEU
-          quarterlyDebtToEquity: processedData.quarterlyDebtToEquity, // NEU
+          annualDebtToEquity: processedData.annualDebtToEquity,
+          quarterlyDebtToEquity: processedData.quarterlyDebtToEquity,
         },
       }));
 
@@ -160,7 +174,7 @@ export const useStockData = (): UseStockDataResult => {
       const errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler beim Datenabruf';
       setError(errorMessage);
       console.error("Fehler in fetchData (Hook):", err);
-      // Sicherstellen, dass alle Daten zurückgesetzt werden bei Fehler (inkl. D/E)
+      // Sicherstellen, dass alle Daten zurückgesetzt werden bei Fehler (inkl. Total Dividends & Flag)
       setCompanyInfo(null); setKeyMetrics(null);
       setAnnualRevenue(initialStockData); setQuarterlyRevenue(initialStockData);
       setAnnualEPS(initialStockData); setQuarterlyEPS(initialStockData);
@@ -168,14 +182,16 @@ export const useStockData = (): UseStockDataResult => {
       setAnnualMargins(initialMultiData); setQuarterlyMargins(initialMultiData);
       setAnnualCashflowStatement(initialMultiData); setQuarterlyCashflowStatement(initialMultiData);
       setAnnualSharesOutstanding(initialStockData); setQuarterlySharesOutstanding(initialStockData);
-      setAnnualDebtToEquity(initialStockData); setQuarterlyDebtToEquity(initialStockData); // NEU
+      setAnnualDebtToEquity(initialStockData); setQuarterlyDebtToEquity(initialStockData);
+      setAnnualTotalDividendsPaid(initialStockData); setQuarterlyTotalDividendsPaid(initialStockData); // NEU
+      setPaysDividends(false); // NEU
     } finally {
       setLoading(false); // Ladezustand immer beenden
     }
   }, [apiKey, cachedData]); // Abhängigkeiten prüfen, sollte so passen
 
   // --- Rückgabe des Hooks ---
-  // (Angepasst an das neue UseStockDataResult Interface inkl. D/E)
+  // (Angepasst an das neue UseStockDataResult Interface inkl. Total Dividends & Flag)
   return {
     // Daten-States
     annualRevenue, quarterlyRevenue,
@@ -184,7 +200,9 @@ export const useStockData = (): UseStockDataResult => {
     annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement,
     annualSharesOutstanding, quarterlySharesOutstanding,
-    annualDebtToEquity, quarterlyDebtToEquity, // NEU
+    annualDebtToEquity, quarterlyDebtToEquity,
+    annualTotalDividendsPaid, quarterlyTotalDividendsPaid, // NEU
+    paysDividends, // NEU
     // Metadaten-States
     loading, error, progress, companyInfo, keyMetrics,
     // Funktion zum Triggern
