@@ -1,4 +1,4 @@
-// src/pages/Home.tsx (KORRIGIERT: Kein Refetch bei ViewMode-Wechsel - Vollständig)
+// src/pages/Home.tsx (Conditionally Sticky Chart Controls - Vollständig)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
@@ -19,7 +19,7 @@ import DividendPerShareChartCard from '../components/DividendPerShareChartCard';
 import { useStockData, StockData, CompanyInfo, KeyMetrics, MultiDatasetStockData } from '../hooks/useStockData';
 // Importiere die Slicing-Funktion
 import { sliceMultiDataToLastNPoints } from '../utils/utils';
-import './Home.css';
+import './Home.css'; // Stellt sicher, dass die Klasse .chart-controls-sticky-wrapper geladen wird
 
 // Optionen und Defaults für Jahresauswahl
 const quarterlyYearOptions = [
@@ -32,7 +32,7 @@ const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
 const Home: React.FC = () => {
-  console.log("Rendering Home Component (No Refetch Fix)...");
+  console.log("Rendering Home Component (Conditionally Sticky Controls)...");
 
   // --- Hooks und State Deklarationen ---
    const {
@@ -45,6 +45,7 @@ const Home: React.FC = () => {
     paysDividends,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
+
 
   // States für Controls und App-Zustand
   const [viewMode, setViewMode] = useState<'annual' | 'quarterly'>('quarterly');
@@ -65,6 +66,7 @@ const Home: React.FC = () => {
 
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
 
+  // Slicing für alle Charts
   const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
   const epsDataMulti: MultiDatasetStockData = { labels: epsDataBase?.labels || [], datasets: [{ label: 'EPS', values: epsDataBase?.values || [] }] };
   const epsDataForChart = sliceMultiDataToLastNPoints(epsDataMulti, pointsToKeep);
@@ -90,19 +92,15 @@ const Home: React.FC = () => {
     setDisplayYears(newYears);
   };
   const handleGlobalViewChange = (newViewMode: 'annual' | 'quarterly' | undefined) => {
-    // Setzt nur den viewMode. Das Resetten von displayYears
-    // wird durch den separaten useEffect unten gehandhabt.
     if (newViewMode === undefined || (newViewMode !== 'annual' && newViewMode !== 'quarterly') || newViewMode === viewMode) return;
     setViewMode(newViewMode);
+    // Reset der Jahre wird durch separaten useEffect gehandhabt
   };
 
   // --- useEffect Hooks ---
-  // Setzt den Dokumenttitel
   useEffect(() => {
      document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
   }, [currentTicker]);
-
-  // Zeigt Erfolgsmeldung an
   useEffect(() => {
     if (prevLoadingRef.current && !loading && !error && currentTicker) {
       const hasIncomeData = incomeDataForChart?.labels?.length > 0;
@@ -110,29 +108,22 @@ const Home: React.FC = () => {
         setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
       }
     }
-  }, [loading, error, currentTicker, incomeDataForChart]); // Dependency auf incomeData... ist ok hier für Toast
-
-  // Speichert den vorherigen Ladezustand
+  }, [loading, error, currentTicker, incomeDataForChart]);
   useEffect(() => {
     prevLoadingRef.current = loading;
-  }); // Läuft bei jedem Render
-
-  // Holt initiale Daten, wenn sich der Ticker ändert
+  });
   useEffect(() => {
-    console.log(`Effect Ticker Change Triggered: currentTicker='${currentTicker}'`);
     if (currentTicker) {
-      console.log(`>>> Calling fetchData for '${currentTicker}' due to Ticker Change <<<`);
-      fetchData(currentTicker); // Holt MAX Daten
-      setSuccessMessage(''); // Toast zurücksetzen
-      // Reset der Jahre passiert jetzt im separaten Effekt!
+      console.log(`Workspaceing initial data for ${currentTicker}`);
+      fetchData(currentTicker);
+      setSuccessMessage('');
+      // Reset der Jahre wird durch separaten useEffect gehandhabt
     }
-  }, [currentTicker, fetchData]); // Nur von Ticker (und fetchData Ref) abhängig
-
-  // Setzt Jahresauswahl zurück, wenn sich der ViewMode ändert
+  }, [currentTicker, fetchData]);
   useEffect(() => {
       console.log(`Effect ViewMode Change Triggered: Resetting displayYears for new mode '${viewMode}'`);
       setDisplayYears(viewMode === 'annual' ? defaultYearsAnnual : defaultYearsQuarterly);
-  }, [viewMode]); // Nur von viewMode abhängig
+  }, [viewMode]);
 
 
   // --- Helper Functions ---
@@ -177,6 +168,10 @@ const Home: React.FC = () => {
       <IonHeader><IonToolbar><IonTitle>Stock Dashboard</IonTitle></IonToolbar></IonHeader>
       <IonContent fullscreen>
         <IonHeader collapse="condense"><IonToolbar><IonTitle size="large">Stock Dashboard</IonTitle></IonToolbar></IonHeader>
+
+        {/* Die separate Sticky Toolbar wurde ENTFERNT */}
+
+        {/* Container für den Rest des Inhalts */}
         <div style={{ padding: '20px' }}>
           <SearchBar onSearch={handleSearch} />
 
@@ -189,22 +184,34 @@ const Home: React.FC = () => {
           {currentTicker && !error && (
             <>
               {/* --- Info & Kennzahlen --- */}
-              <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} />
-              <KeyMetricsList keyMetrics={keyMetrics} />
+              {companyInfo && (
+                 <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} />
+              )}
+              {keyMetrics ? (
+                 <KeyMetricsList keyMetrics={keyMetrics} />
+               ) : (
+                 companyInfo && !loading && ( // Zeige Fallback nur wenn Info da ist, aber Metriken fehlen
+                    <IonList inset={true} style={{ marginTop: '20px', marginBottom: '0px' }}>
+                       <IonItem lines="none"><IonLabel color="medium">Kennzahlen nicht verfügbar.</IonLabel></IonItem>
+                    </IonList>
+                 )
+               )}
 
               {/* --- Steuerung & Charts (nur wenn Company Info geladen) --- */}
               {companyInfo && (
                  <>
-                    {/* Ausgelagerte ChartControls Komponente */}
-                    <ChartControls
-                      viewMode={viewMode}
-                      displayYears={displayYears}
-                      yearOptions={currentYearOptions}
-                      onViewModeChange={handleGlobalViewChange}
-                      onYearsChange={handleGlobalYearsChange}
-                    />
+                    {/* NEU: Wrapper für ChartControls, um Sticky-Verhalten zu ermöglichen */}
+                    <div className="chart-controls-sticky-wrapper">
+                      <ChartControls
+                        viewMode={viewMode}
+                        displayYears={displayYears}
+                        yearOptions={currentYearOptions}
+                        onViewModeChange={handleGlobalViewChange}
+                        onYearsChange={handleGlobalYearsChange}
+                      />
+                    </div>
 
-                    {/* Ausgelagerte ChartGrid Komponente */}
+                    {/* ChartGrid Komponente */}
                     <ChartGrid
                        loading={loading}
                        viewMode={viewMode}
@@ -221,43 +228,14 @@ const Home: React.FC = () => {
                       <IonGrid fixed={true} style={{ marginTop: '0px' }}>
                         <IonRow>
                           {/* Total Dividends Paid Chart */}
-                          {paysDividends ? (
-                            <IonCol size="12" size-lg="6">
-                              <TotalDividendsChartCard
-                                loading={loading}
-                                viewMode={viewMode}
-                                data={totalDividendsDataForChart}
-                              />
-                            </IonCol>
-                          ) : (
-                             <IonCol size="12" size-lg="6"></IonCol> // Platzhalter
-                          )}
-
+                          {paysDividends ? ( <IonCol size="12" size-lg="6"> <TotalDividendsChartCard loading={loading} viewMode={viewMode} data={totalDividendsDataForChart} /> </IonCol> ) : ( <IonCol size="12" size-lg="6"></IonCol> )}
                           {/* Dividend Per Share Chart */}
-                          {(dpsDataForChart && dpsDataForChart.labels && dpsDataForChart.labels.length > 0 && dpsDataForChart.datasets[0]?.values?.length > 0) ? (
-                             <IonCol size="12" size-lg="6">
-                               <DividendPerShareChartCard
-                                 loading={loading}
-                                 viewMode={viewMode}
-                                 data={dpsDataForChart}
-                               />
-                             </IonCol>
-                           ) : (
-                             paysDividends && !loading ? ( // Zeige Fallback nur wenn Dividenden erwartet werden
-                               <IonCol size="12" size-lg="6">
-                                 <IonCard style={{marginTop: '10px', textAlign: 'center', boxShadow: 'none', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                                   <IonCardContent><p>Keine historischen Dividenden-pro-Aktie Daten verfügbar.</p></IonCardContent>
-                                 </IonCard>
-                               </IonCol>
-                              ) : (
-                                <IonCol size="12" size-lg="6"></IonCol> // Sonst leerer Platzhalter
-                              )
-                           )}
+                          {(dpsDataForChart && dpsDataForChart.labels && dpsDataForChart.labels.length > 0 && dpsDataForChart.datasets[0]?.values?.length > 0) ? ( <IonCol size="12" size-lg="6"> <DividendPerShareChartCard loading={loading} viewMode={viewMode} data={dpsDataForChart} /> </IonCol> ) : ( paysDividends && !loading ? ( <IonCol size="12" size-lg="6"> <IonCard style={{marginTop: '10px', textAlign: 'center', boxShadow: 'none', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><IonCardContent><p>Keine historischen Dividenden-pro-Aktie Daten verfügbar.</p></IonCardContent></IonCard> </IonCol> ) : ( <IonCol size="12" size-lg="6"></IonCol> ) )}
                         </IonRow>
                       </IonGrid>
                     )}
                  </>
-              )} {/* Ende if(companyInfo) */}
+              )} {/* Ende if(companyInfo) für Charts & Controls */}
             </>
           )} {/* Ende if(currentTicker && !error) */}
 
@@ -268,7 +246,7 @@ const Home: React.FC = () => {
             </div>
           )}
 
-        </div>
+        </div> {/* Ende des Haupt-Padding-Divs */}
       </IonContent>
     </IonPage>
   );

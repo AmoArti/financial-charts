@@ -1,4 +1,4 @@
-/* src/pages/Home.css */
+/* src/pages/Home.css (Mit Wrapper für Sticky Chart Controls - Vollständig) */
 
 /* Container für Chart-Vorschauen (ggf. anpassen/entfernen, falls nicht mehr genutzt) */
 .chart-container {
@@ -13,7 +13,7 @@
   border-radius: 8px;
 }
 
-/* Styling für das benutzerdefinierte Modal */
+/* Styling für das benutzerdefinierte Modal (falls noch relevant) */
 .custom-modal {
   --background: var(--ion-background-color, #fff); /* Nutze Theme-Variable */
   --border-radius: 10px;
@@ -29,22 +29,20 @@
 }
 
 .modal-header {
-  position: relative; /* Für absolut positionierte Kinder */
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Justiert Inhalt (Titel links, Button rechts) */
+  justify-content: space-between;
   margin-bottom: 20px;
-  padding: 10px 20px; /* Mehr Padding */
+  padding: 10px 20px;
   width: 100%;
-  border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0); /* Leichte Trennlinie */
+  border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0);
 }
 
 .toggle-wrapper {
-  /* Nicht mehr absolut zentriert, sondern Teil des flex layouts im Header */
-  /* Kann entfernt werden, wenn Toggle woanders platziert wird */
    position: absolute;
    left: 50%;
-   transform: translateX(-50%); /* Zentriert den Toggle-Schalter */
+   transform: translateX(-50%);
    display: flex;
    justify-content: center;
 }
@@ -62,30 +60,24 @@
 
 .modal-chart-container {
   width: 100%;
-  /* Höhe dynamischer machen, z.B. mit flex-grow */
   flex-grow: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0 20px 20px 20px; /* Padding hinzufügen */
-  overflow: hidden; /* Verhindert überlauf */
+  padding: 0 20px 20px 20px;
+  overflow: hidden;
 }
 
 .close-button {
-  /* Nicht mehr absolut, wenn im modal-header mit space-between */
-  /* position: absolute; */
-  /* top: 10px; */
-  /* right: 10px; */
   color: var(--ion-text-color, #000);
   z-index: 10;
-  /* Standard Button Styling nutzen */
 }
 
 .close-button ion-icon {
   font-size: 24px;
 }
 
-/* Styling für die Infobox (Zentriert, Inhalt wird begrenzt & zentriert) */
+/* Styling für die Infobox (Titel zentriert, Inhalt links mit max-width) */
 .company-info-card {
   box-shadow: none;
   border: none;
@@ -106,18 +98,16 @@
 
 .company-info-card ion-card-content {
   padding-top: 5px;
-  /* === NEU: Breite begrenzen und zentrieren === */
-  max-width: 350px; /* Beispiel: Maximale Breite. Passe diesen Wert an! */
-  margin-left: auto;  /* Zentriert den Block horizontal */
-  margin-right: auto; /* Zentriert den Block horizontal */
-  /* ============================================ */
+  max-width: 500px; /* Beispielwert */
+  margin-left: auto;
+  margin-right: auto;
+  text-align: start; /* Inhalt der Items ist linksbündig */
 }
 
-/* Optional: Sicherstellen, dass die Items innerhalb transparent sind und keinen Rand-Abstand haben */
 .company-info-card ion-card-content ion-item {
    --background: transparent;
-   --inner-padding-end: 0px; /* Standard Ionic Padding entfernen */
-   --padding-start: 0px; /* Standard Ionic Padding entfernen */
+   --inner-padding-end: 0px;
+   --padding-start: 0px;
 }
 
 
@@ -128,7 +118,7 @@
 }
 
 .error-card ion-card-header {
-  background-color: rgba(var(--ion-color-danger-rgb, 255, 77, 79), 0.1); /* Heller Rotton basierend auf Theme */
+  background-color: rgba(var(--ion-color-danger-rgb, 255, 77, 79), 0.1);
   padding-bottom: 0;
 }
 
@@ -138,7 +128,6 @@
 }
 
 .error-card ion-card-content {
-  /* Hintergrund kann normal bleiben */
   padding-top: 5px;
 }
 
@@ -148,8 +137,8 @@
 
 /* Globales Styling für den Fortschrittsbalken */
 ion-progress-bar {
-  --background: var(--ion-color-step-150, #e0e0e0); /* Hintergrundfarbe */
-  --progress-background: var(--ion-color-secondary, #4bc0c0); /* Fortschrittsfarbe (Beispiel: secondary) */
+  --background: var(--ion-color-step-150, #e0e0e0);
+  --progress-background: var(--ion-color-secondary, #4bc0c0);
   height: 10px;
   border-radius: 5px;
 }
@@ -162,11 +151,10 @@ ion-progress-bar {
   gap: 10px;
 }
 
-/* Styling für das Dropdown-Menü im Modal-Header */
+/* Styling für das Dropdown-Menü im Modal-Header (falls noch relevant) */
 .chart-header {
   display: flex;
-  justify-content: flex-start; /* Dropdown-Menü links ausrichten */
-  /* Passt evtl. in den .modal-header ? */
+  justify-content: flex-start;
   padding-bottom: 10px;
 }
 
@@ -178,7 +166,7 @@ ion-progress-bar {
   background-color: var(--ion-color-step-50, #f9f9f9);
 }
 
-/* Styles für LoadingIndicator component */
+/* Styles für LoadingIndicator component wrapper */
 .loading-indicator-wrapper {
   text-align: center;
   margin: 20px 0;
@@ -187,5 +175,61 @@ ion-progress-bar {
 .loading-indicator-wrapper ion-progress-bar {
   margin-top: 10px;
 }
+
+/* === ENTFERNT: Styling für die alte sticky Toolbar === */
+/*
+ion-toolbar.sticky-controls-toolbar { ... }
+.sticky-controls-toolbar ion-segment-button { ... }
+.sticky-controls-toolbar ion-segment-button ion-label { ... }
+.sticky-controls-toolbar ion-select { ... }
+*/
+
+/* === NEU: Styling für den Wrapper der ChartControls, um Sticky-Verhalten zu ermöglichen === */
+.chart-controls-sticky-wrapper {
+  position: -webkit-sticky; /* Für Safari-Kompatibilität */
+  position: sticky;
+  top: 0; /* Haftet am oberen Rand des scrollbaren IonContent-Bereichs */
+  z-index: 100; /* Muss über den Charts liegen */
+  background: var(--ion-background-color, #fff); /* Hintergrund, damit Inhalt nicht durchscheint */
+  /* Padding, damit die Controls nicht direkt am Rand kleben, wenn sie sticky sind */
+  padding-top: 8px;
+  padding-bottom: 8px;
+  /* Optional: Ein leichter Schatten, wenn es "klebt", um es abzuheben */
+  /* box-shadow: 0 2px 5px rgba(0,0,0,0.05); */
+  /* Die Controls selbst (in ChartControls.tsx) sollten jetzt die Margins für den normalen Fluss haben */
+  /* margin-bottom: 20px; */ /* Wird evtl. in ChartControls.tsx gehandhabt oder hier bei Bedarf */
+}
+
+/* Optional: Anpassung für die Controls *innerhalb* des neuen Sticky Wrappers, falls sie dünner sein sollen */
+/* Diese Stile könnten auch direkt in ChartControls.tsx oder dessen CSS-Datei, falls vorhanden, sein. */
+/* Hier als Beispiel, falls ChartControls.tsx einen äußeren div mit Klasse 'chart-controls-container' hat: */
+/*
+.chart-controls-sticky-wrapper .chart-controls-container {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+*/
+
+/* Stile, um die Segment-Buttons und das Select dünner zu machen,
+   wenn sie sich im sticky-wrapper befinden: */
+.chart-controls-sticky-wrapper ion-segment-button {
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+  min-height: 28px;
+}
+
+.chart-controls-sticky-wrapper ion-segment-button ion-label {
+  font-size: 0.85em;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.chart-controls-sticky-wrapper ion-select {
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  font-size: 0.9em;
+  min-height: 30px;
+}
+
 
 /* --- Ende src/pages/Home.css --- */
