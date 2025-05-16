@@ -1,10 +1,9 @@
-// src/pages/Home.tsx (Conditionally Sticky Chart Controls - Vollständig)
+// src/pages/Home.tsx (Final Refactored Version - Alle Charts im ChartGrid)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
-  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText,
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-  IonGrid, IonRow, IonCol
+  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText, // Behalten für Info/Metriken Fallback
+  // IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent // Nicht mehr direkt hier für Charts gebraucht
 } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -12,14 +11,18 @@ import ErrorCard from '../components/ErrorCard';
 import CompanyInfoCard from '../components/CompanyInfoCard';
 import KeyMetricsList from '../components/KeyMetricsList';
 import ChartControls from '../components/ChartControls';
-import ChartGrid from '../components/ChartGrid';
-import TotalDividendsChartCard from '../components/TotalDividendsChartCard';
-import DividendPerShareChartCard from '../components/DividendPerShareChartCard';
+import ChartGrid from '../components/ChartGrid'; // ChartGrid rendert jetzt alle Charts
+// import TotalDividendsChartCard from '../components/TotalDividendsChartCard'; // Wird nicht mehr direkt importiert
+// import DividendPerShareChartCard from '../components/DividendPerShareChartCard'; // Wird nicht mehr direkt importiert
+import ExpandedChartModal from '../components/ExpandedChartModal';
 // Importiere Typen
 import { useStockData, StockData, CompanyInfo, KeyMetrics, MultiDatasetStockData } from '../hooks/useStockData';
 // Importiere die Slicing-Funktion
 import { sliceMultiDataToLastNPoints } from '../utils/utils';
-import './Home.css'; // Stellt sicher, dass die Klasse .chart-controls-sticky-wrapper geladen wird
+import './Home.css';
+
+// Definiere den Typ für yAxisFormat hier, um Konsistenz zu gewährleisten
+type YAxisFormatType = 'currency' | 'percent' | 'number' | 'ratio';
 
 // Optionen und Defaults für Jahresauswahl
 const quarterlyYearOptions = [
@@ -31,8 +34,15 @@ const annualYearOptions = [
 const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
+// Interface für die Konfiguration des Modal-Charts
+interface ModalChartConfig {
+  title: string;
+  yAxisFormat?: YAxisFormatType;
+  yAxisLabel?: string;
+}
+
 const Home: React.FC = () => {
-  console.log("Rendering Home Component (Conditionally Sticky Controls)...");
+  console.log("Rendering Home Component (All Charts in ChartGrid)...");
 
   // --- Hooks und State Deklarationen ---
    const {
@@ -46,13 +56,17 @@ const Home: React.FC = () => {
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
-
   // States für Controls und App-Zustand
   const [viewMode, setViewMode] = useState<'annual' | 'quarterly'>('quarterly');
   const [displayYears, setDisplayYears] = useState<number>(defaultYearsQuarterly);
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const prevLoadingRef = useRef<boolean>(loading);
+
+  // States für das Chart-Modal
+  const [isChartModalOpen, setIsChartModalOpen] = useState<boolean>(false);
+  const [modalChartData, setModalChartData] = useState<MultiDatasetStockData | null>(null);
+  const [modalChartConfig, setModalChartConfig] = useState<ModalChartConfig | null>(null);
 
   // --- Daten für Anzeige vorbereiten und slicen ---
   const incomeDataFromHook = viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement;
@@ -81,7 +95,6 @@ const Home: React.FC = () => {
   const totalDividendsDataMulti: MultiDatasetStockData = { labels: totalDividendsDataBase?.labels || [], datasets: [{ label: 'Total Dividends Paid', values: totalDividendsDataBase?.values || [] }]};
   const totalDividendsDataForChart = sliceMultiDataToLastNPoints(totalDividendsDataMulti, pointsToKeep);
 
-
   // --- Event Handlers ---
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
   const handleRetry = () => { if (currentTicker) fetchData(currentTicker); };
@@ -94,7 +107,18 @@ const Home: React.FC = () => {
   const handleGlobalViewChange = (newViewMode: 'annual' | 'quarterly' | undefined) => {
     if (newViewMode === undefined || (newViewMode !== 'annual' && newViewMode !== 'quarterly') || newViewMode === viewMode) return;
     setViewMode(newViewMode);
-    // Reset der Jahre wird durch separaten useEffect gehandhabt
+  };
+
+  // Funktionen zum Steuern des Modals
+  const openChartModal = ( data: MultiDatasetStockData, config: ModalChartConfig ) => {
+    console.log("Opening chart modal for:", config.title);
+    setModalChartData(data);
+    setModalChartConfig(config);
+    setIsChartModalOpen(true);
+  };
+  const closeChartModal = () => {
+    console.log("Closing chart modal");
+    setIsChartModalOpen(false);
   };
 
   // --- useEffect Hooks ---
@@ -114,17 +138,13 @@ const Home: React.FC = () => {
   });
   useEffect(() => {
     if (currentTicker) {
-      console.log(`Workspaceing initial data for ${currentTicker}`);
       fetchData(currentTicker);
       setSuccessMessage('');
-      // Reset der Jahre wird durch separaten useEffect gehandhabt
     }
   }, [currentTicker, fetchData]);
   useEffect(() => {
-      console.log(`Effect ViewMode Change Triggered: Resetting displayYears for new mode '${viewMode}'`);
       setDisplayYears(viewMode === 'annual' ? defaultYearsAnnual : defaultYearsQuarterly);
   }, [viewMode]);
-
 
   // --- Helper Functions ---
   const formatMarketCap = (marketCap: string | null | undefined): string => {
@@ -143,7 +163,6 @@ const Home: React.FC = () => {
     let explanation = 'Ein Fehler ist aufgetreten.';
     let recommendation = 'Bitte versuchen Sie es erneut oder laden Sie die Seite neu.';
     const safeErrorMessage = errorMessage || "";
-
     if (safeErrorMessage.includes('API-Fehler bei') || safeErrorMessage.includes('Ungültiger Ticker') || safeErrorMessage.includes('nicht gefunden (Status 404)')) {
       explanation = `Der eingegebene Ticker "${currentTicker || ''}" wurde nicht gefunden oder ist ungültig.`; recommendation = 'Bitte überprüfen Sie die Schreibweise (z.B. AAPL für Apple).';
     } else if (safeErrorMessage.includes('API-Limit erreicht')) {
@@ -169,38 +188,20 @@ const Home: React.FC = () => {
       <IonContent fullscreen>
         <IonHeader collapse="condense"><IonToolbar><IonTitle size="large">Stock Dashboard</IonTitle></IonToolbar></IonHeader>
 
-        {/* Die separate Sticky Toolbar wurde ENTFERNT */}
-
-        {/* Container für den Rest des Inhalts */}
         <div style={{ padding: '20px' }}>
           <SearchBar onSearch={handleSearch} />
 
-          {/* === Lade-, Fehler-, Erfolgsanzeigen === */}
           {loading && !companyInfo && <LoadingIndicator progress={progress} />}
           {typeof error === 'string' && !loading && ( <ErrorCard error={error} getErrorDetails={getErrorDetails} onRetry={handleRetry} /> )}
           <IonToast isOpen={!!successMessage} message={successMessage} duration={3000} color="success" position="top" onDidDismiss={() => setSuccessMessage('')} />
 
-          {/* === Hauptinhalt (nur wenn Ticker gesetzt und kein Fehler) === */}
           {currentTicker && !error && (
             <>
-              {/* --- Info & Kennzahlen --- */}
-              {companyInfo && (
-                 <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} />
-              )}
-              {keyMetrics ? (
-                 <KeyMetricsList keyMetrics={keyMetrics} />
-               ) : (
-                 companyInfo && !loading && ( // Zeige Fallback nur wenn Info da ist, aber Metriken fehlen
-                    <IonList inset={true} style={{ marginTop: '20px', marginBottom: '0px' }}>
-                       <IonItem lines="none"><IonLabel color="medium">Kennzahlen nicht verfügbar.</IonLabel></IonItem>
-                    </IonList>
-                 )
-               )}
+              {companyInfo && ( <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} /> )}
+              {keyMetrics ? ( <KeyMetricsList keyMetrics={keyMetrics} /> ) : ( companyInfo && !loading && ( <IonList inset={true} style={{ marginTop: '20px', marginBottom: '0px' }}><IonItem lines="none"><IonLabel color="medium">Kennzahlen nicht verfügbar.</IonLabel></IonItem></IonList> ) )}
 
-              {/* --- Steuerung & Charts (nur wenn Company Info geladen) --- */}
               {companyInfo && (
                  <>
-                    {/* NEU: Wrapper für ChartControls, um Sticky-Verhalten zu ermöglichen */}
                     <div className="chart-controls-sticky-wrapper">
                       <ChartControls
                         viewMode={viewMode}
@@ -211,9 +212,9 @@ const Home: React.FC = () => {
                       />
                     </div>
 
-                    {/* ChartGrid Komponente */}
+                    {/* ChartGrid Komponente rendert jetzt ALLE Charts */}
                     <ChartGrid
-                       loading={loading}
+                       loading={loading} // loading wird an ChartGrid weitergegeben für interne Fallbacks
                        viewMode={viewMode}
                        incomeData={incomeDataForChart}
                        cashflowData={cashflowStatementDataForChart}
@@ -221,32 +222,33 @@ const Home: React.FC = () => {
                        epsData={epsDataForChart}
                        sharesData={sharesDataForChart}
                        debtToEquityData={debtToEquityDataForChart}
+                       paysDividends={paysDividends} // Flag an ChartGrid übergeben
+                       totalDividendsData={totalDividendsDataForChart} // Daten an ChartGrid übergeben
+                       dpsData={dpsDataForChart} // Daten an ChartGrid übergeben
+                       onExpandChart={openChartModal}
                     />
 
-                    {/* Separate Grid für Dividenden-Charts */}
-                    {(paysDividends || (dpsDataForChart && dpsDataForChart.labels && dpsDataForChart.labels.length > 0 && dpsDataForChart.datasets[0]?.values?.length > 0)) && (
-                      <IonGrid fixed={true} style={{ marginTop: '0px' }}>
-                        <IonRow>
-                          {/* Total Dividends Paid Chart */}
-                          {paysDividends ? ( <IonCol size="12" size-lg="6"> <TotalDividendsChartCard loading={loading} viewMode={viewMode} data={totalDividendsDataForChart} /> </IonCol> ) : ( <IonCol size="12" size-lg="6"></IonCol> )}
-                          {/* Dividend Per Share Chart */}
-                          {(dpsDataForChart && dpsDataForChart.labels && dpsDataForChart.labels.length > 0 && dpsDataForChart.datasets[0]?.values?.length > 0) ? ( <IonCol size="12" size-lg="6"> <DividendPerShareChartCard loading={loading} viewMode={viewMode} data={dpsDataForChart} /> </IonCol> ) : ( paysDividends && !loading ? ( <IonCol size="12" size-lg="6"> <IonCard style={{marginTop: '10px', textAlign: 'center', boxShadow: 'none', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}><IonCardContent><p>Keine historischen Dividenden-pro-Aktie Daten verfügbar.</p></IonCardContent></IonCard> </IonCol> ) : ( <IonCol size="12" size-lg="6"></IonCol> ) )}
-                        </IonRow>
-                      </IonGrid>
-                    )}
+                    {/* Separate Dividenden-Grids/Karten wurden ENTFERNT, da sie jetzt Teil von ChartGrid sind */}
                  </>
-              )} {/* Ende if(companyInfo) für Charts & Controls */}
+              )}
             </>
-          )} {/* Ende if(currentTicker && !error) */}
+          )}
 
-          {/* Platzhalter */}
           {!currentTicker && !loading && !error && (
             <div style={{ textAlign: 'center', marginTop: '50px', color: '#888' }}>
               <p>Bitte geben Sie oben ein Aktiensymbol ein (z.B. AAPL, IBM).</p>
             </div>
           )}
+        </div>
 
-        </div> {/* Ende des Haupt-Padding-Divs */}
+        <ExpandedChartModal
+          isOpen={isChartModalOpen}
+          onClose={closeChartModal}
+          chartTitle={modalChartConfig?.title}
+          chartData={modalChartData}
+          yAxisFormat={modalChartConfig?.yAxisFormat}
+          yAxisLabel={modalChartConfig?.yAxisLabel}
+        />
       </IonContent>
     </IonPage>
   );

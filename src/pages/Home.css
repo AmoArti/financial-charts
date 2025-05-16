@@ -1,6 +1,99 @@
-/* src/pages/Home.css (Mit Wrapper für Sticky Chart Controls - Vollständig) */
+/* src/pages/Home.css (Final Version mit Sticky Controls und angepasstem Button-Styling) */
 
-/* Container für Chart-Vorschauen (ggf. anpassen/entfernen, falls nicht mehr genutzt) */
+/* Globale Reset-Stile (optional hier, besser in global.css) */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* -webkit-tap-highlight-color: transparent; */ /* Doppelt, eine Zeile reicht */
+  -webkit-touch-callout: none;
+}
+
+/* Styling für den Wrapper der ChartControls, um Sticky-Verhalten UND Breite anzupassen */
+.chart-controls-sticky-wrapper {
+  position: -webkit-sticky; /* Für Safari-Kompatibilität */
+  position: sticky;
+  top: 0; /* Haftet am oberen Rand des scrollbaren IonContent-Bereichs */
+  z-index: 100; /* Muss über den Charts liegen */
+  background: var(--ion-background-color, #fff); /* Hintergrund, damit Inhalt nicht durchscheint */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Optionaler Schatten */
+  margin-bottom: 20px; /* Abstand zu den Charts, wenn nicht sticky */
+
+  /* Eigenschaften, um das Verhalten von IonGrid fixed={true} zu simulieren */
+  width: 100%; /* Wichtig für margin:auto in Kombination mit max-width */
+  margin-left: auto;
+  margin-right: auto;
+  /* Nutze die Ionic Grid Padding Variablen für Konsistenz */
+  padding-left: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
+  padding-right: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
+  /* Vertikales Padding für den Inhalt im Wrapper */
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Media Queries für max-width, analog zu IonGrid fixed={true} */
+@media (min-width: 576px) {
+  .chart-controls-sticky-wrapper {
+    max-width: 540px;
+  }
+}
+@media (min-width: 768px) {
+  .chart-controls-sticky-wrapper {
+    max-width: 720px;
+  }
+}
+@media (min-width: 992px) {
+  .chart-controls-sticky-wrapper {
+    max-width: 960px;
+  }
+}
+@media (min-width: 1200px) {
+  .chart-controls-sticky-wrapper {
+    max-width: 1140px;
+  }
+}
+
+/* Allgemeine Stile für Segment-Buttons IN der Sticky Chart-Steuerung (dünner machen) */
+.chart-controls-sticky-wrapper ion-segment-button {
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+  min-height: 28px;
+  --color: var(--ion-color-dark, #000000); /* Schriftfarbe für nicht-aktive Buttons */
+  --background: transparent;
+  --border-radius: 4px;
+  --indicator-color: transparent !important; /* Wichtig: Standard-Indikator immer ausblenden */
+  --indicator-height: 0px !important; /* Stellt sicher, dass der Indikator keine Höhe hat */
+  --transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; /* Sanfter Übergang */
+}
+
+/* Ausgewählter/Aktiver Segment-Button IN der Sticky Chart-Steuerung */
+.chart-controls-sticky-wrapper ion-segment-button.segment-button-checked {
+  --background-checked: rgb(0, 95, 106); /* Dein gewünschter Füllfarbton */
+  --color-checked: white;                 /* Schriftfarbe für aktiven Button */
+  --opacity: 1;
+}
+
+.chart-controls-sticky-wrapper ion-segment-button ion-label {
+  font-size: 0.85em;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-weight: normal;
+}
+
+.chart-controls-sticky-wrapper ion-segment-button.segment-button-checked ion-label {
+  font-weight: 500; /* Leicht fett für bessere Lesbarkeit auf dunklem Grund */
+}
+
+/* Anpassung für IonSelect in der Sticky Chart-Steuerung */
+.chart-controls-sticky-wrapper ion-select {
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+  font-size: 0.9em;
+  min-height: 30px;
+}
+
+/* --- Bisherige Stile --- */
+
+/* Container für Chart-Vorschauen */
 .chart-container {
   width: 400px;
   height: 300px;
@@ -9,13 +102,13 @@
 }
 
 .chart-container:hover {
-  border: 2px solid var(--ion-color-primary, #3880ff); /* Nutze Theme-Variable */
+  border: 2px solid var(--ion-color-primary, #3880ff);
   border-radius: 8px;
 }
 
 /* Styling für das benutzerdefinierte Modal (falls noch relevant) */
 .custom-modal {
-  --background: var(--ion-background-color, #fff); /* Nutze Theme-Variable */
+  --background: var(--ion-background-color, #fff);
   --border-radius: 10px;
   --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   --width: 90%;
@@ -77,11 +170,11 @@
   font-size: 24px;
 }
 
-/* Styling für die Infobox (Titel zentriert, Inhalt links mit max-width) */
+/* Styling für die Infobox */
 .company-info-card {
   box-shadow: none;
   border: none;
-  text-align: center; /* Titel und Content-Block werden zentriert */
+  text-align: center;
   margin: 20px 0;
 }
 
@@ -93,15 +186,14 @@
 .company-info-card ion-card-title {
   font-size: 1.2rem;
   color: var(--ion-color-step-850, #333);
-  /* Zentrierung wird von .company-info-card geerbt */
 }
 
 .company-info-card ion-card-content {
   padding-top: 5px;
-  max-width: 500px; /* Beispielwert */
+  max-width: 500px;
   margin-left: auto;
   margin-right: auto;
-  text-align: start; /* Inhalt der Items ist linksbündig */
+  text-align: start;
 }
 
 .company-info-card ion-card-content ion-item {
@@ -109,7 +201,6 @@
    --inner-padding-end: 0px;
    --padding-start: 0px;
 }
-
 
 /* Styling für die Fehlermeldung */
 .error-card {
@@ -175,61 +266,5 @@ ion-progress-bar {
 .loading-indicator-wrapper ion-progress-bar {
   margin-top: 10px;
 }
-
-/* === ENTFERNT: Styling für die alte sticky Toolbar === */
-/*
-ion-toolbar.sticky-controls-toolbar { ... }
-.sticky-controls-toolbar ion-segment-button { ... }
-.sticky-controls-toolbar ion-segment-button ion-label { ... }
-.sticky-controls-toolbar ion-select { ... }
-*/
-
-/* === NEU: Styling für den Wrapper der ChartControls, um Sticky-Verhalten zu ermöglichen === */
-.chart-controls-sticky-wrapper {
-  position: -webkit-sticky; /* Für Safari-Kompatibilität */
-  position: sticky;
-  top: 0; /* Haftet am oberen Rand des scrollbaren IonContent-Bereichs */
-  z-index: 100; /* Muss über den Charts liegen */
-  background: var(--ion-background-color, #fff); /* Hintergrund, damit Inhalt nicht durchscheint */
-  /* Padding, damit die Controls nicht direkt am Rand kleben, wenn sie sticky sind */
-  padding-top: 8px;
-  padding-bottom: 8px;
-  /* Optional: Ein leichter Schatten, wenn es "klebt", um es abzuheben */
-  /* box-shadow: 0 2px 5px rgba(0,0,0,0.05); */
-  /* Die Controls selbst (in ChartControls.tsx) sollten jetzt die Margins für den normalen Fluss haben */
-  /* margin-bottom: 20px; */ /* Wird evtl. in ChartControls.tsx gehandhabt oder hier bei Bedarf */
-}
-
-/* Optional: Anpassung für die Controls *innerhalb* des neuen Sticky Wrappers, falls sie dünner sein sollen */
-/* Diese Stile könnten auch direkt in ChartControls.tsx oder dessen CSS-Datei, falls vorhanden, sein. */
-/* Hier als Beispiel, falls ChartControls.tsx einen äußeren div mit Klasse 'chart-controls-container' hat: */
-/*
-.chart-controls-sticky-wrapper .chart-controls-container {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-*/
-
-/* Stile, um die Segment-Buttons und das Select dünner zu machen,
-   wenn sie sich im sticky-wrapper befinden: */
-.chart-controls-sticky-wrapper ion-segment-button {
-  --padding-top: 4px;
-  --padding-bottom: 4px;
-  min-height: 28px;
-}
-
-.chart-controls-sticky-wrapper ion-segment-button ion-label {
-  font-size: 0.85em;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.chart-controls-sticky-wrapper ion-select {
-  --padding-top: 6px;
-  --padding-bottom: 6px;
-  font-size: 0.9em;
-  min-height: 30px;
-}
-
 
 /* --- Ende src/pages/Home.css --- */
