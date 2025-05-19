@@ -1,4 +1,4 @@
-// src/components/ExpandedChartModal.tsx
+// src/components/ExpandedChartModal.tsx (Mit externer CSS-Datei)
 import React from 'react';
 import {
   IonModal,
@@ -9,23 +9,21 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonSpinner // Für den Ladezustand im Modal
+  IonSpinner
 } from '@ionic/react';
 import { closeOutline } from 'ionicons/icons';
-import BarChart from './BarChart'; // Importiere deine BarChart Komponente
-import { MultiDatasetStockData } from '../hooks/useStockData'; // Importiere den Typ
+import BarChart from './BarChart';
+import { MultiDatasetStockData } from '../hooks/useStockData';
+import './ExpandedChartModal.css'; // NEU: Importiere die CSS-Datei
 
-// Interface für die Props der Komponente
+// Interface für die Props der Komponente (bleibt gleich)
 interface ExpandedChartModalProps {
   isOpen: boolean;
   onClose: () => void;
   chartTitle?: string | null;
   chartData?: MultiDatasetStockData | null;
-  // Props für die Y-Achsen-Konfiguration des BarCharts
   yAxisFormat?: 'currency' | 'percent' | 'number' | 'ratio';
   yAxisLabel?: string;
-  // Optional: Loading-Status, falls das Modal eigene Daten laden würde (hier nicht der Fall)
-  // loading?: boolean;
 }
 
 const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
@@ -35,18 +33,16 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
   chartData,
   yAxisFormat,
   yAxisLabel,
-  // loading = false // Default für optionalen Prop
 }) => {
   return (
     <IonModal
       isOpen={isOpen}
-      onDidDismiss={onClose} // Wird aufgerufen, wenn das Modal durch Swipe etc. geschlossen wird
-      // Optional: CSS-Klasse für benutzerdefiniertes Modal-Styling aus Home.css
-      // cssClass="custom-chart-modal"
+      onDidDismiss={onClose}
+      cssClass="expanded-chart-modal-custom" // NEU: CSS-Klasse zugewiesen
+      // Das inline 'style'-Attribut wurde entfernt
     >
       <IonHeader>
         <IonToolbar>
-          {/* Zeige den Titel des Charts im Modal-Header an */}
           <IonTitle>{chartTitle || 'Chart Detail'}</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={onClose} fill="clear">
@@ -55,22 +51,20 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
-        {/* Prüfe, ob Chart-Daten vorhanden sind */}
+      <IonContent className="ion-padding"> {/* ion-padding für Standard-Abstand */}
         {chartData && chartData.labels && chartData.labels.length > 0 && chartData.datasets.length > 0 && chartData.datasets[0].values.length > 0 ? (
-          // Container für den BarChart, damit er den Platz gut ausnutzt
-          <div style={{ width: '100%', height: 'calc(100% - 16px)', display: 'flex', flexDirection: 'column' }}> {/* 16px für Padding */}
+          // Container für den BarChart, jetzt mit Klasse statt Inline-Style
+          <div className="chart-container-in-modal">
             <BarChart
               data={chartData}
-              title={chartTitle || ''} // BarChart.tsx verwendet dies intern nicht direkt als sichtbaren Titel
+              title={chartTitle || ''}
               yAxisFormat={yAxisFormat}
               yAxisLabel={yAxisLabel}
             />
           </div>
         ) : (
-          // Fallback, wenn keine Daten vorhanden sind (oder während des Ladens, falls loading prop genutzt wird)
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            {/* {loading ? <IonSpinner /> : <p>Keine Daten zum Anzeigen vorhanden.</p>} */}
+          // Optional: Verwende eine Klasse für den Fallback-Text-Container
+          <div className="fallback-text-container">
             <p>Keine Daten zum Anzeigen vorhanden oder Chart wird geladen.</p>
           </div>
         )}

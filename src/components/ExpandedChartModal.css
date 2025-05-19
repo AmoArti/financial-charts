@@ -1,0 +1,41 @@
+/* src/components/ExpandedChartModal.css */
+
+/* Stile für das Haupt-Modal-Element */
+.expanded-chart-modal-custom {
+    --width: 90vw;           /* Breite des Modals: 90% der Viewport-Breite */
+    --height: 85vh;          /* Höhe des Modals: 85% der Viewport-Höhe */
+    --max-width: 1200px;     /* Maximale Breite für sehr große Bildschirme */
+    --border-radius: 10px;   /* Abgerundete Ecken */
+    /* --box-shadow: 0 4px 16px rgba(0,0,0,0.3); */ /* Optional: Stärkerer Schatten */
+  
+    /* Stellt sicher, dass IonContent das Padding korrekt anwendet und der Inhalt zentriert ist,
+       falls der Chart nicht die volle Höhe/Breite des Modals einnimmt. */
+    /* display: flex; */ /* Kann bleiben, wenn IonContent als Flex-Container agieren soll */
+    /* flex-direction: column; */
+  }
+  
+  /* Stile für den IonContent-Bereich innerhalb des Modals */
+  .expanded-chart-modal-custom ion-content {
+    /* --padding-start: 16px; */ /* Standard-Padding ist oft schon gut */
+    /* --padding-end: 16px; */
+    /* --padding-top: 16px; */
+    /* --padding-bottom: 16px; */
+  }
+  
+  /* Stile für den Container-Div, der den BarChart umschließt */
+  .expanded-chart-modal-custom .chart-container-in-modal {
+    width: 100%;
+    height: 100%; /* Füllt den gepaddeten Bereich von ion-content */
+    display: flex;
+    flex-direction: column; /* Stellt sicher, dass der Chart vertikal wachsen kann */
+  }
+  
+  /* Optional: Wenn der Fallback-Text im Modal speziell gestylt werden soll */
+  .expanded-chart-modal-custom .fallback-text-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    color: var(--ion-color-medium-shade);
+  }
