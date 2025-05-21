@@ -1,55 +1,54 @@
-/* src/components/ExpandedChartModal.css */
+/* src/components/ExpandedChartModal.css (Vollständig) */
 
 /* Stile für das Haupt-Modal-Element */
 .expanded-chart-modal-custom {
-    --width: 90vw;
-    --height: 85vh;
-    --max-width: 1200px;
-    --border-radius: 10px;
-  }
-  
-  /* NEU: Versuche, Schatten/Border vom Header direkt zu entfernen */
-  .expanded-chart-modal-custom ion-header {
-    box-shadow: none !important;
-    border-bottom: none !important;
-    /* Manchmal wird nach dem ion-header noch ein .header-md::after Pseudoelement
-       für eine Linie/Schatten eingefügt, das müssen wir auch erwischen */
-  }
-  
-  .expanded-chart-modal-custom ion-header::after {
-      display: none !important; /* Versteckt das ::after Pseudoelement, das oft Linien erzeugt */
-  }
-  
-  
-  .expanded-chart-modal-custom ion-header ion-toolbar {
-    --box-shadow: none !important; /* Explizit für die Toolbar */
-    box-shadow: none !important;
-    --border-width: 0px !important; /* Sicherstellen, dass kein Border da ist */
-    border-bottom: none !important;
-    --min-height: auto; /* Kann helfen, die Höhe zu reduzieren */
-    /* Optional: Expliziten Hintergrund für die Toolbar, falls der Header transparent sein sollte */
-    /* --background: var(--ion-toolbar-background, var(--ion-color-step-50, #f8f8f8)); */
-  }
-  
-  /* Stile für den IonContent-Bereich innerhalb des Modals */
-  .expanded-chart-modal-custom ion-content {
-    /* Standard-Padding ist oft schon gut */
-  }
-  
-  /* Stile für den Container-Div, der den BarChart umschließt */
-  .expanded-chart-modal-custom .chart-container-in-modal {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Optional: Wenn der Fallback-Text im Modal speziell gestylt werden soll */
-  .expanded-chart-modal-custom .fallback-text-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    text-align: center;
-    color: var(--ion-color-medium-shade, #777);
-  }
+  --width: 90vw;
+  --height: 85vh;
+  --max-width: 1200px; /* Oder ein anderer passender Wert für sehr große Bildschirme */
+  --border-radius: 10px;
+  /* Optional: Stärkerer Schatten für das Modal selbst, wenn gewünscht */
+  /* --box-shadow: 0 8px 24px rgba(0,0,0,0.2); */
+}
+
+/* Schatten/Border vom Header und Toolbar im Modal entfernen */
+.expanded-chart-modal-custom ion-header {
+  box-shadow: none !important;
+  border-bottom: none !important;
+}
+
+.expanded-chart-modal-custom ion-header::after {
+  display: none !important; /* Versteckt das ::after Pseudoelement, das oft Linien erzeugt */
+}
+
+.expanded-chart-modal-custom ion-header ion-toolbar {
+  --background: var(--ion-toolbar-background, var(--ion-color-step-50, #f8f8f8)); /* Heller Hintergrund für Toolbar */
+  --color: var(--ion-toolbar-color, var(--ion-text-color, #000)); /* Textfarbe für den Titel */
+  --box-shadow: none !important;
+  box-shadow: none !important;
+  --border-width: 0px !important;
+  border-bottom: none !important;
+  --min-height: auto; /* Erlaubt es, die Höhe der Toolbar ggf. zu reduzieren */
+}
+
+/* Stile für den IonContent-Bereich innerhalb des Modals */
+.expanded-chart-modal-custom ion-content {
+  /* ion-padding in JSX kümmert sich um den Innenabstand */
+}
+
+/* Stile für den Container-Div, der den BarChart umschließt */
+.expanded-chart-modal-custom .chart-container-in-modal {
+  width: 100%;
+  height: 100%; /* Füllt den gepaddeten Bereich von ion-content */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Optional: Wenn der Fallback-Text im Modal speziell gestylt werden soll */
+.expanded-chart-modal-custom .fallback-text-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  color: var(--ion-color-medium-shade, #777);
+}
