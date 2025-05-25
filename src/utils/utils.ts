@@ -172,20 +172,20 @@ export const sliceMultiDataToLastNPoints = (data: MultiDatasetStockData, pointsT
 };
 
 // --- filterDataToYears Funktion (Beispielhaft, falls du sie behalten willst) ---
-// export const filterDataToYears = (data: StockData | null | undefined, pointsToKeep: number): StockData => {
-//   if (!data || !data.labels || !data.values || pointsToKeep <= 0 || data.labels.length === 0) {
-//     return { labels: [], values: [] };
-//   }
-//   if (pointsToKeep >= data.labels.length) {
-//     return data;
-//   }
-//   const startIndex = data.labels.length - pointsToKeep;
-//   const validStartIndex = Math.max(0, startIndex);
-//   return {
-//     labels: data.labels.slice(validStartIndex),
-//     values: data.values.slice(validStartIndex),
-//   };
-// };
+export const filterDataToYears = (data: StockData | null | undefined, pointsToKeep: number): StockData => {
+  if (!data || !data.labels || !data.values || pointsToKeep <= 0 || data.labels.length === 0) {
+    return { labels: [], values: [] };
+  }
+  if (pointsToKeep >= data.labels.length) {
+    return data;
+  }
+  const startIndex = data.labels.length - pointsToKeep;
+  const validStartIndex = Math.max(0, startIndex);
+  return {
+    labels: data.labels.slice(validStartIndex),
+    values: data.values.slice(validStartIndex),
+  };
+};
 
 
 // --- Ende utils.ts ---
