@@ -1,36 +1,87 @@
-/* src/pages/Home.css (Final Version mit Sticky Controls und angepasstem Button-Styling) */
+/* src/pages/Home.css */
 
-/* Globale Reset-Stile (optional hier, besser in global.css) */
+/* Globale Reset-Stile */
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  /* -webkit-tap-highlight-color: transparent; */ /* Doppelt, eine Zeile reicht */
   -webkit-touch-callout: none;
 }
 
-/* Styling für den Wrapper der ChartControls, um Sticky-Verhalten UND Breite anzupassen */
-.chart-controls-sticky-wrapper {
-  position: -webkit-sticky; /* Für Safari-Kompatibilität */
-  position: sticky;
-  top: 0; /* Haftet am oberen Rand des scrollbaren IonContent-Bereichs */
-  z-index: 100; /* Muss über den Charts liegen */
-  background: var(--ion-background-color, #fff); /* Hintergrund, damit Inhalt nicht durchscheint */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Optionaler Schatten */
-  margin-bottom: 20px; /* Abstand zu den Charts, wenn nicht sticky */
+/* ---------------------------------------------------- */
+/* Farbpalette & Basis-Variablen                        */
+/* Ideal: In src/theme/variables.css definieren         */
+/* ---------------------------------------------------- */
+:root {
+  /* Seitenhintergrund */
+  --app-background-color: #ffffff; /* REINER WEISSER HINTERGRUND */
 
-  /* Eigenschaften, um das Verhalten von IonGrid fixed={true} zu simulieren */
-  width: 100%; /* Wichtig für margin:auto in Kombination mit max-width */
-  margin-left: auto;
-  margin-right: auto;
-  /* Nutze die Ionic Grid Padding Variablen für Konsistenz */
-  padding-left: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
-  padding-right: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
-  /* Vertikales Padding für den Inhalt im Wrapper */
-  padding-top: 8px;
-  padding-bottom: 8px;
+  /* Kartenhintergrund */
+  --card-background-color: #ffffff; 
+
+  /* Textfarben */
+  --text-color-strong: #1a202c;   
+  --text-color-default: #2d3748;  
+  --text-color-muted: #718096;    
+  --text-color-on-primary: #ffffff;
+  --text-color-primary-accent: var(--app-color-primary);
+
+
+  /* Rahmenfarben */
+  --border-color-subtle: #e8edf2; 
+  --border-color-ui: #d1d8e0;     
+  --border-color-stronger: #cbd5e0; 
+
+  /* Primärfarbe (Beispiel: ein modernes, sattes Blau - ANPASSEN!) */
+  --app-color-primary: #3B82F6; 
+  --app-color-primary-hover: #2563EB; 
+  --app-color-primary-active: #1D4ED8;
+  --app-color-primary-light-bg: #EFF6FF;
+
+  /* Abstände */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Radien */
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-pill: 9999px;
+
+  /* Schatten sind entfernt */
+  --box-shadow-sm: none;
+  --box-shadow-md: none;
+  --box-shadow-lg: none;
 }
 
-/* Media Queries für max-width, analog zu IonGrid fixed={true} */
+ion-content {
+  --background: var(--app-background-color);
+}
+
+/* ---------------------------------------------------- */
+/* ChartControls (Ohne Schatten)                        */
+/* ---------------------------------------------------- */
+.chart-controls-sticky-wrapper {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--app-background-color);
+  border-bottom: 1.5px solid var(--border-color-subtle); 
+  box-shadow: var(--box-shadow-sm); 
+  margin-bottom: var(--spacing-lg);
+  
+  width: 100%; 
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
+  padding-right: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
+  padding-top: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+}
+
+/* Media Queries für max-width, analog zu ion-grid[fixed=true] */
 @media (min-width: 576px) {
   .chart-controls-sticky-wrapper {
     max-width: 540px;
@@ -52,219 +103,303 @@
   }
 }
 
-/* Allgemeine Stile für Segment-Buttons IN der Sticky Chart-Steuerung (dünner machen) */
-.chart-controls-sticky-wrapper ion-segment-button {
-  --padding-top: 4px;
-  --padding-bottom: 4px;
-  min-height: 28px;
-  --color: var(--ion-color-dark, #000000); /* Schriftfarbe für nicht-aktive Buttons */
+.chart-controls-sticky-wrapper ion-segment {
   --background: transparent;
-  --border-radius: 4px;
-  --indicator-color: transparent !important; /* Wichtig: Standard-Indikator immer ausblenden */
-  --indicator-height: 0px !important; /* Stellt sicher, dass der Indikator keine Höhe hat */
-  --transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; /* Sanfter Übergang */
+  display: flex;
+  justify-content: center;
 }
 
-/* Ausgewählter/Aktiver Segment-Button IN der Sticky Chart-Steuerung */
+.chart-controls-sticky-wrapper ion-segment-button {
+  --padding-top: var(--spacing-sm);
+  --padding-bottom: var(--spacing-sm);
+  --padding-start: var(--spacing-md);
+  --padding-end: var(--spacing-md);
+  min-height: 38px;
+  height: auto;
+  flex-grow: 1; 
+  flex-basis: 0; 
+  
+  --color: var(--text-color-default); 
+  --background: var(--app-background-color); 
+  --border-radius: var(--border-radius-pill);
+  --border-width: 1.5px; 
+  --border-color: var(--border-color-ui); 
+  --border-style: solid;
+  
+  --indicator-color: transparent !important;
+  --indicator-height: 0px !important;
+  --transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  margin-left: var(--spacing-xs);
+  margin-right: var(--spacing-xs);
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: none; 
+}
+.chart-controls-sticky-wrapper ion-segment ion-segment-button:first-child {
+    margin-left: 0;
+}
+.chart-controls-sticky-wrapper ion-segment ion-segment-button:last-child {
+    margin-right: 0;
+}
+
+
+.chart-controls-sticky-wrapper ion-segment-button:not(.segment-button-checked):hover {
+  --background: var(--app-color-primary-light-bg); 
+  --color: var(--app-color-primary);
+  --border-color: var(--app-color-primary); 
+}
+
 .chart-controls-sticky-wrapper ion-segment-button.segment-button-checked {
-  --background-checked: rgb(0, 95, 106); /* Dein gewünschter Füllfarbton */
-  --color-checked: white;                 /* Schriftfarbe für aktiven Button */
+  --background: var(--app-color-primary);
+  --color: var(--text-color-on-primary);
+  --border-color: var(--app-color-primary); 
+  --box-shadow: none; 
   --opacity: 1;
 }
 
 .chart-controls-sticky-wrapper ion-segment-button ion-label {
-  font-size: 0.85em;
+  font-size: 0.875rem;
   margin-top: 0;
   margin-bottom: 0;
-  font-weight: normal;
+  font-weight: 500; 
 }
 
 .chart-controls-sticky-wrapper ion-segment-button.segment-button-checked ion-label {
-  font-weight: 500; /* Leicht fett für bessere Lesbarkeit auf dunklem Grund */
+  font-weight: 600; 
 }
 
-/* Anpassung für IonSelect in der Sticky Chart-Steuerung */
-.chart-controls-sticky-wrapper ion-select {
-  --padding-top: 6px;
-  --padding-bottom: 6px;
-  font-size: 0.9em;
-  min-height: 30px;
+/* ---------------------------------------------------------- */
+/* CompanyInfoCard und KeyMetricsList (ohne Schatten)         */
+/* ---------------------------------------------------------- */
+.info-metrics-container {
+  margin-bottom: var(--spacing-xl);
 }
 
-/* --- Bisherige Stile --- */
-
-/* Container für Chart-Vorschauen */
-.chart-container {
-  width: 400px;
-  height: 300px;
-  margin: 0 auto;
-  cursor: pointer;
+.company-info-card,
+.key-metrics-list {
+  background-color: var(--card-background-color); 
+  box-shadow: none; 
+  border: 1.5px solid var(--border-color-stronger); 
+  border-radius: var(--border-radius-lg);
+  margin: 0 auto var(--spacing-lg) auto; 
+  max-width: 768px; 
+  width: 100%; 
 }
 
-.chart-container:hover {
-  border: 2px solid var(--ion-color-primary, #3880ff);
-  border-radius: 8px;
-}
-
-/* Styling für das benutzerdefinierte Modal (falls noch relevant) */
-.custom-modal {
-  --background: var(--ion-background-color, #fff);
-  --border-radius: 10px;
-  --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --width: 90%;
-  --height: 80%;
-  --max-width: 900px;
-  --max-height: 600px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 10px 20px;
-  width: 100%;
-  border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0);
-}
-
-.toggle-wrapper {
-   position: absolute;
-   left: 50%;
-   transform: translateX(-50%);
-   display: flex;
-   justify-content: center;
-}
-
-.toggle-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.toggle-container ion-label {
-  font-size: 16px;
-  color: var(--ion-color-step-600, #666);
-}
-
-.modal-chart-container {
-  width: 100%;
-  flex-grow: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 20px 20px 20px;
-  overflow: hidden;
-}
-
-.close-button {
-  color: var(--ion-text-color, #000);
-  z-index: 10;
-}
-
-.close-button ion-icon {
-  font-size: 24px;
-}
-
-/* Styling für die Infobox */
-.company-info-card {
-  box-shadow: none;
-  border: none;
-  text-align: center;
-  margin: 20px 0;
-}
 
 .company-info-card ion-card-header {
-  background-color: transparent;
-  padding-bottom: 0;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm) var(--spacing-md);
+  text-align: center;
+  border-bottom: 1px solid var(--border-color-subtle);
 }
 
 .company-info-card ion-card-title {
+  font-size: 1.5rem; 
+  font-weight: 700; 
+  color: var(--text-color-strong);
+  margin-bottom: var(--spacing-xs);
+}
+.company-info-card ion-card-title span { 
+  font-weight: 500;
+  color: var(--text-color-muted);
   font-size: 1.2rem;
-  color: var(--ion-color-step-850, #333);
 }
 
 .company-info-card ion-card-content {
-  padding-top: 5px;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-  text-align: start;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md) var(--spacing-md);
 }
 
 .company-info-card ion-card-content ion-item {
    --background: transparent;
    --inner-padding-end: 0px;
    --padding-start: 0px;
+   --min-height: auto;
+   padding-top: var(--spacing-sm); 
+   padding-bottom: var(--spacing-sm);
+   border-bottom: 1px solid var(--border-color-subtle);
+}
+.company-info-card ion-card-content ion-item:last-child {
+  border-bottom: none;
 }
 
-/* Styling für die Fehlermeldung */
+.company-info-card ion-card-content ion-label {
+  color: var(--text-color-muted);
+  font-size: 0.9rem;
+  flex: 0 0 150px; 
+  margin-right: var(--spacing-sm);
+}
+.company-info-card ion-card-content ion-note {
+  color: var(--text-color-default);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: right; 
+  flex: 1 1 auto;
+}
+
+.key-metrics-list {
+  padding: var(--spacing-sm) 0;
+}
+
+.key-metrics-list ion-item-divider, 
+.key-metrics-list ion-item.list-header { 
+  --background: transparent;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color-subtle);
+  min-height: auto;
+}
+.key-metrics-list ion-item-divider ion-label,
+.key-metrics-list ion-item.list-header ion-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color-strong);
+  margin-top: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.key-metrics-list ion-item {
+  --background: transparent;
+  --inner-padding-end: var(--spacing-md);
+  --padding-start: var(--spacing-md);
+  --min-height: 48px;
+  border-bottom: 1px solid var(--border-color-subtle);
+}
+.key-metrics-list ion-item:last-child {
+  border-bottom: none;
+}
+
+.key-metrics-list ion-label {
+  color: var(--text-color-muted);
+  font-size: 0.9rem;
+}
+.key-metrics-list ion-note {
+  color: var(--text-color-default);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------- */
+/* ChartGrid Karten (ohne Schatten und Rahmen)          */
+/* ---------------------------------------------------- */
+ion-grid[fixed=true] {
+  /* Bleibt gleich */
+}
+
+.chart-grid-card {
+  background-color: var(--card-background-color); 
+  box-shadow: none; /* Schatten entfernt */
+  border: none; /* RAHMEN ENTFERNT */
+  border-radius: var(--border-radius-lg); /* Radius kann bleiben oder auf 0 für eckig */
+  margin-bottom: var(--spacing-lg) !important;
+  overflow: hidden; /* Wichtig, falls interne Elemente doch überlappen */
+}
+
+.chart-grid-card ion-card-header {
+  padding: var(--spacing-md);
+  border-bottom: none; /* RAHMEN ENTFERNT */
+}
+
+.chart-grid-card ion-card-title {
+  font-size: 1rem; 
+  font-weight: 600;
+  color: var(--text-color-strong);
+}
+
+.chart-grid-card ion-button.expand-chart-button {
+  --padding-start: var(--spacing-sm);
+  --padding-end: var(--spacing-sm);
+  --color: var(--text-color-muted);
+  height: 32px;
+  width: 32px;
+  transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+.chart-grid-card ion-button.expand-chart-button:hover {
+  --color: var(--app-color-primary);
+  transform: scale(1.1); 
+}
+.chart-grid-card ion-button.expand-chart-button ion-icon {
+  font-size: 1.3rem;
+}
+
+.chart-grid-card ion-card-content {
+  padding: var(--spacing-md);
+  min-height: 300px;
+}
+.chart-grid-card .chart-wrapper-div {
+  height: 300px; 
+  width: 100%;
+}
+
+.chart-grid-card p { 
+  color: var(--text-color-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding-top: var(--spacing-lg);
+}
+
+/* --- Bestehende Stile (Error, Loading etc. ohne Schatten) --- */
 .error-card {
-  margin: 20px 0;
-  border: 1px solid var(--ion-color-danger, #ff4d4f);
+  max-width: 768px; 
+  margin: var(--spacing-lg) auto;
+  border: 1.5px solid var(--ion-color-danger-shade, #cf3c4f); 
+  border-radius: var(--border-radius-md);
+  background-color: #fdeded; 
+  box-shadow: none; 
 }
-
 .error-card ion-card-header {
-  background-color: rgba(var(--ion-color-danger-rgb, 255, 77, 79), 0.1);
   padding-bottom: 0;
 }
-
 .error-card ion-card-title {
-  color: var(--ion-color-danger, #ff4d4f);
-  padding-top: 5px;
+  color: var(--ion-color-danger-shade, #cf3c4f);
+  padding-top: var(--spacing-sm);
+  font-size: 1.1rem;
+  font-weight: 600;
 }
-
 .error-card ion-card-content {
-  padding-top: 5px;
+  padding-top: var(--spacing-sm);
+  color: var(--text-color-default);
 }
-
+.error-card ion-card-content p {
+  margin-bottom: var(--spacing-sm);
+}
 .error-card ion-button {
-  margin-top: 10px;
+  margin-top: var(--spacing-md);
+  --border-radius: var(--border-radius-pill);
 }
 
-/* Globales Styling für den Fortschrittsbalken */
 ion-progress-bar {
-  --background: var(--ion-color-step-150, #e0e0e0);
-  --progress-background: var(--ion-color-secondary, #4bc0c0);
-  height: 10px;
-  border-radius: 5px;
+  --background: var(--border-color-subtle);
+  --progress-background: var(--app-color-primary);
+  height: 8px; 
+  border-radius: var(--border-radius-pill);
 }
 
-/* Styling für die Ladeanimation (Container) */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Styling für das Dropdown-Menü im Modal-Header (falls noch relevant) */
-.chart-header {
-  display: flex;
-  justify-content: flex-start;
-  padding-bottom: 10px;
-}
-
-.chart-header ion-select {
-  font-size: 0.9rem;
-  padding: 5px 10px;
-  border: 1px solid var(--ion-color-step-200, #ccc);
-  border-radius: 5px;
-  background-color: var(--ion-color-step-50, #f9f9f9);
-}
-
-/* Styles für LoadingIndicator component wrapper */
 .loading-indicator-wrapper {
   text-align: center;
-  margin: 20px 0;
+  margin: var(--spacing-xl) 0;
+  color: var(--text-color-muted);
 }
-
+.loading-indicator-wrapper p {
+  margin-top: var(--spacing-sm);
+  font-size: 0.9rem;
+}
 .loading-indicator-wrapper ion-progress-bar {
-  margin-top: 10px;
+  margin-top: var(--spacing-md);
+  max-width: 300px; 
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* --- Ende src/pages/Home.css --- */
+/* SearchBar Anpassungen */
+.search-bar-container {
+  margin: var(--spacing-md) auto var(--spacing-lg) auto; 
+  max-width: 768px; 
+  padding-left: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px)); 
+  padding-right: var(--ion-grid-padding-xs, var(--ion-grid-padding, 10px));
+}
+
+.search-bar { 
+  box-shadow: none; 
+  border: 1.5px solid var(--border-color-stronger); 
+  border-radius: var(--border-radius-pill);
+}
