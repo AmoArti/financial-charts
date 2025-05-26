@@ -1,23 +1,20 @@
-// src/utils/processing/earningsProcessing.ts (Bereinigt - Nur noch EPS)
-import { StockData } from '../../types/stockDataTypes';
-// Importiere benötigte Helfer aus utils.ts
-import { formatQuarter, trimData, parseFloatOrZero } from '../utils';
+// src/utils/processing/earningsProcessing.ts
+import { MultiDatasetStockData } from '../../types/stockDataTypes'; // Geändert von StockData
+import { formatQuarter, trimMultiData, parseFloatOrZero } from '../utils'; // trimData wird zu trimMultiData
 
-// Definition des Rückgabetyps (Nur noch EPS)
+// Definition des Rückgabetyps (JETZT MultiDatasetStockData für EPS)
 export interface ProcessedEarningsData {
-  annualEPS: StockData;
-  quarterlyEPS: StockData;
-  // DPS Felder entfernt
+  annualEPS: MultiDatasetStockData;
+  quarterlyEPS: MultiDatasetStockData;
 }
 
 export const processEarningsData = (earningsData: any): ProcessedEarningsData => {
-  // Initialisiere nur noch EPS Felder
+  const initialMultiData: MultiDatasetStockData = { labels: [], datasets: [] };
   let result: ProcessedEarningsData = {
-    annualEPS: { labels: [], values: [] },
-    quarterlyEPS: { labels: [], values: [] },
+    annualEPS: { ...initialMultiData }, // Kopiere initialMultiData
+    quarterlyEPS: { ...initialMultiData },// Kopiere initialMultiData
   };
 
-  // Überprüfe, ob überhaupt Daten vorhanden sind
   if (!earningsData || (!earningsData.annualEarnings && !earningsData.quarterlyEarnings)) {
     console.warn("Keine Earnings-Berichte (annual/quarterly) in earningsData gefunden.");
     return result;
@@ -26,7 +23,7 @@ export const processEarningsData = (earningsData: any): ProcessedEarningsData =>
   // --- Jahresdaten ---
   const annualEarningsRaw = Array.isArray(earningsData.annualEarnings) ? earningsData.annualEarnings : [];
   const annualEarnings = annualEarningsRaw
-    .sort((a: any, b: any) => { // Sicheres Sortieren nach Jahr
+    .sort((a: any, b: any) => {
        const yearA = parseInt(a?.fiscalDateEnding?.substring(0, 4));
        const yearB = parseInt(b?.fiscalDateEnding?.substring(0, 4));
        if (isNaN(yearA) && isNaN(yearB)) return 0;
@@ -36,23 +33,27 @@ export const processEarningsData = (earningsData: any): ProcessedEarningsData =>
     });
 
   if (annualEarnings.length > 0) {
-    // Filtere Einträge ohne gültiges Datum ODER ohne EPS
     const validAnnualEarnings = annualEarnings.filter((e: any) =>
-        e?.fiscalDateEnding && e?.reportedEPS // Nur EPS relevant
+        e?.fiscalDateEnding && (e?.reportedEPS || e?.estimatedEPS) // Valide, wenn mindestens eines vorhanden
     );
     const annualLabels = validAnnualEarnings.map((e: any) => parseInt(e.fiscalDateEnding.substring(0, 4)));
 
-    // EPS (Jährlich)
-    const annualValuesEPS = validAnnualEarnings.map((e: any) => parseFloatOrZero(e?.reportedEPS));
-    result.annualEPS = trimData(annualLabels, annualValuesEPS);
+    const annualValuesReportedEPS = validAnnualEarnings.map((e: any) => parseFloatOrZero(e?.reportedEPS));
+    const annualValuesEstimatedEPS = validAnnualEarnings.map((e: any) => parseFloatOrZero(e?.estimatedEPS));
 
-    // KEINE DPS-Berechnung mehr hier
+    result.annualEPS = trimMultiData({ // trimMultiData anwenden
+      labels: annualLabels,
+      datasets: [
+        { label: 'Reported EPS', values: annualValuesReportedEPS },
+        { label: 'Estimated EPS', values: annualValuesEstimatedEPS },
+      ],
+    });
   }
 
   // --- Quartalsdaten ---
   const quarterlyEarningsRaw = Array.isArray(earningsData.quarterlyEarnings) ? earningsData.quarterlyEarnings : [];
   const quarterlyEarnings = quarterlyEarningsRaw
-    .sort((a: any, b: any) => { // Sicheres Sortieren nach Datum
+    .sort((a: any, b: any) => {
         const dateA = a?.fiscalDateEnding ? new Date(a.fiscalDateEnding).getTime() : 0;
         const dateB = b?.fiscalDateEnding ? new Date(b.fiscalDateEnding).getTime() : 0;
         if (isNaN(dateA) && isNaN(dateB)) return 0;
@@ -62,17 +63,21 @@ export const processEarningsData = (earningsData: any): ProcessedEarningsData =>
     });
 
   if (quarterlyEarnings.length > 0) {
-    // Filtere Einträge ohne gültiges Datum ODER ohne EPS
     const validQuarterlyEarnings = quarterlyEarnings.filter((e: any) =>
-        e?.fiscalDateEnding && e?.reportedEPS
+        e?.fiscalDateEnding && (e?.reportedEPS || e?.estimatedEPS) // Valide, wenn mindestens eines vorhanden
     );
     const quarterlyLabels = validQuarterlyEarnings.map((e: any) => formatQuarter(e.fiscalDateEnding));
 
-    // EPS (Quartalsweise)
-    const quarterlyValuesEPS = validQuarterlyEarnings.map((e: any) => parseFloatOrZero(e?.reportedEPS));
-    result.quarterlyEPS = trimData(quarterlyLabels, quarterlyValuesEPS);
+    const quarterlyValuesReportedEPS = validQuarterlyEarnings.map((e: any) => parseFloatOrZero(e?.reportedEPS));
+    const quarterlyValuesEstimatedEPS = validQuarterlyEarnings.map((e: any) => parseFloatOrZero(e?.estimatedEPS));
 
-    // KEINE DPS-Berechnung mehr hier
+    result.quarterlyEPS = trimMultiData({ // trimMultiData anwenden
+      labels: quarterlyLabels,
+      datasets: [
+        { label: 'Reported EPS', values: quarterlyValuesReportedEPS },
+        { label: 'Estimated EPS', values: quarterlyValuesEstimatedEPS },
+      ],
+    });
   }
 
   return result;

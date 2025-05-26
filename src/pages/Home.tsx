@@ -1,9 +1,8 @@
-// src/pages/Home.tsx (Final Refactored Version - Alle Charts im ChartGrid)
+// src/pages/Home.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
-  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText, // Behalten für Info/Metriken Fallback
-  // IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent // Nicht mehr direkt hier für Charts gebraucht
+  IonList, IonItem, IonLabel, IonNote, IonSpinner, IonText,
 } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -11,9 +10,7 @@ import ErrorCard from '../components/ErrorCard';
 import CompanyInfoCard from '../components/CompanyInfoCard';
 import KeyMetricsList from '../components/KeyMetricsList';
 import ChartControls from '../components/ChartControls';
-import ChartGrid from '../components/ChartGrid'; // ChartGrid rendert jetzt alle Charts
-// import TotalDividendsChartCard from '../components/TotalDividendsChartCard'; // Wird nicht mehr direkt importiert
-// import DividendPerShareChartCard from '../components/DividendPerShareChartCard'; // Wird nicht mehr direkt importiert
+import ChartGrid from '../components/ChartGrid';
 import ExpandedChartModal from '../components/ExpandedChartModal';
 // Importiere Typen
 import { useStockData, StockData, CompanyInfo, KeyMetrics, MultiDatasetStockData } from '../hooks/useStockData';
@@ -31,7 +28,7 @@ const quarterlyYearOptions = [
 const annualYearOptions = [
     { value: 5, label: '5Y' }, { value: 10, label: '10Y' }, { value: 15, label: '15Y' }, { value: 20, label: 'MAX' }
 ];
-const defaultYearsQuarterly = 4;
+const defaultYearsQuarterly = 4; // Entspricht 4 * 4 = 16 Quartalen
 const defaultYearsAnnual = 10;
 
 // Interface für die Konfiguration des Modal-Charts
@@ -46,7 +43,7 @@ const Home: React.FC = () => {
 
   // --- Hooks und State Deklarationen ---
    const {
-    annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS,
+    annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS, // annualEPS & quarterlyEPS sind jetzt MultiDatasetStockData
     annualDPS, quarterlyDPS,
     annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
@@ -70,7 +67,10 @@ const Home: React.FC = () => {
 
   // --- Daten für Anzeige vorbereiten und slicen ---
   const incomeDataFromHook = viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement;
-  const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS;
+  
+  // epsDataBase ist jetzt direkt MultiDatasetStockData aus dem Hook
+  const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS; 
+  
   const dpsDataBase = viewMode === 'annual' ? annualDPS : quarterlyDPS;
   const marginsDataFromHook = viewMode === 'annual' ? annualMargins : quarterlyMargins;
   const cashflowStatementFromHook = viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement;
@@ -82,16 +82,27 @@ const Home: React.FC = () => {
 
   // Slicing für alle Charts
   const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
-  const epsDataMulti: MultiDatasetStockData = { labels: epsDataBase?.labels || [], datasets: [{ label: 'EPS', values: epsDataBase?.values || [] }] };
-  const epsDataForChart = sliceMultiDataToLastNPoints(epsDataMulti, pointsToKeep);
+  
+  // Die künstliche Erzeugung von epsDataMulti ist nicht mehr nötig, da epsDataBase bereits MultiDatasetStockData ist.
+  // const epsDataMulti: MultiDatasetStockData = { labels: epsDataBase?.labels || [], datasets: [{ label: 'EPS', values: epsDataBase?.values || [] }] }; // ENTFERNT oder angepasst
+  const epsDataForChart = sliceMultiDataToLastNPoints(epsDataBase, pointsToKeep); // epsDataBase ist bereits MultiDatasetStockData
+
   const marginsDataForChart = sliceMultiDataToLastNPoints(marginsDataFromHook, pointsToKeep);
   const cashflowStatementDataForChart = sliceMultiDataToLastNPoints(cashflowStatementFromHook, pointsToKeep);
+  
+  // Für Shares, D/E, DPS und TotalDividendsPaid, die weiterhin als StockData kommen,
+  // muss ggf. die Umwandlung in MultiDatasetStockData beibehalten werden, wenn sie so im ChartGrid erwartet werden.
+  // Oder ChartGrid wird angepasst, um auch StockData für Einzel-Datensatz-Charts zu akzeptieren.
+  // Aktuell erwartet ChartGrid MultiDatasetStockData für epsData, sharesData, debtToEquityData, dpsData, totalDividendsData
   const sharesDataMulti: MultiDatasetStockData = { labels: sharesDataBase?.labels || [], datasets: [{ label: 'Shares Out (M)', values: sharesDataBase?.values || [] }]};
   const sharesDataForChart = sliceMultiDataToLastNPoints(sharesDataMulti, pointsToKeep);
+  
   const debtToEquityDataMulti: MultiDatasetStockData = { labels: debtToEquityDataBase?.labels || [], datasets: [{ label: 'D/E Ratio', values: debtToEquityDataBase?.values || [] }]};
   const debtToEquityDataForChart = sliceMultiDataToLastNPoints(debtToEquityDataMulti, pointsToKeep);
+  
   const dpsDataMulti: MultiDatasetStockData = { labels: dpsDataBase?.labels || [], datasets: [{ label: 'DPS ($)', values: dpsDataBase?.values || [] }]};
   const dpsDataForChart = sliceMultiDataToLastNPoints(dpsDataMulti, pointsToKeep);
+  
   const totalDividendsDataMulti: MultiDatasetStockData = { labels: totalDividendsDataBase?.labels || [], datasets: [{ label: 'Total Dividends Paid', values: totalDividendsDataBase?.values || [] }]};
   const totalDividendsDataForChart = sliceMultiDataToLastNPoints(totalDividendsDataMulti, pointsToKeep);
 
@@ -125,33 +136,36 @@ const Home: React.FC = () => {
   useEffect(() => {
      document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
   }, [currentTicker]);
+
   useEffect(() => {
     if (prevLoadingRef.current && !loading && !error && currentTicker) {
-      const hasIncomeData = incomeDataForChart?.labels?.length > 0;
-      if (hasIncomeData) {
+      const hasData = companyInfo || annualRevenue?.labels?.length > 0 || annualEPS?.labels?.length > 0;
+      if (hasData) {
         setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
       }
     }
-  }, [loading, error, currentTicker, incomeDataForChart]);
-  useEffect(() => {
-    prevLoadingRef.current = loading;
-  });
+    prevLoadingRef.current = loading; // Muss hier stehen, um den vorherigen Wert für den nächsten Render zu speichern
+  }, [loading, error, currentTicker, companyInfo, annualRevenue, annualEPS]); // Abhängigkeiten erweitert
+
   useEffect(() => {
     if (currentTicker) {
       fetchData(currentTicker);
       setSuccessMessage('');
     }
-  }, [currentTicker, fetchData]);
+  }, [currentTicker, fetchData]); // fetchData als Abhängigkeit hinzugefügt
+
   useEffect(() => {
       setDisplayYears(viewMode === 'annual' ? defaultYearsAnnual : defaultYearsQuarterly);
   }, [viewMode]);
 
   // --- Helper Functions ---
   const formatMarketCap = (marketCap: string | null | undefined): string => {
-    if (!marketCap || marketCap === 'None') return 'N/A';
+    if (!marketCap || marketCap === 'None' || marketCap === '0') return 'N/A'; // '0' auch als N/A behandeln
     const num = parseFloat(marketCap);
     if(isNaN(num)) return 'N/A';
-    if (num >= 1e9) {
+    if (num >= 1e12) { // Für Billionen (Trillions)
+        return (num / 1e12).toFixed(2) + ' Bio. $';
+    } else if (num >= 1e9) {
         return (num / 1e9).toFixed(2) + ' Mrd. $';
     } else if (num >= 1e6) {
         return (num / 1e6).toFixed(2) + ' Mio. $';
@@ -178,7 +192,6 @@ const Home: React.FC = () => {
     return { explanation, recommendation };
   };
 
-  // Aktuelle Jahresoptionen bestimmen
   const currentYearOptions = viewMode === 'annual' ? annualYearOptions : quarterlyYearOptions;
 
   // --- JSX Return ---
@@ -188,7 +201,7 @@ const Home: React.FC = () => {
       <IonContent fullscreen>
         <IonHeader collapse="condense"><IonToolbar><IonTitle size="large">Stock Dashboard</IonTitle></IonToolbar></IonHeader>
 
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: '20px' }}> {/* Haupt-Padding-Container */}
           <SearchBar onSearch={handleSearch} />
 
           {loading && !companyInfo && <LoadingIndicator progress={progress} />}
@@ -197,10 +210,23 @@ const Home: React.FC = () => {
 
           {currentTicker && !error && (
             <>
-              {companyInfo && ( <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} /> )}
-              {keyMetrics ? ( <KeyMetricsList keyMetrics={keyMetrics} /> ) : ( companyInfo && !loading && ( <IonList inset={true} style={{ marginTop: '20px', marginBottom: '0px' }}><IonItem lines="none"><IonLabel color="medium">Kennzahlen nicht verfügbar.</IonLabel></IonItem></IonList> ) )}
-
               {companyInfo && (
+                <div className="info-metrics-container"> {/* Wrapper für Info und Metriken */}
+                  <CompanyInfoCard companyInfo={companyInfo} ticker={currentTicker} formatMarketCap={formatMarketCap} keyMetrics={keyMetrics} />
+                  {keyMetrics ? ( 
+                    <KeyMetricsList keyMetrics={keyMetrics} /> 
+                  ) : ( 
+                    !loading && ( 
+                      <IonList inset={false} className="key-metrics-list" style={{marginTop: 'var(--spacing-lg)'}}> {/* inset=false für volles Styling, und eigener Margin falls alleinstehend */}
+                        <IonItem lines="none"><IonLabel color="medium">Kennzahlen nicht verfügbar.</IonLabel></IonItem>
+                      </IonList> 
+                    )
+                  )}
+                </div>
+              )}
+              
+              {/* Chart Controls und Grid nur anzeigen, wenn Basis-Infos da sind oder Ladevorgang nicht aktiv ist */}
+              {(companyInfo || !loading) && (
                  <>
                     <div className="chart-controls-sticky-wrapper">
                       <ChartControls
@@ -212,30 +238,27 @@ const Home: React.FC = () => {
                       />
                     </div>
 
-                    {/* ChartGrid Komponente rendert jetzt ALLE Charts */}
                     <ChartGrid
-                       loading={loading} // loading wird an ChartGrid weitergegeben für interne Fallbacks
+                       loading={loading} 
                        viewMode={viewMode}
                        incomeData={incomeDataForChart}
                        cashflowData={cashflowStatementDataForChart}
                        marginsData={marginsDataForChart}
-                       epsData={epsDataForChart}
+                       epsData={epsDataForChart} // Wird jetzt MultiDatasetStockData mit "Reported" und "Estimated" sein
                        sharesData={sharesDataForChart}
                        debtToEquityData={debtToEquityDataForChart}
-                       paysDividends={paysDividends} // Flag an ChartGrid übergeben
-                       totalDividendsData={totalDividendsDataForChart} // Daten an ChartGrid übergeben
-                       dpsData={dpsDataForChart} // Daten an ChartGrid übergeben
+                       paysDividends={paysDividends} 
+                       totalDividendsData={totalDividendsDataForChart} 
+                       dpsData={dpsDataForChart} 
                        onExpandChart={openChartModal}
                     />
-
-                    {/* Separate Dividenden-Grids/Karten wurden ENTFERNT, da sie jetzt Teil von ChartGrid sind */}
                  </>
               )}
             </>
           )}
 
           {!currentTicker && !loading && !error && (
-            <div style={{ textAlign: 'center', marginTop: '50px', color: '#888' }}>
+            <div style={{ textAlign: 'center', marginTop: '50px', color: 'var(--text-color-muted)' }}>
               <p>Bitte geben Sie oben ein Aktiensymbol ein (z.B. AAPL, IBM).</p>
             </div>
           )}

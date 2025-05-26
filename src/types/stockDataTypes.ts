@@ -47,8 +47,8 @@ export interface UseStockDataResult {
   quarterlyRevenue: StockData;
 
   // EPS Daten (aus Earnings)
-  annualEPS: StockData;
-  quarterlyEPS: StockData;
+  annualEPS: MultiDatasetStockData;
+  quarterlyEPS: MultiDatasetStockData;
 
   // Dividend Per Share Daten (aus Dividends History verarbeitet)
   annualDPS: StockData;

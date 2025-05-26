@@ -1,4 +1,4 @@
-// src/components/BarChart.tsx (Angepasst mit React.forwardRef)
+// src/components/BarChart.tsx
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -6,57 +6,101 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement, // HINZUGEFÜGT für Linien-Charts
+  PointElement, // HINZUGEFÜGT für Punkte auf der Linie
   Title,
   Tooltip,
   Legend,
   ChartOptions,
   Chart // Wichtig für den Ref-Typ
 } from 'chart.js';
-import { MultiDatasetStockData } from '../hooks/useStockData'; // Passe den Pfad an, falls nötig
+import { MultiDatasetStockData } from '../hooks/useStockData';
 
 // Registriere die benötigten Chart.js Komponenten
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement, // HINZUGEFÜGT
+  PointElement, // HINZUGEFÜGT
+  Title,
+  Tooltip,
+  Legend
+);
 
-// Props Interface (exportieren, damit es von anderen Komponenten genutzt werden kann)
 export interface BarChartProps {
   data: MultiDatasetStockData;
-  title: string; // Wird oft für interne Zwecke oder Fallbacks genutzt, nicht direkt im Chart angezeigt
+  title: string; 
   yAxisFormat?: 'currency' | 'percent' | 'number' | 'ratio';
   yAxisLabel?: string;
 }
 
-// Typ für den Ref, der von react-chartjs-2 für ein Bar-Chart kommt
-export type BarChartComponentRef = Chart<"bar", number[], string | number>;
-
+export type BarChartComponentRef = Chart<"bar" | "line", number[], string | number>; // Erweitert für gemischte Typen
 
 const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
   ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref) => {
 
     const datasetColors = [
-      { bg: 'rgba(54, 162, 235, 0.6)', border: 'rgba(54, 162, 235, 1)' },   // Blau
-      { bg: 'rgba(255, 206, 86, 0.6)', border: 'rgba(255, 206, 86, 1)' },   // Gelb
-      { bg: 'rgba(255, 99, 132, 0.6)', border: 'rgba(255, 99, 132, 1)' },   // Rot
-      { bg: 'rgba(75, 192, 192, 0.6)', border: 'rgba(75, 192, 192, 1)' },   // Grün
+      // Farben für Balken (Reported EPS, Revenue, etc.)
+      { bg: 'rgba(54, 162, 235, 1)', border: 'rgba(54, 162, 235, 1)' },   // Blau
+      { bg: 'rgba(255, 206, 86, 1)', border: 'rgba(255, 206, 86, 1)' },   // Gelb
+      { bg: 'rgba(255, 99, 132, 1)', border: 'rgba(255, 99, 132, 1)' },   // Rot
+      { bg: 'rgba(75, 192, 192, 1)', border: 'rgba(75, 192, 192, 1)' },   // Grün
+      { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }, // Lila
+      { bg: 'rgba(255, 159, 64, 1)', border: 'rgba(255, 159, 64, 1)' },  // Orange
     ];
 
-    const chartDatasets = (data.datasets || []).map((ds, index) => ({
-      label: ds.label,
-      data: ds.values || [],
-      backgroundColor: datasetColors[index % datasetColors.length].bg,
-      borderColor: datasetColors[index % datasetColors.length].border,
-      borderWidth: 1,
-    }));
+    // Spezifische Farbe für die "Estimated EPS"-Linie
+    const estimatedEpsLineColor = 'rgba(255, 99, 71, 1)'; // Tomatenrot als Beispiel
+    const estimatedEpsPointColor = 'rgba(255, 99, 71, 1)';
+
+    const chartDatasets = (data.datasets || []).map((ds, index) => {
+      const baseDatasetConfig = {
+        label: ds.label,
+        data: ds.values || [],
+        borderWidth: 1.5, // Etwas dickere Rahmen für Balken
+      };
+
+      // Spezifische Konfiguration für "Estimated EPS" als Linie
+      if (ds.label === 'Estimated EPS') {
+        return {
+          ...baseDatasetConfig,
+          type: 'line' as const, // Wichtig: Typ als Linie definieren
+          borderColor: estimatedEpsLineColor,
+          backgroundColor: estimatedEpsLineColor, // Kann auch eine Fläche unter der Linie sein (mit Alpha)
+          pointBackgroundColor: estimatedEpsPointColor,
+          pointBorderColor: estimatedEpsPointColor,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.1, // Leichte Kurve für die Linie
+          fill: false, // Keine Fläche unter der Linie, es sei denn, du willst es
+        };
+      }
+
+      // Standardkonfiguration für Balken-Datasets
+      return {
+        ...baseDatasetConfig,
+        type: 'bar' as const, // Standardtyp ist Balken
+        backgroundColor: ds.backgroundColor || datasetColors[index % datasetColors.length].bg,
+        borderColor: ds.borderColor || datasetColors[index % datasetColors.length].border,
+      };
+    });
 
     const chartData = {
       labels: data?.labels || [],
       datasets: chartDatasets,
     };
 
-    const options: ChartOptions<'bar'> = {
+    const options: ChartOptions<"bar" | "line"> = { // Erweitert für gemischte Typen
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top' as const, },
+        legend: { 
+          position: 'top' as const,
+          labels: {
+            usePointStyle: true, // Verwendet Punkt-Stil in der Legende für Linien
+          }
+        },
         title: { display: false, text: title },
         tooltip: {
           mode: 'index', intersect: false,
@@ -72,8 +116,8 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
                           label += `${value.toFixed(2)}%`;
                       } else if (yAxisFormat === 'ratio') {
                            label += value.toFixed(2);
-                      } else {
-                          label += value.toString();
+                      } else { // number (für EPS)
+                          label += value.toFixed(2); // Zeige EPS immer mit 2 Nachkommastellen
                       }
                   }
                   return label;
@@ -95,11 +139,15 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
                     return `${numValue.toFixed(numValue !== 0 && numValue % 1 !== 0 ? 1 : 0)}%`;
                 } else if (yAxisFormat === 'ratio') {
                     return numValue.toFixed(2);
-                } else { return numValue.toString(); }
+                } else { // number (für EPS)
+                    return numValue.toFixed(2); // Zeige EPS immer mit 2 Nachkommastellen
+                }
               },
           },
         },
-        x: { stacked: false },
+        x: { 
+          stacked: false, 
+        },
       },
     };
 
