@@ -48,11 +48,11 @@ ion-header::after {
   --border-color-ui: #d1d8e0;
   --border-color-stronger: #cbd5e0;
 
-  /* --- KORREKTUR HIER: Neue Primärfarbe --- */
-  --app-color-primary: #214c58;
-  --app-color-primary-hover: #1b3d46; /* Eine etwas dunklere Variante für Hover */
-  --app-color-primary-active: #153036; /* Eine noch dunklere Variante für Aktiv */
-  --app-color-primary-light-bg: #e9eff0; /* Ein sehr heller, passender Hintergrund */
+  /* Primärfarbe (Beispiel: ein modernes, sattes Blau - ANPASSEN!) */
+  --app-color-primary: #2287f5;
+  --app-color-primary-hover: #1e78d9; /* Eine etwas dunklere Variante für Hover */
+  --app-color-primary-active: #1a69bf; /* Eine noch dunklere Variante für Aktiv */
+  --app-color-primary-light-bg: #e9f3fe; /* Ein sehr heller, passender Hintergrund */
 
   /* Abstände */
   --spacing-xs: 2px; /* Kleinerer Basispunkt für Abstände */
@@ -94,6 +94,7 @@ ion-content {
   padding-right: var(--ion-grid-padding-xs, var(--ion-grid-padding, 8px));
   padding-top: var(--spacing-sm);
   padding-bottom: var(--spacing-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chart-controls-sticky-wrapper ion-segment {
@@ -112,10 +113,10 @@ ion-content {
   flex-grow: 1;
   flex-basis: 0;
   
-  /* Inaktiver Zustand */
-  --color: var(--app-color-primary);
+  /* --- KORREKTUR HIER: Inaktiver Zustand --- */
+  --color: var(--text-color-muted); /* Dezente graue Schrift */
   --background: transparent;
-  --border-color: var(--app-color-primary);
+  --border-color: var(--border-color-ui); /* Dezenter grauer Rahmen */
   --border-width: 1px;
   --border-style: solid;
   --border-radius: 6px;
@@ -144,7 +145,10 @@ ion-content {
 }
 
 .chart-controls-sticky-wrapper ion-segment-button:not(.segment-button-checked):hover {
-  --background: var(--app-color-primary-light-bg);
+  /* Leichter Hintergrund bei Hover über inaktivem Button */
+  --background: #f8f8f8; /* Sehr leicht grauer Hover-Effekt */
+  --border-color: var(--border-color-stronger);
+  --color: var(--text-color-default);
 }
 
 .chart-controls-sticky-wrapper ion-segment-button ion-label {
