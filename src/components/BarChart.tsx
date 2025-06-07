@@ -6,13 +6,13 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement, // HINZUGEFÜGT für Linien-Charts
-  PointElement, // HINZUGEFÜGT für Punkte auf der Linie
+  LineElement, 
+  PointElement, 
   Title,
   Tooltip,
   Legend,
   ChartOptions,
-  Chart // Wichtig für den Ref-Typ
+  Chart
 } from 'chart.js';
 import { MultiDatasetStockData } from '../hooks/useStockData';
 
@@ -21,8 +21,8 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement, // HINZUGEFÜGT
-  PointElement, // HINZUGEFÜGT
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend
@@ -35,26 +35,37 @@ export interface BarChartProps {
   yAxisLabel?: string;
 }
 
-export type BarChartComponentRef = Chart<"bar" | "line", number[], string | number>; // Erweitert für gemischte Typen
+export type BarChartComponentRef = Chart<"bar" | "line", number[], string | number>;
 
 const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
   ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref) => {
 
-    const datasetColors = [
-      // Farben für Balken (Reported EPS, Revenue, etc.)
-      { bg: 'rgba(54, 162, 235, 1)', border: 'rgba(54, 162, 235, 1)' },   // Blau
-      { bg: 'rgba(255, 99, 132, 1)', border: 'rgba(255, 99, 132, 1)' },   // Rot
-      { bg: 'rgba(75, 192, 192, 1)', border: 'rgba(75, 192, 192, 1)' },   // Türkis
-      { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }, // Lila
-      { bg: 'rgba(255, 159, 64, 1)', border: 'rgba(255, 159, 64, 1)' },  // Orange
-    ];
-    
-    // Rote Farbe explizit definieren
-    const redColor = { bg: 'rgba(255, 99, 132, 1)', border: 'rgba(255, 99, 132, 1)' };
+    // Definiere die konsistenten Farben
+    const COLORS = {
+      blue: { bg: '#2287f5', border: '#2287f5' },
+      yellow: { bg: '#ffc600', border: '#ffc600' },
+      red: { bg: '#ff4b3b', border: '#ff4b3b' },
+      green: { bg: '#00d290', border: '#00d290' },
+      lila: { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }
+    };
 
     const chartDatasets = (data.datasets || []).map((ds, index) => {
-        const isEstimated = ds.label.toLowerCase().includes('estimated');
-        const color = isEstimated ? redColor : datasetColors[index % datasetColors.length];
+        const lowerCaseLabel = ds.label.toLowerCase();
+        let color;
+
+        // --- NEUE LOGIK: Farbzuweisung basierend auf dem Namen ---
+        if (lowerCaseLabel.includes('revenue') || lowerCaseLabel.includes('reported') || lowerCaseLabel.includes('gross margin')) {
+            color = COLORS.blue;
+        } else if (lowerCaseLabel.includes('gross profit') || lowerCaseLabel.includes('operating margin')) {
+            color = COLORS.yellow;
+        } else if (lowerCaseLabel.includes('operating income') || lowerCaseLabel.includes('estimated')) {
+            color = COLORS.red;
+        } else if (lowerCaseLabel.includes('net income')) {
+            color = COLORS.green;
+        } else {
+            // Fallback auf die alte Index-basierte Methode
+            color = [COLORS.blue, COLORS.yellow, COLORS.red, COLORS.green, COLORS.lila][index % 5];
+        }
 
         return {
             label: ds.label,
@@ -71,14 +82,14 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       datasets: chartDatasets,
     };
 
-    const options: ChartOptions<"bar" | "line"> = { // Erweitert für gemischte Typen
+    const options: ChartOptions<"bar" | "line"> = {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
           position: 'top' as const,
           labels: {
-            usePointStyle: true, // Verwendet Punkt-Stil in der Legende für Linien
+            usePointStyle: false, 
           }
         },
         title: { display: false, text: title },
@@ -97,7 +108,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
                       } else if (yAxisFormat === 'ratio') {
                            label += value.toFixed(2);
                       } else { // number (für EPS)
-                          label += value.toFixed(2); // Zeige EPS immer mit 2 Nachkommastellen
+                          label += value.toFixed(2);
                       }
                   }
                   return label;
@@ -108,7 +119,6 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       scales: {
         y: {
           grace: 0.1,
-          // --- KORREKTUR HIER: display auf false gesetzt ---
           title: { display: false, text: yAxisLabel ?? '' },
           ticks: {
               callback: (value: number | string) => {
@@ -121,7 +131,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
                 } else if (yAxisFormat === 'ratio') {
                     return numValue.toFixed(2);
                 } else { // number (für EPS)
-                    return numValue.toFixed(2); // Zeige EPS immer mit 2 Nachkommastellen
+                    return numValue.toFixed(2);
                 }
               },
           },

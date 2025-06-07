@@ -48,11 +48,11 @@ ion-header::after {
   --border-color-ui: #d1d8e0;
   --border-color-stronger: #cbd5e0;
 
-  /* Primärfarbe (Beispiel: ein modernes, sattes Blau - ANPASSEN!) */
-  --app-color-primary: #3B82F6;
-  --app-color-primary-hover: #2563EB;
-  --app-color-primary-active: #1D4ED8;
-  --app-color-primary-light-bg: #EFF6FF;
+  /* --- KORREKTUR HIER: Neue Primärfarbe --- */
+  --app-color-primary: #214c58;
+  --app-color-primary-hover: #1b3d46; /* Eine etwas dunklere Variante für Hover */
+  --app-color-primary-active: #153036; /* Eine noch dunklere Variante für Aktiv */
+  --app-color-primary-light-bg: #e9eff0; /* Ein sehr heller, passender Hintergrund */
 
   /* Abstände */
   --spacing-xs: 2px; /* Kleinerer Basispunkt für Abstände */
@@ -102,7 +102,6 @@ ion-content {
   justify-content: center;
 }
 
-/* --- KORREKTUR hier für alle Segment-Buttons --- */
 .chart-controls-sticky-wrapper ion-segment-button {
   --padding-top: 6px;
   --padding-bottom: 6px;
@@ -112,7 +111,7 @@ ion-content {
   height: auto;
   flex-grow: 1;
   flex-basis: 0;
-
+  
   /* Inaktiver Zustand */
   --color: var(--app-color-primary);
   --background: transparent;
@@ -124,7 +123,7 @@ ion-content {
   /* Aktiver Zustand */
   --background-checked: var(--app-color-primary);
   --color-checked: var(--text-color-on-primary);
-  --border-color-checked: var(--app-color-primary); /* Stellt sicher, dass der Rahmen die gleiche Farbe hat */
+  --border-color-checked: var(--app-color-primary);
 
   --indicator-color: transparent !important;
   --indicator-height: 0px !important;
@@ -145,7 +144,6 @@ ion-content {
 }
 
 .chart-controls-sticky-wrapper ion-segment-button:not(.segment-button-checked):hover {
-  /* Leichter Hintergrund bei Hover über inaktivem Button */
   --background: var(--app-color-primary-light-bg);
 }
 
@@ -156,9 +154,8 @@ ion-content {
   font-weight: 500;
 }
 
-/* --- KORREKTUR HIER: Font-Weight für aktive Buttons --- */
 .chart-controls-sticky-wrapper ion-segment-button.segment-button-checked ion-label {
-  font-weight: 700; /* Fettgedruckter Text für aktive Buttons */
+  font-weight: 700;
 }
 
 
