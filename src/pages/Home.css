@@ -4,9 +4,9 @@ ion-header::after {
   display: none !important;
 }
 
-/* --- NEUE STILE für den Haupt-Wrapper und Titel --- */
+/* --- KORREKTUR HIER: Padding entfernt --- */
 .main-content-wrapper {
-  padding: 0 20px;
+  padding: 0;
 }
 
 .main-title {
@@ -96,8 +96,6 @@ ion-content {
   padding-top: var(--spacing-sm);
   padding-bottom: var(--spacing-sm);
 }
-
-/* --- KORREKTUR HIER: Media Queries für max-width entfernt --- */
 
 .chart-controls-sticky-wrapper ion-segment {
   --background: transparent;
