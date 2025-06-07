@@ -1,39 +1,50 @@
-// src/utils/stockDataProcessing.ts (Final Refactored Version mit neuer DPS Logik)
+// src/utils/stockDataProcessing.ts
 import {
   CompanyInfo,
   KeyMetrics,
   RawApiData,
-  UseStockDataResult // Importiere den finalen Typ
+  UseStockDataResult,
+  BalanceSheetMetrics,
 } from '../types/stockDataTypes';
-// Importiere allgemeine Helfer (nur die hier direkt gebrauchten)
 import { parseFloatOrZero } from '../utils/utils';
-// Importiere ALLE ausgelagerten Verarbeitungsfunktionen
 import { processIncomeData } from './processing/incomeProcessing';
-import { processEarningsData } from './processing/earningsProcessing'; // Gibt nur noch EPS zurück
-import { processCashflowData } from './processing/cashflowProcessing'; // Gibt CF Statement & Total Dividends zurück
-import { processBalanceSheetData } from './processing/balanceSheetProcessing'; // Gibt Shares & D/E zurück
-import { processDividendHistory } from './processing/dividendProcessing'; // NEU: Gibt DPS zurück
+import { processEarningsData } from './processing/earningsProcessing';
+import { processCashflowData } from './processing/cashflowProcessing';
+import { processBalanceSheetData } from './processing/balanceSheetProcessing';
+import { processDividendHistory } from './processing/dividendProcessing';
 
-// --- Hilfsfunktionen NUR für KeyMetrics Formatierung (bleiben hier) ---
+// --- Hilfsfunktionen NUR für KeyMetrics Formatierung ---
 const formatMetric = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
     const stringValue = String(value);
     const num = parseFloat(stringValue);
     return isNaN(num) ? null : stringValue;
 };
+
+// --- KORRIGIERTE FUNKTION ---
 const formatPercentage = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
-    const stringValue = String(value).includes('%') ? String(value).replace('%', '') : String(value);
+
+    const originalValueString = String(value);
+    // Prüfe, ob der Wert bereits ein Prozent-String ist (wie bei "change percent")
+    const isAlreadyPercent = originalValueString.includes('%');
+    
+    const stringValue = originalValueString.replace('%', '');
     const numValue = parseFloat(stringValue);
+
     if (isNaN(numValue)) return null;
-    if (String(value).includes('%')) {
+
+    // Wenn der Wert von der API bereits ein Prozentwert war (z.B. "0.75%"),
+    // dann formatiere ihn nur neu, aber multipliziere nicht mit 100.
+    if (isAlreadyPercent) {
         return `${numValue.toFixed(2)}%`;
-    } else if (Math.abs(numValue) > 0 && Math.abs(numValue) <= 1) { // Speziell für DividendYield wichtig
-        return `${(numValue * 100).toFixed(2)}%`;
-    } else {
-        return `${numValue.toFixed(2)}%`; // Fallback
     }
+
+    // Wenn der Wert eine Dezimalzahl ist (wie bei DividendYield oder FCF Yield),
+    // dann multipliziere mit 100, um einen Prozentwert zu erhalten.
+    return `${(numValue * 100).toFixed(2)}%`;
 };
+
 const formatPriceChange = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
     const num = parseFloat(String(value));
@@ -45,30 +56,36 @@ const formatMarginForDisplay = (value: number | null): string | null => {
 };
 
 // --- Hauptfunktion zur Verarbeitung aller Rohdaten ---
-// Definiere den Rückgabetyp basierend auf dem finalen UseStockDataResult
 type ProcessedStockDataResult = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'error' | 'progress'>;
 
 export const processStockData = (rawData: RawApiData, ticker: string): ProcessedStockDataResult => {
-  // Destructure alle Rohdaten-Teile
   const { income, earnings, cashflow, overview, quote, balanceSheet, dividends } = rawData;
 
-  // Grundlegende Fehlerprüfung
-  if (!overview?.Symbol) {
-    console.error("Processing Error: Overview data or Symbol missing!", overview);
-    throw new Error(`Keine Unternehmensinformationen (OVERVIEW) für Ticker "${ticker}" verfügbar.`);
-  }
+  if (!overview?.Symbol) throw new Error(`Keine Unternehmensinformationen (OVERVIEW) für Ticker "${ticker}" verfügbar.`);
   const globalQuote = quote?.['Global Quote'];
-  if (!globalQuote) {
-     console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar.`);
-  }
+  if (!globalQuote) console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar.`);
 
   // --- Datenverarbeitung durch Aufruf der importierten Funktionen ---
   const incomeProcessed = processIncomeData(income);
-  const earningsProcessed = processEarningsData(earnings); // Enthält jetzt nur EPS
-  const cashflowProcessed = processCashflowData(cashflow); // Enthält CF Statement & Total Dividends
-  const balanceSheetProcessed = processBalanceSheetData(balanceSheet); // Enthält Shares & D/E
-  const dividendProcessed = processDividendHistory(dividends); // NEU: Enthält DPS
+  const earningsProcessed = processEarningsData(earnings);
+  const cashflowProcessed = processCashflowData(cashflow);
+  const balanceSheetProcessed = processBalanceSheetData(balanceSheet);
+  const dividendProcessed = processDividendHistory(dividends);
 
+  const sortedQuarterlyEarnings = [...(earnings?.quarterlyEarnings || [])].sort((a, b) => {
+    const dateA = a.reportedDate ? new Date(a.reportedDate).getTime() : 0;
+    const dateB = b.reportedDate ? new Date(b.reportedDate).getTime() : 0;
+    return dateB - dateA;
+  });
+  
+  const now = new Date().getTime();
+  let nextEarningsDate = sortedQuarterlyEarnings[0]?.reportedDate || null;
+  const futureEarning = sortedQuarterlyEarnings.reverse().find(e => e.reportedDate && new Date(e.reportedDate).getTime() > now);
+  
+  if (futureEarning) {
+    nextEarningsDate = futureEarning.reportedDate;
+  }
+  
   // --- Company Info ---
   const currentPrice = globalQuote?.['05. price'];
   const companyInfo: CompanyInfo = {
@@ -77,7 +94,14 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
      Address: overview?.Address || 'N/A',
      MarketCapitalization: overview?.MarketCapitalization || 'N/A',
      LastSale: currentPrice ? parseFloat(currentPrice).toFixed(2) : 'N/A',
+     EarningsDate: nextEarningsDate,
   };
+
+  // --- Berechnung für FCF Yield ---
+  const lastAnnualReportCF = cashflow?.annualReports?.[cashflow.annualReports.length - 1];
+  const fcf = parseFloatOrZero(lastAnnualReportCF?.operatingCashflow) - Math.abs(parseFloatOrZero(lastAnnualReportCF?.capitalExpenditures));
+  const marketCap = parseFloatOrZero(overview.MarketCapitalization);
+  const fcfYield = marketCap > 0 ? (fcf / marketCap) : null;
 
   // --- Key Metrics ---
   const rawChange = globalQuote?.['09. change'];
@@ -88,47 +112,41 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
       psRatio: formatMetric(overview?.PriceToSalesRatioTTM),
       pbRatio: formatMetric(overview?.PriceToBookRatio),
       evToEbitda: formatMetric(overview?.EVToEBITDA),
-      dividendYield: formatPercentage(overview?.DividendYield),
+      dividendYield: formatPercentage(overview?.DividendYield), // Wird zu: "0.50%"
       priceChange: formatPriceChange(rawChange),
-      priceChangePercent: formatPercentage(rawChangePercent),
+      priceChangePercent: formatPercentage(rawChangePercent), // Wird jetzt korrekt behandelt: "0.75%"
       isPositiveChange: !isNaN(numChange) && numChange >= 0,
-      grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin), // Nutzt Ergebnis von incomeProcessed
-      operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin), // Nutzt Ergebnis von incomeProcessed
+      grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin),
+      operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin),
+      payoutRatio: formatPercentage(overview?.PayoutRatio),
+      payoutDate: overview?.DividendDate || 'N/A',
+      freeCashFlowYield: formatPercentage(fcfYield),
    };
 
-   // Flag für Dividenden basierend auf Overview
    const paysDividends = (parseFloatOrZero(overview?.DividendYield) > 0 || parseFloatOrZero(overview?.DividendPerShare) > 0);
 
-  // --- Rückgabe aller verarbeiteten Daten ---
-  // Kombiniere die Ergebnisse aller Verarbeitungsfunktionen + Infos/Metriken
   return {
     companyInfo,
     keyMetrics,
     paysDividends,
-    // Ergebnisse aus Income Processing
+    balanceSheetMetrics: balanceSheetProcessed.latestBalanceSheetMetrics,
     annualRevenue: incomeProcessed.annualRevenue,
     quarterlyRevenue: incomeProcessed.quarterlyRevenue,
     annualIncomeStatement: incomeProcessed.annualIncomeStatement,
     quarterlyIncomeStatement: incomeProcessed.quarterlyIncomeStatement,
     annualMargins: incomeProcessed.annualMargins,
     quarterlyMargins: incomeProcessed.quarterlyMargins,
-    // Ergebnisse aus Earnings Processing
     annualEPS: earningsProcessed.annualEPS,
     quarterlyEPS: earningsProcessed.quarterlyEPS,
-    // Ergebnisse aus Cashflow Processing
     annualCashflowStatement: cashflowProcessed.annualCashflowStatement,
     quarterlyCashflowStatement: cashflowProcessed.quarterlyCashflowStatement,
     annualTotalDividendsPaid: cashflowProcessed.annualTotalDividendsPaid,
     quarterlyTotalDividendsPaid: cashflowProcessed.quarterlyTotalDividendsPaid,
-    // Ergebnisse aus Balance Sheet Processing
     annualSharesOutstanding: balanceSheetProcessed.annualSharesOutstanding,
     quarterlySharesOutstanding: balanceSheetProcessed.quarterlySharesOutstanding,
     annualDebtToEquity: balanceSheetProcessed.annualDebtToEquity,
     quarterlyDebtToEquity: balanceSheetProcessed.quarterlyDebtToEquity,
-    // Ergebnisse aus Dividend History Processing
     annualDPS: dividendProcessed.annualDPS,
     quarterlyDPS: dividendProcessed.quarterlyDPS,
   };
 };
-
-// --- Ende stockDataProcessing.ts ---

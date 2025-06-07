@@ -16,24 +16,24 @@
   --app-background-color: #ffffff; /* REINER WEISSER HINTERGRUND */
 
   /* Kartenhintergrund */
-  --card-background-color: #ffffff; 
+  --card-background-color: #ffffff;
 
   /* Textfarben */
-  --text-color-strong: #1a202c;   
-  --text-color-default: #2d3748;  
-  --text-color-muted: #718096;    
+  --text-color-strong: #1a202c;
+  --text-color-default: #2d3748;
+  --text-color-muted: #718096;
   --text-color-on-primary: #ffffff;
   --text-color-primary-accent: var(--app-color-primary);
 
 
   /* Rahmenfarben */
-  --border-color-subtle: #e8edf2; 
-  --border-color-ui: #d1d8e0;     
-  --border-color-stronger: #cbd5e0; 
+  --border-color-subtle: #e8edf2;
+  --border-color-ui: #d1d8e0;
+  --border-color-stronger: #cbd5e0;
 
   /* Primärfarbe (Beispiel: ein modernes, sattes Blau - ANPASSEN!) */
-  --app-color-primary: #3B82F6; 
-  --app-color-primary-hover: #2563EB; 
+  --app-color-primary: #3B82F6;
+  --app-color-primary-hover: #2563EB;
   --app-color-primary-active: #1D4ED8;
   --app-color-primary-light-bg: #EFF6FF;
 
@@ -68,13 +68,13 @@ ion-content {
   top: 0;
   z-index: 100;
   background: var(--app-background-color);
-  border-bottom: 1px solid var(--border-color-subtle); 
+  border-bottom: 1px solid var(--border-color-subtle);
   box-shadow: var(--box-shadow-sm);
-  margin-bottom: var(--spacing-md); 
+  margin-bottom: var(--spacing-md);
   width: 100%;
   margin-left: auto;
   margin-right: auto;
-  padding-left: var(--ion-grid-padding-xs, var(--ion-grid-padding, 8px)); 
+  padding-left: var(--ion-grid-padding-xs, var(--ion-grid-padding, 8px));
   padding-right: var(--ion-grid-padding-xs, var(--ion-grid-padding, 8px));
   padding-top: var(--spacing-sm);
   padding-bottom: var(--spacing-sm);
@@ -101,18 +101,18 @@ ion-content {
 }
 
 .chart-controls-sticky-wrapper ion-segment-button {
-  --padding-top: 6px;    
-  --padding-bottom: 6px; 
+  --padding-top: 6px;
+  --padding-bottom: 6px;
   --padding-start: var(--spacing-md);
   --padding-end: var(--spacing-md);
-  min-height: 32px; 
+  min-height: 32px;
   height: auto;
   flex-grow: 1;
   flex-basis: 0;
   --color: var(--text-color-default);
   --background: var(--app-background-color);
   --border-radius: var(--border-radius-pill);
-  --border-width: 1px; 
+  --border-width: 1px;
   --border-color: var(--border-color-ui);
   --border-style: solid;
   --indicator-color: transparent !important;
@@ -146,7 +146,7 @@ ion-content {
 }
 
 .chart-controls-sticky-wrapper ion-segment-button ion-label {
-  font-size: 0.8rem; 
+  font-size: 0.8rem;
   margin-top: 0;
   margin-bottom: 0;
   font-weight: 500;
@@ -156,135 +156,6 @@ ion-content {
   font-weight: 600;
 }
 
-/* ---------------------------------------------------------- */
-/* CompanyInfoCard und KeyMetricsList (DEUTLICH KOMPAKTER)    */
-/* ---------------------------------------------------------- */
-.info-metrics-container {
-  margin-bottom: var(--spacing-lg); 
-}
-
-.company-info-card,
-.key-metrics-list {
-  background-color: var(--card-background-color);
-  box-shadow: none;
-  border: 1px solid var(--border-color-stronger); /* Rahmen ggf. etwas dünner */
-  border-radius: var(--border-radius-md); 
-  margin: 0 auto var(--spacing-md) auto; 
-  max-width: 768px;
-  width: 100%;
-}
-
-.company-info-card ion-card-header {
-  padding: var(--spacing-sm) var(--spacing-md); 
-  text-align: center;
-  border-bottom: 1px solid var(--border-color-subtle);
-}
-
-.company-info-card ion-card-title {
-  font-size: 1.1rem; 
-  font-weight: 600;
-  color: var(--text-color-strong);
-  margin-bottom: 0;
-}
-.company-info-card ion-card-title span {
-  font-weight: 500;
-  color: var(--text-color-muted);
-  font-size: 0.9rem; 
-  margin-left: var(--spacing-xs);
-}
-
-.company-info-card ion-card-content {
-  padding: var(--spacing-xs) var(--spacing-md) var(--spacing-xs) var(--spacing-md); 
-}
-
-.company-info-card ion-card-content ion-item {
-   --background: transparent;
-   --inner-padding-end: 0px;
-   --padding-start: 0px;
-   --min-height: 28px; 
-   padding-top: var(--spacing-xs);   
-   padding-bottom: var(--spacing-xs); 
-   border-bottom: 1px solid var(--border-color-subtle);
-}
-.company-info-card ion-card-content ion-item:last-child {
-  border-bottom: none;
-}
-
-.company-info-card ion-card-content ion-label {
-  color: var(--text-color-muted);
-  font-size: 0.75rem; 
-  flex: 0 0 100px; 
-  margin-right: var(--spacing-sm); 
-  white-space: nowrap;
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-}
-.company-info-card ion-card-content ion-note {
-  color: var(--text-color-default);
-  font-size: 0.75rem; 
-  font-weight: 500;
-  text-align: right;
-  flex: 1 1 auto;
-}
-
-.company-info-card ion-card-content ion-item.current-price-item ion-label {
-    font-weight: 500;
-    font-size: 0.8rem; 
-}
-.company-info-card ion-card-content ion-item.current-price-item ion-note {
-  font-size: 0.85rem; 
-  font-weight: 600;
-}
-.company-info-card ion-card-content ion-item.current-price-item ion-text[color="success"],
-.company-info-card ion-card-content ion-item.current-price-item ion-text[color="danger"] {
-    font-size: 0.75rem; 
-    font-weight: 500;
-}
-
-.key-metrics-list {
-  padding: var(--spacing-xs) 0; 
-}
-
-.key-metrics-list ion-item-divider,
-.key-metrics-list ion-item.list-header {
-  --background: transparent;
-  padding: var(--spacing-xs) var(--spacing-md); 
-  border-bottom: 1px solid var(--border-color-subtle);
-  min-height: auto;
-}
-.key-metrics-list ion-item-divider ion-label,
-.key-metrics-list ion-item.list-header ion-label {
-  font-size: 1rem; 
-  font-weight: 600;
-  color: var(--text-color-strong);
-  margin-top: var(--spacing-xs);
-  margin-bottom: var(--spacing-sm); 
-}
-
-.key-metrics-list ion-item {
-  --background: transparent;
-  --inner-padding-end: var(--spacing-md);
-  --padding-start: var(--spacing-md);
-  --min-height: 32px; 
-  border-bottom: 1px solid var(--border-color-subtle);
-}
-.key-metrics-list ion-item:last-child {
-  border-bottom: none;
-}
-
-.key-metrics-list ion-label {
-  color: var(--text-color-muted);
-  font-size: 0.8rem; 
-  flex: 1 1 50%; 
-  margin-right: var(--spacing-xs); 
-}
-.key-metrics-list ion-note {
-  color: var(--text-color-default);
-  font-size: 0.8rem; 
-  font-weight: 500;
-  flex: 1 1 50%; 
-  text-align: right;
-}
 
 /* ---------------------------------------------------- */
 /* ChartGrid Karten (ohne Schatten und Rahmen)          */
@@ -332,7 +203,7 @@ ion-grid[fixed=true] {
 .chart-grid-card ion-card-content {
   padding: var(--spacing-md);
   padding-top: 0; /* Reduziert den Abstand, da der Header-Rahmen weg ist */
-  min-height: 300px; 
+  min-height: 300px;
 }
 .chart-grid-card .chart-wrapper-div {
   height: 300px;
