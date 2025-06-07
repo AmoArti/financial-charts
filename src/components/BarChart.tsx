@@ -30,7 +30,7 @@ ChartJS.register(
 
 export interface BarChartProps {
   data: MultiDatasetStockData;
-  title: string; 
+  title: string;
   yAxisFormat?: 'currency' | 'percent' | 'number' | 'ratio';
   yAxisLabel?: string;
 }
@@ -43,47 +43,28 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
     const datasetColors = [
       // Farben für Balken (Reported EPS, Revenue, etc.)
       { bg: 'rgba(54, 162, 235, 1)', border: 'rgba(54, 162, 235, 1)' },   // Blau
-      { bg: 'rgba(255, 206, 86, 1)', border: 'rgba(255, 206, 86, 1)' },   // Gelb
       { bg: 'rgba(255, 99, 132, 1)', border: 'rgba(255, 99, 132, 1)' },   // Rot
-      { bg: 'rgba(75, 192, 192, 1)', border: 'rgba(75, 192, 192, 1)' },   // Grün
+      { bg: 'rgba(75, 192, 192, 1)', border: 'rgba(75, 192, 192, 1)' },   // Türkis
       { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }, // Lila
       { bg: 'rgba(255, 159, 64, 1)', border: 'rgba(255, 159, 64, 1)' },  // Orange
     ];
-
-    // Spezifische Farbe für die "Estimated EPS"-Linie
-    const estimatedEpsLineColor = 'rgba(255, 99, 71, 1)'; // Tomatenrot als Beispiel
-    const estimatedEpsPointColor = 'rgba(255, 99, 71, 1)';
+    
+    // Rote Farbe explizit definieren
+    const redColor = { bg: 'rgba(255, 99, 132, 1)', border: 'rgba(255, 99, 132, 1)' };
 
     const chartDatasets = (data.datasets || []).map((ds, index) => {
-      const baseDatasetConfig = {
-        label: ds.label,
-        data: ds.values || [],
-        borderWidth: 1.5, // Etwas dickere Rahmen für Balken
-      };
+        // --- KORREKTUR HIER: Gezielte Farbzuweisung ---
+        const isEstimated = ds.label.toLowerCase().includes('estimated');
+        const color = isEstimated ? redColor : datasetColors[index % datasetColors.length];
 
-      // Spezifische Konfiguration für "Estimated EPS" als Linie
-      if (ds.label === 'Estimated EPS') {
         return {
-          ...baseDatasetConfig,
-          type: 'line' as const, // Wichtig: Typ als Linie definieren
-          borderColor: estimatedEpsLineColor,
-          backgroundColor: estimatedEpsLineColor, // Kann auch eine Fläche unter der Linie sein (mit Alpha)
-          pointBackgroundColor: estimatedEpsPointColor,
-          pointBorderColor: estimatedEpsPointColor,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          tension: 0.1, // Leichte Kurve für die Linie
-          fill: false, // Keine Fläche unter der Linie, es sei denn, du willst es
+            label: ds.label,
+            data: ds.values || [],
+            borderWidth: 1.5,
+            type: 'bar' as const,
+            backgroundColor: ds.backgroundColor || color.bg,
+            borderColor: ds.borderColor || color.border,
         };
-      }
-
-      // Standardkonfiguration für Balken-Datasets
-      return {
-        ...baseDatasetConfig,
-        type: 'bar' as const, // Standardtyp ist Balken
-        backgroundColor: ds.backgroundColor || datasetColors[index % datasetColors.length].bg,
-        borderColor: ds.borderColor || datasetColors[index % datasetColors.length].border,
-      };
     });
 
     const chartData = {
@@ -95,7 +76,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { 
+        legend: {
           position: 'top' as const,
           labels: {
             usePointStyle: true, // Verwendet Punkt-Stil in der Legende für Linien
@@ -145,8 +126,8 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
               },
           },
         },
-        x: { 
-          stacked: false, 
+        x: {
+          stacked: false,
         },
       },
     };

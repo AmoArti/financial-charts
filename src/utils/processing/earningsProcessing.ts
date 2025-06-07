@@ -1,6 +1,6 @@
 // src/utils/processing/earningsProcessing.ts
 import { MultiDatasetStockData } from '../../types/stockDataTypes';
-import { formatQuarter, trimMultiData, parseFloatOrZero } from '../utils';
+import { formatQuarter, parseFloatOrZero } from '../utils';
 
 export interface ProcessedEarningsData {
   annualEPS: MultiDatasetStockData;
@@ -28,26 +28,30 @@ export const processEarningsData = (earningsData: any): ProcessedEarningsData =>
        if (isNaN(yearA) && isNaN(yearB)) return 0;
        if (isNaN(yearA)) return 1;
        if (isNaN(yearB)) return -1;
-       return yearB - yearA; // KORREKTUR: Absteigend sortieren (B - A)
+       return yearB - yearA;
     });
 
   if (annualEarnings.length > 0) {
     const validAnnualEarnings = annualEarnings.filter((e: any) =>
         e?.fiscalDateEnding && (e?.reportedEPS || e?.estimatedEPS)
     );
-    // Für die Chart-Darstellung (links=alt, rechts=neu) müssen wir die Daten wieder umkehren
     const annualLabels = validAnnualEarnings.map((e: any) => parseInt(e.fiscalDateEnding.substring(0, 4))).reverse();
 
     const annualValuesReportedEPS = validAnnualEarnings.map((e: any) => parseFloatOrZero(e?.reportedEPS)).reverse();
     const annualValuesEstimatedEPS = validAnnualEarnings.map((e: any) => parseFloatOrZero(e?.estimatedEPS)).reverse();
 
-    result.annualEPS = trimMultiData({
+    // --- KORREKTUR HIER: Datensätze dynamisch erstellen ---
+    const annualDatasets = [{ label: 'Reported EPS', values: annualValuesReportedEPS }];
+
+    // Füge "Estimated EPS" nur hinzu, wenn es aussagekräftige Daten gibt (mindestens ein Wert > 0)
+    if (annualValuesEstimatedEPS.some(value => value !== 0)) {
+        annualDatasets.push({ label: 'Estimated EPS', values: annualValuesEstimatedEPS });
+    }
+
+    result.annualEPS = {
       labels: annualLabels,
-      datasets: [
-        { label: 'Reported EPS', values: annualValuesReportedEPS },
-        { label: 'Estimated EPS', values: annualValuesEstimatedEPS },
-      ],
-    });
+      datasets: annualDatasets,
+    };
   }
 
   // --- Quartalsdaten (absteigend sortieren, damit der Neueste zuerst kommt) ---
@@ -59,26 +63,30 @@ export const processEarningsData = (earningsData: any): ProcessedEarningsData =>
         if (isNaN(dateA) && isNaN(dateB)) return 0;
         if (isNaN(dateA)) return 1;
         if (isNaN(dateB)) return -1;
-        return dateB - dateA; // KORREKTUR: Absteigend sortieren (B - A)
+        return dateB - dateA;
     });
 
   if (quarterlyEarnings.length > 0) {
     const validQuarterlyEarnings = quarterlyEarnings.filter((e: any) =>
         e?.fiscalDateEnding && (e?.reportedEPS || e?.estimatedEPS)
     );
-    // Für die Chart-Darstellung (links=alt, rechts=neu) müssen wir die Daten wieder umkehren
     const quarterlyLabels = validQuarterlyEarnings.map((e: any) => formatQuarter(e.fiscalDateEnding)).reverse();
 
     const quarterlyValuesReportedEPS = validQuarterlyEarnings.map((e: any) => parseFloatOrZero(e?.reportedEPS)).reverse();
     const quarterlyValuesEstimatedEPS = validQuarterlyEarnings.map((e: any) => parseFloatOrZero(e?.estimatedEPS)).reverse();
 
-    result.quarterlyEPS = trimMultiData({
+    // --- KORREKTUR HIER: Datensätze dynamisch erstellen ---
+    const quarterlyDatasets = [{ label: 'Reported EPS', values: quarterlyValuesReportedEPS }];
+
+    // Füge "Estimated EPS" nur hinzu, wenn es aussagekräftige Daten gibt (mindestens ein Wert > 0)
+    if (quarterlyValuesEstimatedEPS.some(value => value !== 0)) {
+      quarterlyDatasets.push({ label: 'Estimated EPS', values: quarterlyValuesEstimatedEPS });
+    }
+
+    result.quarterlyEPS = {
       labels: quarterlyLabels,
-      datasets: [
-        { label: 'Reported EPS', values: quarterlyValuesReportedEPS },
-        { label: 'Estimated EPS', values: quarterlyValuesEstimatedEPS },
-      ],
-    });
+      datasets: quarterlyDatasets,
+    };
   }
 
   return result;

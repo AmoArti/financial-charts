@@ -55,11 +55,13 @@ export const processCashflowData = (cashFlowData: any): ProcessedCashflowData =>
 
       // Cashflow Statement
       const annualOCF = validAnnualReports.map(r => parseAndScale(r.operatingCashflow));
-      const annualCapEx = validAnnualReports.map(r => Math.abs(parseAndScale(r.capitalExpenditures)));
+      // KORREKTUR: Sicherstellen, dass CapEx immer negativ ist für den Chart
+      const annualCapEx = validAnnualReports.map(r => -Math.abs(parseAndScale(r.capitalExpenditures)));
       const annualFCFValues = validAnnualReports.map(r => {
          const ocf = parseFloatOrZero(r.operatingCashflow);
-         const capex = parseFloatOrZero(r.capitalExpenditures);
-         return (ocf - Math.abs(capex)) / 1e9; // Skaliert auf Mrd.
+         // KORREKTUR: FCF-Berechnung mit dem (bereits negativen) CapEx-Wert. ocf - (-capex) = ocf + capex
+         const capex = parseFloatOrZero(r.capitalExpenditures); 
+         return (ocf + capex) / 1e9; // Skaliert auf Mrd.
       });
       result.annualCashflowStatement = trimMultiData({
         labels: annualLabels,
@@ -113,11 +115,13 @@ export const processCashflowData = (cashFlowData: any): ProcessedCashflowData =>
 
       // Cashflow Statement
       const quarterlyOCF = validQuarterlyReports.map(r => parseAndScale(r.operatingCashflow));
-      const quarterlyCapEx = validQuarterlyReports.map(r => Math.abs(parseAndScale(r.capitalExpenditures)));
+       // KORREKTUR: Sicherstellen, dass CapEx immer negativ ist für den Chart
+      const quarterlyCapEx = validQuarterlyReports.map(r => -Math.abs(parseAndScale(r.capitalExpenditures)));
       const quarterlyFCFValues = validQuarterlyReports.map(r => {
         const ocf = parseFloatOrZero(r.operatingCashflow);
+        // KORREKTUR: FCF-Berechnung mit dem (bereits negativen) CapEx-Wert. ocf - (-capex) = ocf + capex
         const capex = parseFloatOrZero(r.capitalExpenditures);
-        return (ocf - Math.abs(capex)) / 1e9; // Skaliert auf Mrd.
+        return (ocf + capex) / 1e9; // Skaliert auf Mrd.
       });
       result.quarterlyCashflowStatement = trimMultiData({
         labels: quarterlyLabels,
