@@ -53,7 +53,6 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
     const redColor = { bg: 'rgba(255, 99, 132, 1)', border: 'rgba(255, 99, 132, 1)' };
 
     const chartDatasets = (data.datasets || []).map((ds, index) => {
-        // --- KORREKTUR HIER: Gezielte Farbzuweisung ---
         const isEstimated = ds.label.toLowerCase().includes('estimated');
         const color = isEstimated ? redColor : datasetColors[index % datasetColors.length];
 
@@ -109,7 +108,8 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       scales: {
         y: {
           grace: 0.1,
-          title: { display: !!yAxisLabel, text: yAxisLabel ?? '' },
+          // --- KORREKTUR HIER: display auf false gesetzt ---
+          title: { display: false, text: yAxisLabel ?? '' },
           ticks: {
               callback: (value: number | string) => {
                 const numValue = typeof value === 'number' ? value : parseFloat(String(value));

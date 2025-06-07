@@ -1,5 +1,23 @@
 /* src/pages/Home.css */
 
+ion-header::after {
+  display: none !important;
+}
+
+/* --- NEUE STILE für den Haupt-Wrapper und Titel --- */
+.main-content-wrapper {
+  padding: 0 20px;
+}
+
+.main-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 20px 0 16px 0;
+  text-align: center;
+  color: var(--text-color-strong);
+}
+
+
 /* Globale Reset-Stile */
 * {
   box-sizing: border-box;
@@ -60,7 +78,7 @@ ion-content {
 }
 
 /* ---------------------------------------------------- */
-/* ChartControls (Kompakter)                            */
+/* ChartControls (Wieder "sticky")                      */
 /* ---------------------------------------------------- */
 .chart-controls-sticky-wrapper {
   position: -webkit-sticky;
@@ -69,7 +87,6 @@ ion-content {
   z-index: 100;
   background: var(--app-background-color);
   border-bottom: 1px solid var(--border-color-subtle);
-  box-shadow: var(--box-shadow-sm);
   margin-bottom: var(--spacing-md);
   width: 100%;
   margin-left: auto;

@@ -1,17 +1,17 @@
 // src/pages/Home.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonToast,
+  IonContent, IonPage, IonToast,
 } from '@ionic/react';
 import SearchBar from '../components/SearchBar';
 import LoadingIndicator from '../components/LoadingIndicator';
 import ErrorCard from '../components/ErrorCard';
-import KeyStatsDashboard from '../components/KeyStatsDashboard'; // NEU
+import KeyStatsDashboard from '../components/KeyStatsDashboard';
 import ChartControls from '../components/ChartControls';
 import ChartGrid from '../components/ChartGrid';
 import ExpandedChartModal from '../components/ExpandedChartModal';
 // Importiere Typen
-import { useStockData, MultiDatasetStockData } from '../hooks/useStockData';
+import { useStockData, MultiDatasetStockData, StockData } from '../hooks/useStockData';
 // Importiere die Slicing-Funktion
 import { sliceMultiDataToLastNPoints } from '../utils/utils';
 import './Home.css';
@@ -39,14 +39,14 @@ interface ModalChartConfig {
 const Home: React.FC = () => {
   // --- Hooks und State Deklarationen ---
    const {
-    // annualRevenue, quarterlyRevenue, // Nicht mehr einzeln benötigt
+    annualIncomeStatement, quarterlyIncomeStatement,
     annualEPS, quarterlyEPS,
     annualDPS, quarterlyDPS,
-    annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
+    annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
     annualDebtToEquity, quarterlyDebtToEquity,
     annualTotalDividendsPaid, quarterlyTotalDividendsPaid,
-    paysDividends,
+    paysDividends, balanceSheetMetrics,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
@@ -74,6 +74,7 @@ const Home: React.FC = () => {
 
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
 
+  // Slicing für die bestehenden Charts
   const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
   const epsDataForChart = sliceMultiDataToLastNPoints(epsDataBase, pointsToKeep);
   const marginsDataForChart = sliceMultiDataToLastNPoints(marginsDataFromHook, pointsToKeep);
@@ -169,11 +170,9 @@ const Home: React.FC = () => {
   // --- JSX Return ---
   return (
     <IonPage>
-      <IonHeader><IonToolbar><IonTitle>Stock Dashboard</IonTitle></IonToolbar></IonHeader>
       <IonContent fullscreen>
-        <IonHeader collapse="condense"><IonToolbar><IonTitle size="large">Stock Dashboard</IonTitle></IonToolbar></IonHeader>
-
-        <div style={{ padding: '0 20px' }}>
+        <div className="main-content-wrapper">
+          <h1 className="main-title">Stock Dashboard</h1>
           <SearchBar onSearch={handleSearch} />
 
           {loading && !companyInfo && <LoadingIndicator progress={progress} />}
@@ -185,6 +184,7 @@ const Home: React.FC = () => {
               <KeyStatsDashboard
                 companyInfo={companyInfo}
                 keyMetrics={keyMetrics}
+                balanceSheetMetrics={balanceSheetMetrics}
                 ticker={currentTicker}
                 formatMarketCap={formatMarketCap}
               />
