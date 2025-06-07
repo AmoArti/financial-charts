@@ -63,7 +63,8 @@ const ChartGrid: React.FC<ChartGridProps> = ({
   );
 
   return (
-    <IonGrid fixed={true}>
+    // --- KORREKTUR HIER: "fixed"-Eigenschaft entfernt ---
+    <IonGrid>
       {/* Row 1 */}
       <IonRow>
         <IonCol size="12" size-lg="6">

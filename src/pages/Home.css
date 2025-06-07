@@ -97,19 +97,7 @@ ion-content {
   padding-bottom: var(--spacing-sm);
 }
 
-/* Media Queries für max-width, analog zu ion-grid[fixed=true] */
-@media (min-width: 576px) {
-  .chart-controls-sticky-wrapper { max-width: 540px; }
-}
-@media (min-width: 768px) {
-  .chart-controls-sticky-wrapper { max-width: 720px; }
-}
-@media (min-width: 992px) {
-  .chart-controls-sticky-wrapper { max-width: 960px; }
-}
-@media (min-width: 1200px) {
-  .chart-controls-sticky-wrapper { max-width: 1140px; }
-}
+/* --- KORREKTUR HIER: Media Queries für max-width entfernt --- */
 
 .chart-controls-sticky-wrapper ion-segment {
   --background: transparent;
