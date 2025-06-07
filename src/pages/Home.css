@@ -4,7 +4,6 @@ ion-header::after {
   display: none !important;
 }
 
-/* --- KORREKTUR HIER: Padding entfernt --- */
 .main-content-wrapper {
   padding: 0;
 }
@@ -103,6 +102,7 @@ ion-content {
   justify-content: center;
 }
 
+/* --- KORREKTUR hier für alle Segment-Buttons --- */
 .chart-controls-sticky-wrapper ion-segment-button {
   --padding-top: 6px;
   --padding-bottom: 6px;
@@ -112,21 +112,31 @@ ion-content {
   height: auto;
   flex-grow: 1;
   flex-basis: 0;
-  --color: var(--text-color-default);
-  --background: var(--app-background-color);
-  --border-radius: var(--border-radius-pill);
+
+  /* Inaktiver Zustand */
+  --color: var(--app-color-primary);
+  --background: transparent;
+  --border-color: var(--app-color-primary);
   --border-width: 1px;
-  --border-color: var(--border-color-ui);
   --border-style: solid;
+  --border-radius: 6px;
+  
+  /* Aktiver Zustand */
+  --background-checked: var(--app-color-primary);
+  --color-checked: var(--text-color-on-primary);
+  --border-color-checked: var(--app-color-primary); /* Stellt sicher, dass der Rahmen die gleiche Farbe hat */
+
   --indicator-color: transparent !important;
   --indicator-height: 0px !important;
-  --transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  --transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  
   margin-left: var(--spacing-xs);
   margin-right: var(--spacing-xs);
   text-transform: none;
   letter-spacing: normal;
   box-shadow: none;
 }
+
 .chart-controls-sticky-wrapper ion-segment ion-segment-button:first-child {
     margin-left: 0;
 }
@@ -135,17 +145,8 @@ ion-content {
 }
 
 .chart-controls-sticky-wrapper ion-segment-button:not(.segment-button-checked):hover {
+  /* Leichter Hintergrund bei Hover über inaktivem Button */
   --background: var(--app-color-primary-light-bg);
-  --color: var(--app-color-primary);
-  --border-color: var(--app-color-primary);
-}
-
-.chart-controls-sticky-wrapper ion-segment-button.segment-button-checked {
-  --background: var(--app-color-primary);
-  --color: var(--text-color-on-primary);
-  --border-color: var(--app-color-primary);
-  --box-shadow: none;
-  --opacity: 1;
 }
 
 .chart-controls-sticky-wrapper ion-segment-button ion-label {
@@ -155,8 +156,9 @@ ion-content {
   font-weight: 500;
 }
 
+/* --- KORREKTUR HIER: Font-Weight für aktive Buttons --- */
 .chart-controls-sticky-wrapper ion-segment-button.segment-button-checked ion-label {
-  font-weight: 600;
+  font-weight: 700; /* Fettgedruckter Text für aktive Buttons */
 }
 
 
