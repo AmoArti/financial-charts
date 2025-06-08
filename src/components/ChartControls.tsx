@@ -5,7 +5,7 @@ import {
   IonSegmentButton,
   IonLabel,
 } from '@ionic/react';
-import { SegmentValue } from '@ionic/core';
+import { IonSegmentCustomEvent, SegmentChangeEventDetail } from '@ionic/core';
 
 interface YearOption {
   value: number;
@@ -39,7 +39,7 @@ const ChartControls: React.FC<ChartControlsProps> = ({
         }}>
         <IonSegment
           value={viewMode}
-          onIonChange={(e) => onViewModeChange(e.detail.value as 'annual' | 'quarterly' | undefined)}
+          onIonChange={(e: IonSegmentCustomEvent<SegmentChangeEventDetail>) => onViewModeChange(e.detail.value as 'annual' | 'quarterly' | undefined)}
         >
           <IonSegmentButton value="quarterly">
             <IonLabel>QUARTERLY</IonLabel>
@@ -51,7 +51,7 @@ const ChartControls: React.FC<ChartControlsProps> = ({
 
         <IonSegment
           value={displayYears.toString()}
-          onIonChange={(e: { detail: { value: SegmentValue | undefined; }; }) => onYearsChange(e.detail.value?.toString())}
+          onIonChange={(e: IonSegmentCustomEvent<SegmentChangeEventDetail>) => onYearsChange(e.detail.value?.toString())}
         >
           {yearOptions.map(option => (
             <IonSegmentButton key={option.value} value={option.value.toString()}>

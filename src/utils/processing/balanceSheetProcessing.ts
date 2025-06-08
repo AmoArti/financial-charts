@@ -1,45 +1,34 @@
 // src/utils/processing/balanceSheetProcessing.ts
-import { StockData, BalanceSheetMetrics } from '../../types/stockDataTypes';
-import { formatQuarter, trimData, parseFloatOrZero } from '../utils'; // Importiere benötigte Helfer aus utils.ts
+import { StockData, BalanceSheetMetrics, RawReport } from '../../types/stockDataTypes';
+import { formatQuarter, trimData, parseFloatOrZero } from '../utils';
 
-// Definition des Rückgabetyps für diese Verarbeitungsfunktion
 export interface ProcessedBalanceSheetData {
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
   annualDebtToEquity: StockData;
   quarterlyDebtToEquity: StockData;
-  // NEUE Metriken, die wir zurückgeben
   latestBalanceSheetMetrics: BalanceSheetMetrics;
 }
 
-// Dieser Helfer wird nur hier für Shares gebraucht und kann lokal bleiben
 const parseAndScaleShares = (value: string | undefined | null): number => {
     if (value === undefined || value === null || value === "None" || value === "-") return 0;
     const num = parseFloat(value);
-    // Teile durch 1 Million für die Anzeige in Millionen
     return isNaN(num) ? 0 : num / 1e6;
 };
 
-// Helfer zum Formatieren großer Zahlen in Milliarden/Millionen
 const formatLargeNumber = (value: number | null): string | null => {
     if (value === null || isNaN(value)) return null;
-    if (Math.abs(value) >= 1e9) {
-        return `${(value / 1e9).toFixed(2)}B`;
-    }
-    if (Math.abs(value) >= 1e6) {
-        return `${(value / 1e6).toFixed(2)}M`;
-    }
+    if (Math.abs(value) >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (Math.abs(value) >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
     return value.toString();
 }
 
 export const processBalanceSheetData = (balanceSheetData: any): ProcessedBalanceSheetData => {
-  // Initialisiere mit allen benötigten Feldern
   let result: ProcessedBalanceSheetData = {
     annualSharesOutstanding: { labels: [], values: [] },
     quarterlySharesOutstanding: { labels: [], values: [] },
     annualDebtToEquity: { labels: [], values: [] },
     quarterlyDebtToEquity: { labels: [], values: [] },
-    // NEU: Initialisiere das neue Metrik-Objekt
     latestBalanceSheetMetrics: { cash: null, debt: null, netDebt: null }
   };
 
@@ -49,20 +38,20 @@ export const processBalanceSheetData = (balanceSheetData: any): ProcessedBalance
 
   const annualReportsRaw = Array.isArray(balanceSheetData.annualReports) ? balanceSheetData.annualReports : [];
   const annualReports = annualReportsRaw
-    .sort((a: any, b: any) => parseInt(a?.fiscalDateEnding?.substring(0, 4)) - parseInt(b?.fiscalDateEnding?.substring(0, 4)));
+    .sort((a: RawReport, b: RawReport) => parseInt(a?.fiscalDateEnding?.substring(0, 4) || '0') - parseInt(b?.fiscalDateEnding?.substring(0, 4) || '0'));
 
   if (annualReports.length > 0) {
-      const validAnnualReports = annualReports.filter((r:any) =>
+      const validAnnualReports = annualReports.filter((r: RawReport) =>
           r?.fiscalDateEnding &&
           (r?.commonStockSharesOutstanding || (r?.totalLiabilities && r?.totalShareholderEquity))
       );
 
-      const annualLabels = validAnnualReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0, 4)));
+      const annualLabels = validAnnualReports.map((r: RawReport) => parseInt(r.fiscalDateEnding!.substring(0, 4)));
 
-      const annualSharesValues = validAnnualReports.map(r => parseAndScaleShares(r?.commonStockSharesOutstanding));
+      const annualSharesValues = validAnnualReports.map((r: RawReport) => parseAndScaleShares(r?.commonStockSharesOutstanding));
       result.annualSharesOutstanding = trimData(annualLabels, annualSharesValues);
 
-      const annualDEValues = validAnnualReports.map(r => {
+      const annualDEValues = validAnnualReports.map((r: RawReport) => {
           const totalLiabilities = parseFloatOrZero(r?.totalLiabilities);
           const totalEquity = parseFloatOrZero(r?.totalShareholderEquity);
           if (totalEquity <= 0) return 0;
@@ -71,7 +60,6 @@ export const processBalanceSheetData = (balanceSheetData: any): ProcessedBalance
       });
       result.annualDebtToEquity = trimData(annualLabels, annualDEValues);
 
-      // --- NEUE LOGIK: Letzte Bilanzkennzahlen extrahieren ---
       const latestReport = annualReports[annualReports.length - 1];
       if (latestReport) {
           const cash = parseFloatOrZero(latestReport.cashAndCashEquivalentsAtCarryingValue);
@@ -88,20 +76,19 @@ export const processBalanceSheetData = (balanceSheetData: any): ProcessedBalance
       }
   }
 
-  // Quartalsdaten-Verarbeitung bleibt für die Charts unverändert
   const quarterlyReportsRaw = Array.isArray(balanceSheetData.quarterlyReports) ? balanceSheetData.quarterlyReports : [];
   const quarterlyReports = quarterlyReportsRaw
-    .sort((a: any, b: any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
+    .sort((a: RawReport, b: RawReport) => new Date(a.fiscalDateEnding || 0).getTime() - new Date(b.fiscalDateEnding || 0).getTime());
 
   if (quarterlyReports.length > 0) {
-      const validQuarterlyReports = quarterlyReports.filter((r:any) =>
+      const validQuarterlyReports = quarterlyReports.filter((r: RawReport) =>
           r?.fiscalDateEnding &&
           (r?.commonStockSharesOutstanding || (r?.totalLiabilities && r?.totalShareholderEquity))
       );
-      const quarterlyLabels = validQuarterlyReports.map((r: any) => formatQuarter(r.fiscalDateEnding));
-      const quarterlySharesValues = validQuarterlyReports.map(r => parseAndScaleShares(r?.commonStockSharesOutstanding));
+      const quarterlyLabels = validQuarterlyReports.map((r: RawReport) => formatQuarter(r.fiscalDateEnding));
+      const quarterlySharesValues = validQuarterlyReports.map((r: RawReport) => parseAndScaleShares(r?.commonStockSharesOutstanding));
       result.quarterlySharesOutstanding = trimData(quarterlyLabels, quarterlySharesValues);
-      const quarterlyDEValues = validQuarterlyReports.map(r => {
+      const quarterlyDEValues = validQuarterlyReports.map((r: RawReport) => {
           const totalLiabilities = parseFloatOrZero(r?.totalLiabilities);
           const totalEquity = parseFloatOrZero(r?.totalShareholderEquity);
           if (totalEquity <= 0) return 0;

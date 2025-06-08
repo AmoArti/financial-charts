@@ -12,7 +12,8 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  Chart
+  Chart,
+  ChartTypeRegistry
 } from 'chart.js';
 import { MultiDatasetStockData } from '../types/stockDataTypes';
 
@@ -35,26 +36,26 @@ export interface BarChartProps {
   yAxisLabel?: string;
 }
 
-export type BarChartComponentRef = Chart<"bar" | "line", number[], string | number>;
+// KORREKTUR: Typ für den Ref angepasst
+export type BarChartComponentRef = Chart<'bar' | 'line', number[], string | number>;
+type ChartJSOrUndefined<TType extends keyof ChartTypeRegistry, TData, TLabel> = ChartJS<TType, TData, TLabel> | undefined;
 
 const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
   ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref: ForwardedRef<BarChartComponentRef | null>) => {
 
     const datasetColors = [
-      { bg: '#2287f5', border: '#2287f5' },                            // Blau
-      { bg: '#ffc600', border: '#ffc600' },                            // Gelb
-      { bg: '#ff4b3b', border: '#ff4b3b' },                            // Rot
-      { bg: '#00d290', border: '#00d290' },                            // Grün
-      { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }, // Lila (Fallback)
+      { bg: '#2287f5', border: '#2287f5' },
+      { bg: '#ffc600', border: '#ffc600' },
+      { bg: '#ff4b3b', border: '#ff4b3b' },
+      { bg: '#00d290', border: '#00d290' },
+      { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' },
     ];
     
     const estimatedColor = { bg: 'rgba(255, 75, 59, 0.7)', border: 'rgba(255, 75, 59, 0.7)' };
 
     const chartDatasets = (data.datasets || []).map((ds: { label: string; values: number[]; backgroundColor?: string; borderColor?: string; }, index: number) => {
         const isEstimated = ds.label.toLowerCase().includes('estimated');
-        
         const color = isEstimated ? estimatedColor : datasetColors[index % datasetColors.length];
-
         return {
             label: ds.label,
             data: ds.values || [],
@@ -74,12 +75,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'top' as const,
-          labels: {
-            usePointStyle: false, 
-          }
-        },
+        legend: { position: 'top' as const, labels: { usePointStyle: false } },
         title: { display: false, text: title },
         tooltip: {
           mode: 'index', intersect: false,
@@ -89,15 +85,10 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
                   if (label) { label += ': '; }
                   if (context.parsed.y !== null) {
                       const value = context.parsed.y;
-                      if (yAxisFormat === 'currency') {
-                          label += `$${value.toFixed(2)}B`;
-                      } else if (yAxisFormat === 'percent') {
-                          label += `${value.toFixed(2)}%`;
-                      } else if (yAxisFormat === 'ratio') {
-                           label += value.toFixed(2);
-                      } else { // number (für EPS)
-                          label += value.toFixed(2);
-                      }
+                      if (yAxisFormat === 'currency') label += `$${value.toFixed(2)}B`;
+                      else if (yAxisFormat === 'percent') label += `${value.toFixed(2)}%`;
+                      else if (yAxisFormat === 'ratio') label += value.toFixed(2);
+                      else label += value.toFixed(2);
                   }
                   return label;
               }
@@ -112,29 +103,19 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
               callback: (value: number | string) => {
                 const numValue = typeof value === 'number' ? value : parseFloat(String(value));
                 if (isNaN(numValue)) return value;
-                if (yAxisFormat === 'currency') {
-                    return `$${numValue.toFixed(numValue % 1 !== 0 ? 1 : 0)}B`;
-                } else if (yAxisFormat === 'percent') {
-                    return `${numValue.toFixed(numValue !== 0 && numValue % 1 !== 0 ? 1 : 0)}%`;
-                } else if (yAxisFormat === 'ratio') {
-                    return numValue.toFixed(2);
-                } else { // number (für EPS)
-                    return numValue.toFixed(2);
-                }
+                if (yAxisFormat === 'currency') return `$${numValue.toFixed(numValue % 1 !== 0 ? 1 : 0)}B`;
+                if (yAxisFormat === 'percent') return `${numValue.toFixed(numValue !== 0 && numValue % 1 !== 0 ? 1 : 0)}%`;
+                return numValue.toFixed(2);
               },
           },
         },
-        x: {
-          stacked: false,
-        },
+        x: { stacked: false },
       },
     };
 
-    const hasDataToShow = data?.labels?.length > 0 &&
-                          data?.datasets?.length > 0 &&
-                          data.datasets.some((ds: { values: number[] }) => ds.values?.length > 0);
+    const hasDataToShow = data?.labels?.length > 0 && data?.datasets?.length > 0 && data.datasets.some((ds: { values: number[] }) => ds.values?.length > 0);
 
-    return hasDataToShow ? <Bar ref={ref} data={chartData} options={options} /> : null;
+    return hasDataToShow ? <Bar ref={ref as ForwardedRef<ChartJS<'bar', number[], string | number>>} data={chartData} options={options} /> : null;
   }
 );
 
