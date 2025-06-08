@@ -1,4 +1,4 @@
-// src/components/ExpandedChartModal.tsx (Download-Button Position angepasst)
+// src/components/ExpandedChartModal.tsx
 import React, { useRef } from 'react';
 import {
   IonModal,
@@ -12,7 +12,7 @@ import {
 } from '@ionic/react';
 import { closeOutline, downloadOutline } from 'ionicons/icons';
 import BarChart, { BarChartComponentRef, BarChartProps } from './BarChart';
-import { MultiDatasetStockData } from '../hooks/useStockData';
+import { MultiDatasetStockData } from '../types/stockDataTypes';
 import './ExpandedChartModal.css';
 
 interface ExpandedChartModalProps {
@@ -58,15 +58,12 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
     <IonModal
       isOpen={isOpen}
       onDidDismiss={onClose}
-      cssClass="expanded-chart-modal-custom"
+      className="expanded-chart-modal-custom" // KORREKTUR: cssClass zu className
     >
       <IonHeader>
         <IonToolbar>
-          {/* Titel bleibt im Standard-Slot (mittig oder links, je nach Theme/Mode) */}
           <IonTitle>{chartTitle || 'Chart Detail'}</IonTitle>
-          {/* Beide Buttons jetzt im slot="end" */}
           <IonButtons slot="end">
-            {/* Export Button zuerst, damit er links vom Schließen-Button erscheint */}
             <IonButton onClick={handleExportChart} fill="clear" aria-label="Export Chart">
               <IonIcon slot="icon-only" icon={downloadOutline} />
             </IonButton>

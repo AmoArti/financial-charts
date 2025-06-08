@@ -1,6 +1,7 @@
 // src/types/stockDataTypes.ts
 
-// --- NEUES INTERFACE ---
+// --- KORREKTUR: Alle Interfaces werden jetzt exportiert ---
+
 // Eigene Sektion für Bilanz-Kennzahlen
 export interface BalanceSheetMetrics {
   cash: string | null;
@@ -20,8 +21,8 @@ export interface MultiDatasetStockData {
   datasets: {
     label: string;
     values: number[];
-    backgroundColor?: string; // Optional für spätere Verwendung
-    borderColor?: string; // Optional für spätere Verwendung
+    backgroundColor?: string;
+    borderColor?: string;
   }[];
 }
 
@@ -32,7 +33,6 @@ export interface CompanyInfo {
   Address: string;
   MarketCapitalization: string;
   LastSale: string;
-  // NEU: Earnings Date
   EarningsDate: string | null;
 }
 
@@ -48,7 +48,6 @@ export interface KeyMetrics {
   isPositiveChange: boolean;
   grossMargin: string | null;
   operatingMargin: string | null;
-  // NEUE KENNZAHLEN
   payoutRatio: string | null;
   payoutDate: string | null;
   freeCashFlowYield: string | null;
@@ -56,48 +55,26 @@ export interface KeyMetrics {
 
 // Rückgabe-Typ des useStockData Hooks
 export interface UseStockDataResult {
-  // Umsatzdaten
   annualRevenue: StockData;
   quarterlyRevenue: StockData;
-
-  // EPS Daten (aus Earnings)
   annualEPS: MultiDatasetStockData;
   quarterlyEPS: MultiDatasetStockData;
-
-  // Dividend Per Share Daten (aus Dividends History verarbeitet)
   annualDPS: StockData;
   quarterlyDPS: StockData;
-
-  // Income Statement & Margen
   annualIncomeStatement: MultiDatasetStockData;
   quarterlyIncomeStatement: MultiDatasetStockData;
   annualMargins: MultiDatasetStockData;
   quarterlyMargins: MultiDatasetStockData;
-
-  // Cashflow Statement für den Chart
   annualCashflowStatement: MultiDatasetStockData;
   quarterlyCashflowStatement: MultiDatasetStockData;
-
-  // Total Dividends Paid Daten (aus Cashflow)
   annualTotalDividendsPaid: StockData;
   quarterlyTotalDividendsPaid: StockData;
-
-  // Outstanding Shares Daten (aus Balance Sheet)
   annualSharesOutstanding: StockData;
   quarterlySharesOutstanding: StockData;
-
-  // Debt-to-Equity Ratio Daten (aus Balance Sheet)
   annualDebtToEquity: StockData;
   quarterlyDebtToEquity: StockData;
-
-  // --- NEUE SEKTION ---
-  // Bilanz-Metriken für die Dashboard-Anzeige
   balanceSheetMetrics: BalanceSheetMetrics | null;
-
-  // Flag, ob Dividenden gezahlt werden (aus Overview)
   paysDividends: boolean;
-
-  // Metadaten & Funktion
   loading: boolean;
   error: string | null;
   progress: number;
@@ -121,8 +98,8 @@ export interface RawOverviewData {
   Industry?: string;
   Address?: string;
   FiscalYearEnd?: string;
-  LatestQuarter?: string; // Format: "YYYY-MM-DD"
-  MarketCapitalization?: string; // Kann "0" oder eine Zahl als String sein
+  LatestQuarter?: string;
+  MarketCapitalization?: string;
   EBITDA?: string;
   PERatio?: string;
   PEGRatio?: string;
@@ -158,40 +135,35 @@ export interface RawOverviewData {
   "50DayMovingAverage"?: string;
   "200DayMovingAverage"?: string;
   SharesOutstanding?: string;
-  DividendDate?: string; // Format: "YYYY-MM-DD" oder "0000-00-00"
-  ExDividendDate?: string; // Format: "YYYY-MM-DD" oder "0000-00-00"
-  PayoutRatio?: string; // NEU
-  [key: string]: any; // Fallback für weitere, nicht explizit genannte Felder
+  DividendDate?: string;
+  ExDividendDate?: string;
+  PayoutRatio?: string;
+  [key: string]: any;
 }
 
-// Gemeinsame Felder für Income, Cashflow, BalanceSheet Reports
 export interface RawReport {
   fiscalDateEnding?: string;
   reportedCurrency?: string;
-  // Income Statement spezifische Felder
   grossProfit?: string;
   totalRevenue?: string;
   operatingIncome?: string;
   netIncome?: string;
-  // Cashflow spezifische Felder
   operatingCashflow?: string;
   capitalExpenditures?: string;
   dividendPayoutCommonStock?: string;
   dividendPayout?: string;
-  // Balance Sheet spezifische Felder
   totalAssets?: string;
   totalLiabilities?: string;
   totalShareholderEquity?: string;
   commonStockSharesOutstanding?: string;
-  cashAndCashEquivalentsAtCarryingValue?: string; // NEU
-  shortTermDebt?: string; // NEU
-  longTermDebtNoncurrent?: string; // NEU - Oft genauer als longTermDebt
-  longTermDebt?: string; // Fallback
+  cashAndCashEquivalentsAtCarryingValue?: string;
+  shortTermDebt?: string;
+  longTermDebtNoncurrent?: string;
+  longTermDebt?: string;
   [key: string]: any;
 }
 
-// ... Rest der Raw-Typen bleibt unverändert ...
-export interface RawIncomeStatementData { Symbol?: string; annualReports?: RawReport[]; quarterlyReports?: RawReport[]; }
+export interface RawIncomeStatementData { symbol?: string; annualReports?: RawReport[]; quarterlyReports?: RawReport[]; }
 export interface RawEarningReport { fiscalDateEnding?: string; reportedDate?: string; reportedEPS?: string; estimatedEPS?: string; }
 export interface RawEarningsData { symbol?: string; annualEarnings?: RawEarningReport[]; quarterlyEarnings?: RawEarningReport[]; }
 export interface RawCashflowData { symbol?: string; annualReports?: RawReport[]; quarterlyReports?: RawReport[]; }

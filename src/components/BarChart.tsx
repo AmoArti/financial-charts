@@ -1,5 +1,5 @@
 // src/components/BarChart.tsx
-import React from 'react';
+import React, { ForwardedRef } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -14,7 +14,7 @@ import {
   ChartOptions,
   Chart
 } from 'chart.js';
-import { MultiDatasetStockData } from '../hooks/useStockData';
+import { MultiDatasetStockData } from '../types/stockDataTypes';
 
 // Registriere die benötigten Chart.js Komponenten
 ChartJS.register(
@@ -38,34 +38,22 @@ export interface BarChartProps {
 export type BarChartComponentRef = Chart<"bar" | "line", number[], string | number>;
 
 const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
-  ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref) => {
+  ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref: ForwardedRef<BarChartComponentRef | null>) => {
 
-    // Definiere die konsistenten Farben
-    const COLORS = {
-      blue: { bg: '#2287f5', border: '#2287f5' },
-      yellow: { bg: '#ffc600', border: '#ffc600' },
-      red: { bg: '#ff4b3b', border: '#ff4b3b' },
-      green: { bg: '#00d290', border: '#00d290' },
-      lila: { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }
-    };
+    const datasetColors = [
+      { bg: '#2287f5', border: '#2287f5' },                            // Blau
+      { bg: '#ffc600', border: '#ffc600' },                            // Gelb
+      { bg: '#ff4b3b', border: '#ff4b3b' },                            // Rot
+      { bg: '#00d290', border: '#00d290' },                            // Grün
+      { bg: 'rgba(153, 102, 255, 1)', border: 'rgba(153, 102, 255, 1)' }, // Lila (Fallback)
+    ];
+    
+    const estimatedColor = { bg: 'rgba(255, 75, 59, 0.7)', border: 'rgba(255, 75, 59, 0.7)' };
 
-    const chartDatasets = (data.datasets || []).map((ds, index) => {
-        const lowerCaseLabel = ds.label.toLowerCase();
-        let color;
-
-        // --- NEUE LOGIK: Farbzuweisung basierend auf dem Namen ---
-        if (lowerCaseLabel.includes('revenue') || lowerCaseLabel.includes('reported') || lowerCaseLabel.includes('gross margin')) {
-            color = COLORS.blue;
-        } else if (lowerCaseLabel.includes('gross profit') || lowerCaseLabel.includes('operating margin')) {
-            color = COLORS.yellow;
-        } else if (lowerCaseLabel.includes('operating income') || lowerCaseLabel.includes('estimated')) {
-            color = COLORS.red;
-        } else if (lowerCaseLabel.includes('net income')) {
-            color = COLORS.green;
-        } else {
-            // Fallback auf die alte Index-basierte Methode
-            color = [COLORS.blue, COLORS.yellow, COLORS.red, COLORS.green, COLORS.lila][index % 5];
-        }
+    const chartDatasets = (data.datasets || []).map((ds: { label: string; values: number[]; backgroundColor?: string; borderColor?: string; }, index: number) => {
+        const isEstimated = ds.label.toLowerCase().includes('estimated');
+        
+        const color = isEstimated ? estimatedColor : datasetColors[index % datasetColors.length];
 
         return {
             label: ds.label,
@@ -144,7 +132,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
 
     const hasDataToShow = data?.labels?.length > 0 &&
                           data?.datasets?.length > 0 &&
-                          data.datasets.some(ds => ds.values?.length > 0);
+                          data.datasets.some((ds: { values: number[] }) => ds.values?.length > 0);
 
     return hasDataToShow ? <Bar ref={ref} data={chartData} options={options} /> : null;
   }

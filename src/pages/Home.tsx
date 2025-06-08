@@ -10,8 +10,9 @@ import KeyStatsDashboard from '../components/KeyStatsDashboard';
 import ChartControls from '../components/ChartControls';
 import ChartGrid from '../components/ChartGrid';
 import ExpandedChartModal from '../components/ExpandedChartModal';
-// Importiere Typen
-import { useStockData, MultiDatasetStockData, StockData } from '../hooks/useStockData';
+// --- KORREKTUR HIER: Import aufgeteilt ---
+import { useStockData } from '../hooks/useStockData';
+import { MultiDatasetStockData, StockData, CompanyInfo, KeyMetrics, BalanceSheetMetrics } from '../types/stockDataTypes';
 // Importiere die Slicing-Funktion
 import { sliceMultiDataToLastNPoints } from '../utils/utils';
 import './Home.css';
@@ -40,12 +41,13 @@ const Home: React.FC = () => {
   // --- Hooks und State Deklarationen ---
    const {
     annualIncomeStatement, quarterlyIncomeStatement,
-    annualEPS, quarterlyEPS,
-    annualDPS, quarterlyDPS,
+    annualCashflowStatement, quarterlyCashflowStatement,
     annualMargins, quarterlyMargins,
-    annualCashflowStatement, quarterlyCashflowStatement, annualSharesOutstanding, quarterlySharesOutstanding,
+    annualEPS, quarterlyEPS,
+    annualSharesOutstanding, quarterlySharesOutstanding,
     annualDebtToEquity, quarterlyDebtToEquity,
     annualTotalDividendsPaid, quarterlyTotalDividendsPaid,
+    annualDPS, quarterlyDPS,
     paysDividends, balanceSheetMetrics,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
@@ -60,33 +62,32 @@ const Home: React.FC = () => {
   // States für das Chart-Modal
   const [isChartModalOpen, setIsChartModalOpen] = useState<boolean>(false);
   const [modalChartData, setModalChartData] = useState<MultiDatasetStockData | null>(null);
-  const [modalChartConfig, setModalChartConfig] = useState<ModalChartConfig | null>(null);
+  const [modalConfig, setModalConfig] = useState<ModalChartConfig | null>(null);
 
   // --- Daten für Anzeige vorbereiten und slicen ---
-  const incomeDataFromHook = viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement;
-  const epsDataBase = viewMode === 'annual' ? annualEPS : quarterlyEPS;
-  const dpsDataBase = viewMode === 'annual' ? annualDPS : quarterlyDPS;
-  const marginsDataFromHook = viewMode === 'annual' ? annualMargins : quarterlyMargins;
-  const cashflowStatementFromHook = viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement;
-  const sharesDataBase = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding;
-  const debtToEquityDataBase = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity;
-  const totalDividendsDataBase = viewMode === 'annual' ? annualTotalDividendsPaid : quarterlyTotalDividendsPaid;
-
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
+  
+  const incomeData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement, pointsToKeep);
+  const cashflowData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement, pointsToKeep);
+  const marginsData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualMargins : quarterlyMargins, pointsToKeep);
+  const epsData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualEPS : quarterlyEPS, pointsToKeep);
+  
+  const toMulti = (d: StockData, label: string): MultiDatasetStockData => ({
+      labels: d?.labels || [],
+      datasets: [{ label, values: d?.values || [] }],
+  });
+  
+  const sharesDataRaw = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding;
+  const sharesData = sliceMultiDataToLastNPoints(toMulti(sharesDataRaw, 'Shares Out (M)'), pointsToKeep);
+  
+  const debtToEquityDataRaw = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity;
+  const debtToEquityData = sliceMultiDataToLastNPoints(toMulti(debtToEquityDataRaw, 'D/E Ratio'), pointsToKeep);
 
-  // Slicing für die bestehenden Charts
-  const incomeDataForChart = sliceMultiDataToLastNPoints(incomeDataFromHook, pointsToKeep);
-  const epsDataForChart = sliceMultiDataToLastNPoints(epsDataBase, pointsToKeep);
-  const marginsDataForChart = sliceMultiDataToLastNPoints(marginsDataFromHook, pointsToKeep);
-  const cashflowStatementDataForChart = sliceMultiDataToLastNPoints(cashflowStatementFromHook, pointsToKeep);
-  const sharesDataMulti: MultiDatasetStockData = { labels: sharesDataBase?.labels || [], datasets: [{ label: 'Shares Out (M)', values: sharesDataBase?.values || [] }]};
-  const sharesDataForChart = sliceMultiDataToLastNPoints(sharesDataMulti, pointsToKeep);
-  const debtToEquityDataMulti: MultiDatasetStockData = { labels: debtToEquityDataBase?.labels || [], datasets: [{ label: 'D/E Ratio', values: debtToEquityDataBase?.values || [] }]};
-  const debtToEquityDataForChart = sliceMultiDataToLastNPoints(debtToEquityDataMulti, pointsToKeep);
-  const dpsDataMulti: MultiDatasetStockData = { labels: dpsDataBase?.labels || [], datasets: [{ label: 'DPS ($)', values: dpsDataBase?.values || [] }]};
-  const dpsDataForChart = sliceMultiDataToLastNPoints(dpsDataMulti, pointsToKeep);
-  const totalDividendsDataMulti: MultiDatasetStockData = { labels: totalDividendsDataBase?.labels || [], datasets: [{ label: 'Total Dividends Paid', values: totalDividendsDataBase?.values || [] }]};
-  const totalDividendsDataForChart = sliceMultiDataToLastNPoints(totalDividendsDataMulti, pointsToKeep);
+  const totalDividendsDataRaw = viewMode === 'annual' ? annualTotalDividendsPaid : quarterlyTotalDividendsPaid;
+  const totalDividendsData = sliceMultiDataToLastNPoints(toMulti(totalDividendsDataRaw, 'Total Dividends Paid'), pointsToKeep);
+  
+  const dpsDataRaw = viewMode === 'annual' ? annualDPS : quarterlyDPS;
+  const dpsData = sliceMultiDataToLastNPoints(toMulti(dpsDataRaw, 'DPS ($)'), pointsToKeep);
 
   // --- Event Handlers ---
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
@@ -102,9 +103,9 @@ const Home: React.FC = () => {
     setViewMode(newViewMode);
   };
 
-  const openChartModal = ( data: MultiDatasetStockData, config: ModalChartConfig ) => {
+  const openChartModal = (data: MultiDatasetStockData, config: ModalChartConfig ) => {
     setModalChartData(data);
-    setModalChartConfig(config);
+    setModalConfig(config);
     setIsChartModalOpen(true);
   };
   const closeChartModal = () => setIsChartModalOpen(false);
@@ -204,15 +205,15 @@ const Home: React.FC = () => {
                     <ChartGrid
                        loading={loading}
                        viewMode={viewMode}
-                       incomeData={incomeDataForChart}
-                       cashflowData={cashflowStatementDataForChart}
-                       marginsData={marginsDataForChart}
-                       epsData={epsDataForChart}
-                       sharesData={sharesDataForChart}
-                       debtToEquityData={debtToEquityDataForChart}
+                       incomeData={incomeData}
+                       cashflowData={cashflowData}
+                       marginsData={marginsData}
+                       epsData={epsData}
+                       sharesData={sharesData}
+                       debtToEquityData={debtToEquityData}
                        paysDividends={paysDividends}
-                       totalDividendsData={totalDividendsDataForChart}
-                       dpsData={dpsDataForChart}
+                       totalDividendsData={totalDividendsData}
+                       dpsData={dpsData}
                        onExpandChart={openChartModal}
                     />
                  </>
@@ -230,10 +231,10 @@ const Home: React.FC = () => {
         <ExpandedChartModal
           isOpen={isChartModalOpen}
           onClose={closeChartModal}
-          chartTitle={modalChartConfig?.title}
+          chartTitle={modalConfig?.title}
           chartData={modalChartData}
-          yAxisFormat={modalChartConfig?.yAxisFormat}
-          yAxisLabel={modalChartConfig?.yAxisLabel}
+          yAxisFormat={modalConfig?.yAxisFormat}
+          yAxisLabel={modalConfig?.yAxisLabel}
         />
       </IonContent>
     </IonPage>

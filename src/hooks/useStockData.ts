@@ -9,17 +9,16 @@ import {
   MultiDatasetStockData,
   UseStockDataResult,
   RawApiData,
-  BalanceSheetMetrics, // NEU
-} from '../types/stockDataTypes';
+  BalanceSheetMetrics,
+} from '../types/stockDataTypes'; // KORREKTUR: Typen werden importiert
 
 const initialStockData: StockData = { labels: [], values: [] };
 const initialMultiData: MultiDatasetStockData = { labels: [], datasets: [] };
-const initialBalanceSheetMetrics: BalanceSheetMetrics = { cash: null, debt: null, netDebt: null }; // NEU
+const initialBalanceSheetMetrics: BalanceSheetMetrics = { cash: null, debt: null, netDebt: null };
 
 type CachedProcessedData = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'error' | 'progress'>;
 
 export const useStockData = (): UseStockDataResult => {
-  // ... (die meisten States bleiben gleich)
   const [annualRevenue, setAnnualRevenue] = useState<StockData>(initialStockData);
   const [quarterlyRevenue, setQuarterlyRevenue] = useState<StockData>(initialStockData);
   const [annualEPS, setAnnualEPS] = useState<MultiDatasetStockData>(initialMultiData);
@@ -39,7 +38,7 @@ export const useStockData = (): UseStockDataResult => {
   const [annualDebtToEquity, setAnnualDebtToEquity] = useState<StockData>(initialStockData);
   const [quarterlyDebtToEquity, setQuarterlyDebtToEquity] = useState<StockData>(initialStockData);
   const [paysDividends, setPaysDividends] = useState<boolean>(false);
-  const [balanceSheetMetrics, setBalanceSheetMetrics] = useState<BalanceSheetMetrics | null>(initialBalanceSheetMetrics); // NEU
+  const [balanceSheetMetrics, setBalanceSheetMetrics] = useState<BalanceSheetMetrics | null>(initialBalanceSheetMetrics);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +52,10 @@ export const useStockData = (): UseStockDataResult => {
 
   const fetchData = useCallback(async (ticker: string) => {
     if (cachedData[ticker]) {
-      // ... (Caching-Logik bleibt gleich, aber um neue States erweitert)
       const cached = cachedData[ticker];
       setCompanyInfo(cached.companyInfo);
       setKeyMetrics(cached.keyMetrics);
-      setBalanceSheetMetrics(cached.balanceSheetMetrics); // NEU
-      // ... (Rest der States)
+      setBalanceSheetMetrics(cached.balanceSheetMetrics);
       setAnnualRevenue(cached.annualRevenue);
       setQuarterlyRevenue(cached.quarterlyRevenue);
       setAnnualEPS(cached.annualEPS);
@@ -82,13 +79,11 @@ export const useStockData = (): UseStockDataResult => {
     }
 
     setLoading(true);
-    // ... (Reset-Logik bleibt gleich, aber um neue States erweitert)
     setError(null);
     setProgress(0);
     setCompanyInfo(null);
     setKeyMetrics(null);
-    setBalanceSheetMetrics(initialBalanceSheetMetrics); // NEU
-    // ... (Rest der Resets)
+    setBalanceSheetMetrics(initialBalanceSheetMetrics);
     setAnnualRevenue(initialStockData);
     setQuarterlyRevenue(initialStockData);
     setAnnualEPS(initialMultiData);
@@ -116,14 +111,12 @@ export const useStockData = (): UseStockDataResult => {
       const processedData = processStockData(rawData, ticker);
       setProgress(90);
 
-      // --- Setze alle States ---
       setCompanyInfo(processedData.companyInfo);
       setKeyMetrics(processedData.keyMetrics);
-      setBalanceSheetMetrics(processedData.balanceSheetMetrics); // NEU
+      setBalanceSheetMetrics(processedData.balanceSheetMetrics);
       setPaysDividends(processedData.paysDividends);
       setAnnualRevenue(processedData.annualRevenue);
       setQuarterlyRevenue(processedData.quarterlyRevenue);
-      // ... (Rest der States)
       setAnnualEPS(processedData.annualEPS);
       setQuarterlyEPS(processedData.quarterlyEPS);
       setAnnualDPS(processedData.annualDPS);
@@ -141,30 +134,26 @@ export const useStockData = (): UseStockDataResult => {
       setAnnualDebtToEquity(processedData.annualDebtToEquity);
       setQuarterlyDebtToEquity(processedData.quarterlyDebtToEquity);
       
-      // Caching
       setCachedData(prevCache => ({ ...prevCache, [ticker]: processedData }));
       
       setProgress(100);
       setError(null);
 
     } catch (err: any) {
-        // ... (Error-Handling bleibt gleich, aber mit Reset für neue States)
         setError(err.message);
-        setBalanceSheetMetrics(initialBalanceSheetMetrics); // NEU
-        // ... (Rest der Resets)
+        setBalanceSheetMetrics(initialBalanceSheetMetrics);
     } finally {
       setLoading(false);
     }
   }, [apiKey, cachedData]);
 
   return {
-    // ... (Rückgabewerte bleiben gleich, aber um neue States erweitert)
     loading, error, progress, companyInfo, keyMetrics, fetchData,
     annualRevenue, quarterlyRevenue, annualEPS, quarterlyEPS, annualDPS, quarterlyDPS,
     annualIncomeStatement, quarterlyIncomeStatement, annualMargins, quarterlyMargins,
     annualCashflowStatement, quarterlyCashflowStatement, annualTotalDividendsPaid, quarterlyTotalDividendsPaid,
     annualSharesOutstanding, quarterlySharesOutstanding, annualDebtToEquity, quarterlyDebtToEquity,
     paysDividends,
-    balanceSheetMetrics, // NEU
+    balanceSheetMetrics,
   };
 };
