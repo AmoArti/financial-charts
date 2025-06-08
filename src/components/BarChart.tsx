@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  Chart
+  ChartData
 } from 'chart.js';
 import { MultiDatasetStockData } from '../types/stockDataTypes';
 
@@ -35,7 +35,7 @@ export interface BarChartProps {
   yAxisLabel?: string;
 }
 
-export type BarChartComponentRef = Chart<'bar' | 'line', number[], string | number>;
+export type BarChartComponentRef = ChartJS<'bar' | 'line', number[], string | number>;
 
 const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
   ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref) => {
@@ -55,7 +55,8 @@ const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
         const color = isEstimated ? estimatedColor : datasetColors[index % datasetColors.length];
         return {
             label: ds.label,
-            data: ds.values || [], // KORREKTUR: 'values' zu 'data'
+            // KORREKTUR: 'values' zu 'data' umbenannt
+            data: ds.values || [], 
             borderWidth: 1.5,
             type: 'bar' as const,
             backgroundColor: ds.backgroundColor || color.bg,
@@ -63,12 +64,12 @@ const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
         };
     });
 
-    const chartData = {
+    const chartData: ChartData<'bar', (number | null)[]> = {
       labels: data?.labels || [],
       datasets: chartDatasets,
     };
 
-    const options: ChartOptions<'bar' | 'line'> = {
+    const options: ChartOptions<'bar'> = {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
@@ -112,8 +113,7 @@ const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
 
     const hasDataToShow = data?.labels?.length > 0 && data?.datasets?.length > 0 && data.datasets.some(ds => ds.values?.length > 0);
 
-    // --- KORREKTUR HIER: Typ-Casting für den Ref, um den Fehler zu beheben ---
-    return hasDataToShow ? <Bar ref={ref as ForwardedRef<Chart<'bar'>>} data={chartData} options={options as ChartOptions<'bar'>} /> : null;
+    return hasDataToShow ? <Bar ref={ref as ForwardedRef<ChartJS<'bar'>>} data={chartData} options={options} /> : null;
   }
 );
 
