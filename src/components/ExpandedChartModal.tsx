@@ -1,4 +1,3 @@
-// src/components/ExpandedChartModal.tsx
 import React, { useRef } from 'react';
 import {
   IonModal,
@@ -32,7 +31,7 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
   yAxisFormat,
   yAxisLabel,
 }) => {
-  const chartRef = useRef<BarChartComponentRef | null>(null);
+  const chartRef = useRef<BarChartComponentRef>(null);
 
   const handleExportChart = () => {
     if (chartRef.current) {
@@ -58,7 +57,7 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
     <IonModal
       isOpen={isOpen}
       onDidDismiss={onClose}
-      className="expanded-chart-modal-custom" // KORREKTUR: cssClass zu className
+      className="expanded-chart-modal-custom"
     >
       <IonHeader>
         <IonToolbar>
@@ -74,7 +73,7 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        {chartData && chartData.labels && chartData.labels.length > 0 && chartData.datasets.length > 0 && chartData.datasets.some(ds => ds.values?.length > 0) ? (
+        {chartData && chartData.labels && chartData.labels.length > 0 && chartData.datasets.some(ds => ds.values.length > 0) ? (
           <div className="chart-container-in-modal">
             <BarChart
               ref={chartRef}

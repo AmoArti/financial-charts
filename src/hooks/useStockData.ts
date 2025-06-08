@@ -1,4 +1,3 @@
-// src/hooks/useStockData.ts
 import { useState, useCallback } from 'react';
 import { fetchAlphaVantageData } from '../services/alphaVantageApi';
 import { processStockData } from '../utils/stockDataProcessing';
@@ -10,7 +9,7 @@ import {
   UseStockDataResult,
   RawApiData,
   BalanceSheetMetrics,
-} from '../types/stockDataTypes'; // KORREKTUR: Typen werden importiert
+} from '../types/stockDataTypes';
 
 const initialStockData: StockData = { labels: [], values: [] };
 const initialMultiData: MultiDatasetStockData = { labels: [], datasets: [] };

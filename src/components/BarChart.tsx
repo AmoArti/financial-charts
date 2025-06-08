@@ -1,4 +1,3 @@
-// src/components/BarChart.tsx
 import React, { ForwardedRef } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -6,8 +5,8 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement, 
-  PointElement, 
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
@@ -17,7 +16,6 @@ import {
 } from 'chart.js';
 import { MultiDatasetStockData } from '../types/stockDataTypes';
 
-// Registriere die benötigten Chart.js Komponenten
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -39,8 +37,8 @@ export interface BarChartProps {
 export type BarChartComponentRef = Chart<'bar' | 'line', number[], string | number>;
 type ChartJSOrUndefined<TType extends keyof ChartTypeRegistry, TData, TLabel> = ChartJS<TType, TData, TLabel> | undefined;
 
-const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
-  ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref: ForwardedRef<BarChartComponentRef | null>) => {
+const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
+  ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref) => {
 
     const datasetColors = [
       { bg: '#2287f5', border: '#2287f5' },
@@ -52,7 +50,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
     
     const estimatedColor = { bg: 'rgba(255, 75, 59, 0.7)', border: 'rgba(255, 75, 59, 0.7)' };
 
-    const chartDatasets = (data.datasets || []).map((ds: { label: string; values: number[]; backgroundColor?: string; borderColor?: string; }, index: number) => {
+    const chartDatasets = (data.datasets || []).map((ds, index) => {
         const isEstimated = ds.label.toLowerCase().includes('estimated');
         const color = isEstimated ? estimatedColor : datasetColors[index % datasetColors.length];
         return {
@@ -70,7 +68,7 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       datasets: chartDatasets,
     };
 
-    const options: ChartOptions<"bar" | "line"> = {
+    const options: ChartOptions<'bar' | 'line'> = {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
@@ -112,9 +110,9 @@ const BarChart = React.forwardRef<BarChartComponentRef | null, BarChartProps>(
       },
     };
 
-    const hasDataToShow = data?.labels?.length > 0 && data?.datasets?.length > 0 && data.datasets.some((ds: { values: number[] }) => ds.values?.length > 0);
+    const hasDataToShow = data?.labels?.length > 0 && data?.datasets?.length > 0 && data.datasets.some(ds => ds.values?.length > 0);
 
-    return hasDataToShow ? <Bar ref={ref as ForwardedRef<ChartJS<'bar', number[], string | number>>} data={chartData} options={options} /> : null;
+    return hasDataToShow ? <Bar ref={ref as ForwardedRef<Chart<'bar'>>} data={chartData} options={options as ChartOptions<'bar'>} /> : null;
   }
 );
 

@@ -1,4 +1,3 @@
-// src/components/ChartControls.tsx
 import React from 'react';
 import {
   IonSegment,

@@ -1,19 +1,16 @@
 // src/types/stockDataTypes.ts
 
-// Eigene Sektion für Bilanz-Kennzahlen
 export interface BalanceSheetMetrics {
   cash: string | null;
   debt: string | null;
   netDebt: string | null;
 }
 
-// Basis-Struktur für einfache Chart-Daten (Labels + Werte)
 export interface StockData {
   labels: (string | number)[];
   values: number[];
 }
 
-// Struktur für Daten mit mehreren Datensätzen (z.B. Income Statement)
 export interface MultiDatasetStockData {
   labels: (string | number)[];
   datasets: {
@@ -24,7 +21,6 @@ export interface MultiDatasetStockData {
   }[];
 }
 
-// Unternehmensinformationen
 export interface CompanyInfo {
   Name: string;
   Industry: string;
@@ -34,7 +30,6 @@ export interface CompanyInfo {
   EarningsDate: string | null;
 }
 
-// Kennzahlen
 export interface KeyMetrics {
   peRatio: string | null;
   psRatio: string | null;
@@ -51,7 +46,6 @@ export interface KeyMetrics {
   freeCashFlowYield: string | null;
 }
 
-// Rückgabe-Typ des useStockData Hooks
 export interface UseStockDataResult {
   annualRevenue: StockData;
   quarterlyRevenue: StockData;
@@ -79,64 +73,6 @@ export interface UseStockDataResult {
   companyInfo: CompanyInfo | null;
   keyMetrics: KeyMetrics | null;
   fetchData: (ticker: string) => void;
-}
-
-// --- Raw API Data Types ---
-
-export interface RawOverviewData {
-  Symbol?: string;
-  AssetType?: string;
-  Name?: string;
-  Description?: string;
-  CIK?: string;
-  Exchange?: string;
-  Currency?: string;
-  Country?: string;
-  Sector?: string;
-  Industry?: string;
-  Address?: string;
-  FiscalYearEnd?: string;
-  LatestQuarter?: string;
-  MarketCapitalization?: string;
-  EBITDA?: string;
-  PERatio?: string;
-  PEGRatio?: string;
-  BookValue?: string;
-  DividendPerShare?: string;
-  DividendYield?: string;
-  EPS?: string;
-  RevenuePerShareTTM?: string;
-  ProfitMargin?: string;
-  OperatingMarginTTM?: string;
-  ReturnOnAssetsTTM?: string;
-  ReturnOnEquityTTM?: string;
-  RevenueTTM?: string;
-  GrossProfitTTM?: string;
-  DilutedEPSTTM?: string;
-  QuarterlyEarningsGrowthYOY?: string;
-  QuarterlyRevenueGrowthYOY?: string;
-  AnalystTargetPrice?: string;
-  AnalystRatingStrongBuy?: string;
-  AnalystRatingBuy?: string;
-  AnalystRatingHold?: string;
-  AnalystRatingSell?: string;
-  AnalystRatingStrongSell?: string;
-  TrailingPE?: string;
-  ForwardPE?: string;
-  PriceToSalesRatioTTM?: string;
-  PriceToBookRatio?: string;
-  EVToRevenue?: string;
-  EVToEBITDA?: string;
-  Beta?: string;
-  "52WeekHigh"?: string;
-  "52WeekLow"?: string;
-  "50DayMovingAverage"?: string;
-  "200DayMovingAverage"?: string;
-  SharesOutstanding?: string;
-  DividendDate?: string;
-  ExDividendDate?: string;
-  PayoutRatio?: string;
-  [key: string]: any;
 }
 
 export interface RawReport {
@@ -174,7 +110,7 @@ export interface RawApiData {
   income?: RawIncomeStatementData | null;
   earnings?: RawEarningsData | null;
   cashflow?: RawCashflowData | null;
-  overview?: RawOverviewData | null;
+  overview?: any | null;
   quote?: RawGlobalQuoteData | null;
   balanceSheet?: RawBalanceSheetData | null;
   dividends?: RawDividendHistoryData | null;
