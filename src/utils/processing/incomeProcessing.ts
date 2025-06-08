@@ -60,9 +60,9 @@ export const processIncomeData = (incomeData: any): ProcessedIncomeData => {
     result.annualMargins = {
       labels: annualLabelsInc,
       datasets: [
-        { label: 'Gross Margin', values: annualMarginsData.map(m => m?.gm ?? 0) },
-        { label: 'Operating Margin', values: annualMarginsData.map(m => m?.om ?? 0) },
-        { label: 'Net Income Margin', values: annualMarginsData.map(m => m?.nm ?? 0) }
+        { label: 'Gross Margin', values: annualMarginsData.map((m: { gm: number | null; }) => m?.gm ?? 0) },
+        { label: 'Operating Margin', values: annualMarginsData.map((m: { om: number | null; }) => m?.om ?? 0) },
+        { label: 'Net Income Margin', values: annualMarginsData.map((m: { nm: number | null; }) => m?.nm ?? 0) }
       ]
     };
     result.annualIncomeStatement = trimMultiData(result.annualIncomeStatement);
@@ -96,9 +96,9 @@ export const processIncomeData = (incomeData: any): ProcessedIncomeData => {
     result.quarterlyMargins = {
       labels: quarterlyLabelsInc,
       datasets: [
-        { label: 'Gross Margin', values: quarterlyMarginsData.map(m => m?.gm ?? 0) },
-        { label: 'Operating Margin', values: quarterlyMarginsData.map(m => m?.om ?? 0) },
-        { label: 'Net Income Margin', values: quarterlyMarginsData.map(m => m?.nm ?? 0) }
+        { label: 'Gross Margin', values: quarterlyMarginsData.map((m: { gm: number | null; }) => m?.gm ?? 0) },
+        { label: 'Operating Margin', values: quarterlyMarginsData.map((m: { om: number | null; }) => m?.om ?? 0) },
+        { label: 'Net Income Margin', values: quarterlyMarginsData.map((m: { nm: number | null; }) => m?.nm ?? 0) }
       ]
     };
     result.quarterlyIncomeStatement = trimMultiData(result.quarterlyIncomeStatement);

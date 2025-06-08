@@ -4,7 +4,6 @@ import {
   KeyMetrics,
   RawApiData,
   UseStockDataResult,
-  BalanceSheetMetrics,
 } from '../types/stockDataTypes';
 import { parseFloatOrZero } from '../utils/utils';
 import { processIncomeData } from './processing/incomeProcessing';
@@ -63,13 +62,13 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
     const dateB = b.reportedDate ? new Date(b.reportedDate).getTime() : 0;
     return dateB - dateA;
   });
-  
+
   const now = new Date().getTime();
-  let nextEarningsDate = sortedQuarterlyEarnings[0]?.reportedDate || null;
+  let nextEarningsDate: string | undefined | null = sortedQuarterlyEarnings[0]?.reportedDate || null;
   const futureEarning = sortedQuarterlyEarnings.reverse().find(e => e.reportedDate && new Date(e.reportedDate).getTime() > now);
-  
+
   if (futureEarning) nextEarningsDate = futureEarning.reportedDate;
-  
+
   const currentPrice = globalQuote?.['05. price'];
   const companyInfo: CompanyInfo = {
      Name: overview?.Name || ticker,
@@ -77,7 +76,7 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
      Address: overview?.Address || 'N/A',
      MarketCapitalization: overview?.MarketCapitalization || 'N/A',
      LastSale: currentPrice ? parseFloat(currentPrice).toFixed(2) : 'N/A',
-     EarningsDate: nextEarningsDate,
+     EarningsDate: nextEarningsDate || null,
   };
 
   const lastAnnualReportCF = cashflow?.annualReports?.[cashflow.annualReports.length - 1];
