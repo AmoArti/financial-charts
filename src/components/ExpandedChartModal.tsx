@@ -1,3 +1,4 @@
+// src/components/ExpandedChartModal.tsx
 import React, { useRef } from 'react';
 import {
   IonModal,
@@ -10,6 +11,7 @@ import {
   IonContent
 } from '@ionic/react';
 import { closeOutline, downloadOutline } from 'ionicons/icons';
+// KORREKTUR: Importiere den Ref-Typ aus BarChart
 import BarChart, { BarChartComponentRef, BarChartProps } from './BarChart';
 import { MultiDatasetStockData } from '../types/stockDataTypes';
 import './ExpandedChartModal.css';
@@ -31,25 +33,24 @@ const ExpandedChartModal: React.FC<ExpandedChartModalProps> = ({
   yAxisFormat,
   yAxisLabel,
 }) => {
-  const chartRef = useRef<BarChartComponentRef>(null);
+  // KORREKTUR: Verwende den importierten Typ für den useRef-Hook
+  const chartRef = useRef<BarChartComponentRef | undefined>(null);
 
   const handleExportChart = () => {
-    if (chartRef.current) {
-      const chartInstance = chartRef.current;
-      if (chartInstance && typeof chartInstance.toBase64Image === 'function') {
-        const imageBase64 = chartInstance.toBase64Image();
-        const link = document.createElement('a');
-        link.href = imageBase64;
-        const safeTitle = chartTitle?.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_') || 'chart';
-        link.download = `${safeTitle}_export.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        console.error("Chart Instanz oder toBase64Image Methode nicht gefunden.", chartInstance);
-      }
+    // Greife auf die Chart.js-Instanz über die .current-Eigenschaft zu
+    const chartInstance = chartRef.current;
+
+    if (chartInstance && typeof chartInstance.toBase64Image === 'function') {
+      const imageBase64 = chartInstance.toBase64Image();
+      const link = document.createElement('a');
+      link.href = imageBase64;
+      const safeTitle = chartTitle?.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_') || 'chart';
+      link.download = `${safeTitle}_export.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
-      console.error("Chart Ref ist nicht gesetzt.");
+      console.error("Chart-Instanz oder toBase64Image-Methode nicht gefunden.", chartInstance);
     }
   };
 
