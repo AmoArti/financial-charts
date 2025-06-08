@@ -1,8 +1,7 @@
 // src/utils/processing/incomeProcessing.ts
-import { StockData, MultiDatasetStockData } from '../../types/stockDataTypes';
-import { formatQuarter, parseAndScale, trimMultiData } from '../utils'; // Importiere Helfer aus utils.ts
+import { StockData, MultiDatasetStockData, RawReport } from '../../types/stockDataTypes';
+import { formatQuarter, parseAndScale, trimMultiData } from '../utils';
 
-// Definition des Rückgabetyps für Klarheit
 export interface ProcessedIncomeData {
   annualRevenue: StockData;
   quarterlyRevenue: StockData;
@@ -14,18 +13,13 @@ export interface ProcessedIncomeData {
   latestAnnualOperatingMargin: number | null;
 }
 
-// Diese Funktion ist spezifisch für Income Data und bleibt hier lokal
-const calculateMargins = (report: any): { gm: number | null, om: number | null, nm: number | null } => {
-  if (!report || typeof report !== 'object') {
-    return { gm: null, om: null, nm: null };
-  }
-  const revenue = parseFloat(report.totalRevenue);
-  if (isNaN(revenue) || revenue === 0) {
-    return { gm: null, om: null, nm: null };
-  }
-  const gp = parseFloat(report.grossProfit);
-  const oi = parseFloat(report.operatingIncome);
-  const ni = parseFloat(report.netIncome);
+const calculateMargins = (report: RawReport): { gm: number | null, om: number | null, nm: number | null } => {
+  if (!report || typeof report !== 'object') return { gm: null, om: null, nm: null };
+  const revenue = parseFloat(report.totalRevenue!);
+  if (isNaN(revenue) || revenue === 0) return { gm: null, om: null, nm: null };
+  const gp = parseFloat(report.grossProfit!);
+  const oi = parseFloat(report.operatingIncome!);
+  const ni = parseFloat(report.netIncome!);
   return {
     gm: isNaN(gp) ? null : (gp / revenue) * 100,
     om: isNaN(oi) ? null : (oi / revenue) * 100,
@@ -45,25 +39,22 @@ export const processIncomeData = (incomeData: any): ProcessedIncomeData => {
     latestAnnualOperatingMargin: null,
   };
 
-  if (!incomeData || (!incomeData.annualReports && !incomeData.quarterlyReports)) {
-    return result;
-  }
+  if (!incomeData || (!incomeData.annualReports && !incomeData.quarterlyReports)) return result;
 
-  // Jahresdaten
   const annualReports = (Array.isArray(incomeData.annualReports) ? incomeData.annualReports : [])
-    .sort((a: any, b: any) => parseInt(a.fiscalDateEnding.substring(0, 4)) - parseInt(b.fiscalDateEnding.substring(0, 4)));
+    .sort((a: RawReport, b: RawReport) => parseInt(a.fiscalDateEnding!.substring(0, 4)) - parseInt(b.fiscalDateEnding!.substring(0, 4)));
 
   if (annualReports.length > 0) {
-    const annualLabelsInc = annualReports.map((r: any) => parseInt(r.fiscalDateEnding.substring(0, 4)));
+    const annualLabelsInc = annualReports.map((r: RawReport) => parseInt(r.fiscalDateEnding!.substring(0, 4)));
     const annualMarginsData = annualReports.map(calculateMargins);
 
     result.annualIncomeStatement = {
       labels: annualLabelsInc,
       datasets: [
-        { label: 'Revenue', values: annualReports.map((r: any) => parseAndScale(r.totalRevenue)) },
-        { label: 'Gross Profit', values: annualReports.map((r: any) => parseAndScale(r.grossProfit)) },
-        { label: 'Operating Income', values: annualReports.map((r: any) => parseAndScale(r.operatingIncome)) },
-        { label: 'Net Income', values: annualReports.map((r: any) => parseAndScale(r.netIncome)) },
+        { label: 'Revenue', values: annualReports.map((r: RawReport) => parseAndScale(r.totalRevenue)) },
+        { label: 'Gross Profit', values: annualReports.map((r: RawReport) => parseAndScale(r.grossProfit)) },
+        { label: 'Operating Income', values: annualReports.map((r: RawReport) => parseAndScale(r.operatingIncome)) },
+        { label: 'Net Income', values: annualReports.map((r: RawReport) => parseAndScale(r.netIncome)) },
       ]
     };
     result.annualMargins = {
@@ -86,21 +77,20 @@ export const processIncomeData = (incomeData: any): ProcessedIncomeData => {
     result.latestAnnualOperatingMargin = lastAnnualMarginData?.om ?? null;
   }
 
-  // Quartalsdaten
   const quarterlyReports = (Array.isArray(incomeData.quarterlyReports) ? incomeData.quarterlyReports : [])
-    .sort((a: any, b: any) => new Date(a.fiscalDateEnding).getTime() - new Date(b.fiscalDateEnding).getTime());
+    .sort((a: RawReport, b: RawReport) => new Date(a.fiscalDateEnding!).getTime() - new Date(b.fiscalDateEnding!).getTime());
 
   if (quarterlyReports.length > 0) {
-    const quarterlyLabelsInc = quarterlyReports.map((r: any) => formatQuarter(r.fiscalDateEnding));
+    const quarterlyLabelsInc = quarterlyReports.map((r: RawReport) => formatQuarter(r.fiscalDateEnding));
     const quarterlyMarginsData = quarterlyReports.map(calculateMargins);
 
     result.quarterlyIncomeStatement = {
       labels: quarterlyLabelsInc,
       datasets: [
-        { label: 'Revenue', values: quarterlyReports.map((r: any) => parseAndScale(r.totalRevenue)) },
-        { label: 'Gross Profit', values: quarterlyReports.map((r: any) => parseAndScale(r.grossProfit)) },
-        { label: 'Operating Income', values: quarterlyReports.map((r: any) => parseAndScale(r.operatingIncome)) },
-        { label: 'Net Income', values: quarterlyReports.map((r: any) => parseAndScale(r.netIncome)) },
+        { label: 'Revenue', values: quarterlyReports.map((r: RawReport) => parseAndScale(r.totalRevenue)) },
+        { label: 'Gross Profit', values: quarterlyReports.map((r: RawReport) => parseAndScale(r.grossProfit)) },
+        { label: 'Operating Income', values: quarterlyReports.map((r: RawReport) => parseAndScale(r.operatingIncome)) },
+        { label: 'Net Income', values: quarterlyReports.map((r: RawReport) => parseAndScale(r.netIncome)) },
       ]
     };
     result.quarterlyMargins = {

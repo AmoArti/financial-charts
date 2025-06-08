@@ -13,7 +13,6 @@ import { processCashflowData } from './processing/cashflowProcessing';
 import { processBalanceSheetData } from './processing/balanceSheetProcessing';
 import { processDividendHistory } from './processing/dividendProcessing';
 
-// --- Hilfsfunktionen NUR für KeyMetrics Formatierung ---
 const formatMetric = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
     const stringValue = String(value);
@@ -21,27 +20,16 @@ const formatMetric = (value: string | number | null | undefined): string | null 
     return isNaN(num) ? null : stringValue;
 };
 
-// --- KORRIGIERTE FUNKTION ---
 const formatPercentage = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
-
     const originalValueString = String(value);
-    // Prüfe, ob der Wert bereits ein Prozent-String ist (wie bei "change percent")
     const isAlreadyPercent = originalValueString.includes('%');
-    
     const stringValue = originalValueString.replace('%', '');
     const numValue = parseFloat(stringValue);
 
     if (isNaN(numValue)) return null;
 
-    // Wenn der Wert von der API bereits ein Prozentwert war (z.B. "0.75%"),
-    // dann formatiere ihn nur neu, aber multipliziere nicht mit 100.
-    if (isAlreadyPercent) {
-        return `${numValue.toFixed(2)}%`;
-    }
-
-    // Wenn der Wert eine Dezimalzahl ist (wie bei DividendYield oder FCF Yield),
-    // dann multipliziere mit 100, um einen Prozentwert zu erhalten.
+    if (isAlreadyPercent) return `${numValue.toFixed(2)}%`;
     return `${(numValue * 100).toFixed(2)}%`;
 };
 
@@ -55,7 +43,6 @@ const formatMarginForDisplay = (value: number | null): string | null => {
     return `${value.toFixed(2)}%`;
 };
 
-// --- Hauptfunktion zur Verarbeitung aller Rohdaten ---
 type ProcessedStockDataResult = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'error' | 'progress'>;
 
 export const processStockData = (rawData: RawApiData, ticker: string): ProcessedStockDataResult => {
@@ -65,7 +52,6 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   const globalQuote = quote?.['Global Quote'];
   if (!globalQuote) console.warn(`Keine Global Quote Daten für Ticker "${ticker}" verfügbar.`);
 
-  // --- Datenverarbeitung durch Aufruf der importierten Funktionen ---
   const incomeProcessed = processIncomeData(income);
   const earningsProcessed = processEarningsData(earnings);
   const cashflowProcessed = processCashflowData(cashflow);
@@ -82,11 +68,8 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   let nextEarningsDate = sortedQuarterlyEarnings[0]?.reportedDate || null;
   const futureEarning = sortedQuarterlyEarnings.reverse().find(e => e.reportedDate && new Date(e.reportedDate).getTime() > now);
   
-  if (futureEarning) {
-    nextEarningsDate = futureEarning.reportedDate;
-  }
+  if (futureEarning) nextEarningsDate = futureEarning.reportedDate;
   
-  // --- Company Info ---
   const currentPrice = globalQuote?.['05. price'];
   const companyInfo: CompanyInfo = {
      Name: overview?.Name || ticker,
@@ -97,13 +80,11 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
      EarningsDate: nextEarningsDate,
   };
 
-  // --- Berechnung für FCF Yield ---
   const lastAnnualReportCF = cashflow?.annualReports?.[cashflow.annualReports.length - 1];
   const fcf = parseFloatOrZero(lastAnnualReportCF?.operatingCashflow) - Math.abs(parseFloatOrZero(lastAnnualReportCF?.capitalExpenditures));
   const marketCap = parseFloatOrZero(overview.MarketCapitalization);
   const fcfYield = marketCap > 0 ? (fcf / marketCap) : null;
 
-  // --- Key Metrics ---
   const rawChange = globalQuote?.['09. change'];
   const rawChangePercent = globalQuote?.['10. change percent'];
   const numChange = parseFloat(rawChange || '');
@@ -112,9 +93,9 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
       psRatio: formatMetric(overview?.PriceToSalesRatioTTM),
       pbRatio: formatMetric(overview?.PriceToBookRatio),
       evToEbitda: formatMetric(overview?.EVToEBITDA),
-      dividendYield: formatPercentage(overview?.DividendYield), // Wird zu: "0.50%"
+      dividendYield: formatPercentage(overview?.DividendYield),
       priceChange: formatPriceChange(rawChange),
-      priceChangePercent: formatPercentage(rawChangePercent), // Wird jetzt korrekt behandelt: "0.75%"
+      priceChangePercent: formatPercentage(rawChangePercent),
       isPositiveChange: !isNaN(numChange) && numChange >= 0,
       grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin),
       operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin),

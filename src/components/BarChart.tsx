@@ -36,7 +36,6 @@ export interface BarChartProps {
   yAxisLabel?: string;
 }
 
-// KORREKTUR: Typ für den Ref angepasst
 export type BarChartComponentRef = Chart<'bar' | 'line', number[], string | number>;
 type ChartJSOrUndefined<TType extends keyof ChartTypeRegistry, TData, TLabel> = ChartJS<TType, TData, TLabel> | undefined;
 
