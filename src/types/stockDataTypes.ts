@@ -1,7 +1,5 @@
 // src/types/stockDataTypes.ts
 
-// --- KORREKTUR: Alle Interfaces werden jetzt exportiert ---
-
 // Eigene Sektion für Bilanz-Kennzahlen
 export interface BalanceSheetMetrics {
   cash: string | null;

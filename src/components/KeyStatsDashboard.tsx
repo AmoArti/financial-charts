@@ -1,13 +1,13 @@
 // src/components/KeyStatsDashboard.tsx
 import React from 'react';
 import { IonGrid, IonRow, IonCol, IonText, IonItem, IonLabel, IonNote } from '@ionic/react';
-import { CompanyInfo, KeyMetrics, BalanceSheetMetrics } from '../hooks/useStockData';
+import { CompanyInfo, KeyMetrics, BalanceSheetMetrics } from '../types/stockDataTypes';
 import './KeyStatsDashboard.css';
 
 interface KeyStatsDashboardProps {
   companyInfo: CompanyInfo | null;
   keyMetrics: KeyMetrics | null;
-  balanceSheetMetrics: BalanceSheetMetrics | null; // NEU
+  balanceSheetMetrics: BalanceSheetMetrics | null;
   ticker: string;
   formatMarketCap: (marketCap: string | null | undefined) => string;
 }
@@ -15,7 +15,7 @@ interface KeyStatsDashboardProps {
 const KeyStatsDashboard: React.FC<KeyStatsDashboardProps> = ({
   companyInfo,
   keyMetrics,
-  balanceSheetMetrics, // NEU
+  balanceSheetMetrics,
   ticker,
   formatMarketCap,
 }) => {
@@ -27,7 +27,6 @@ const KeyStatsDashboard: React.FC<KeyStatsDashboardProps> = ({
 
   return (
     <div className="key-stats-container">
-      {/* Unternehmens-Header */}
       <div className="company-header">
         <div className="company-name-section">
           <h1>{companyInfo.Name} <span>({ticker})</span></h1>
@@ -44,10 +43,8 @@ const KeyStatsDashboard: React.FC<KeyStatsDashboardProps> = ({
         </div>
       </div>
 
-      {/* Kennzahlen-Grid */}
       <IonGrid className="stats-grid">
         <IonRow>
-          {/* Spalte 1: Valuation */}
           <IonCol size="12" size-md="3" className="stats-col">
             <h2 className="stats-title">Valuation</h2>
             <IonItem lines="none"><IonLabel>Market Cap</IonLabel><IonNote slot="end">{formatMarketCap(companyInfo.MarketCapitalization)}</IonNote></IonItem>
@@ -57,7 +54,6 @@ const KeyStatsDashboard: React.FC<KeyStatsDashboardProps> = ({
             <IonItem lines="none"><IonLabel>EV to EBITDA</IonLabel><IonNote slot="end">{keyMetrics?.evToEbitda ?? 'N/A'}</IonNote></IonItem>
           </IonCol>
 
-          {/* Spalte 2: Balance Sheet */}
           <IonCol size="12" size-md="3" className="stats-col">
             <h2 className="stats-title">Balance</h2>
             <IonItem lines="none"><IonLabel>Cash</IonLabel><IonNote slot="end">{balanceSheetMetrics?.cash ?? 'N/A'}</IonNote></IonItem>
@@ -67,14 +63,12 @@ const KeyStatsDashboard: React.FC<KeyStatsDashboardProps> = ({
             <IonItem lines="none"><IonLabel>FCF Yield</IonLabel><IonNote slot="end">{keyMetrics?.freeCashFlowYield ?? 'N/A'}</IonNote></IonItem>
           </IonCol>
           
-          {/* Spalte 3: Margins & Growth */}
           <IonCol size="12" size-md="3" className="stats-col">
             <h2 className="stats-title">Margins & Growth</h2>
             <IonItem lines="none"><IonLabel>Profit Margin</IonLabel><IonNote slot="end">{keyMetrics?.grossMargin ?? 'N/A'}</IonNote></IonItem>
             <IonItem lines="none"><IonLabel>Operating Margin</IonLabel><IonNote slot="end">{keyMetrics?.operatingMargin ?? 'N/A'}</IonNote></IonItem>
           </IonCol>
 
-          {/* Spalte 4: Dividends */}
           <IonCol size="12" size-md="3" className="stats-col">
             <h2 className="stats-title">Dividend</h2>
             <IonItem lines="none"><IonLabel>Dividend Yield</IonLabel><IonNote slot="end">{keyMetrics?.dividendYield ?? 'N/A'}</IonNote></IonItem>
