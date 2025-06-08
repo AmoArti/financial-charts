@@ -1,3 +1,4 @@
+// src/components/BarChart.tsx
 import React, { ForwardedRef } from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -5,17 +6,17 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
+  LineElement, 
+  PointElement, 
   Title,
   Tooltip,
   Legend,
   ChartOptions,
-  Chart,
-  ChartTypeRegistry
+  Chart
 } from 'chart.js';
 import { MultiDatasetStockData } from '../types/stockDataTypes';
 
+// Registriere die benötigten Chart.js Komponenten
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -35,7 +36,6 @@ export interface BarChartProps {
 }
 
 export type BarChartComponentRef = Chart<'bar' | 'line', number[], string | number>;
-type ChartJSOrUndefined<TType extends keyof ChartTypeRegistry, TData, TLabel> = ChartJS<TType, TData, TLabel> | undefined;
 
 const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
   ({ data, title, yAxisFormat = 'number', yAxisLabel }, ref) => {
@@ -55,7 +55,7 @@ const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
         const color = isEstimated ? estimatedColor : datasetColors[index % datasetColors.length];
         return {
             label: ds.label,
-            data: ds.values || [],
+            data: ds.values || [], // KORREKTUR: 'values' zu 'data'
             borderWidth: 1.5,
             type: 'bar' as const,
             backgroundColor: ds.backgroundColor || color.bg,
@@ -112,6 +112,7 @@ const BarChart = React.forwardRef<BarChartComponentRef, BarChartProps>(
 
     const hasDataToShow = data?.labels?.length > 0 && data?.datasets?.length > 0 && data.datasets.some(ds => ds.values?.length > 0);
 
+    // --- KORREKTUR HIER: Typ-Casting für den Ref, um den Fehler zu beheben ---
     return hasDataToShow ? <Bar ref={ref as ForwardedRef<Chart<'bar'>>} data={chartData} options={options as ChartOptions<'bar'>} /> : null;
   }
 );
