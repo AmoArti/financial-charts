@@ -28,7 +28,7 @@ const calculateMargins = (report: RawReport): { gm: number | null, om: number | 
 };
 
 export const processIncomeData = (incomeData: any): ProcessedIncomeData => {
-  let result: ProcessedIncomeData = {
+  const result: ProcessedIncomeData = {
     annualRevenue: { labels: [], values: [] },
     quarterlyRevenue: { labels: [], values: [] },
     annualIncomeStatement: { labels: [], datasets: [] },

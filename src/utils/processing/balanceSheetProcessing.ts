@@ -24,7 +24,7 @@ const formatLargeNumber = (value: number | null): string | null => {
 }
 
 export const processBalanceSheetData = (balanceSheetData: any): ProcessedBalanceSheetData => {
-  let result: ProcessedBalanceSheetData = {
+  const result: ProcessedBalanceSheetData = {
     annualSharesOutstanding: { labels: [], values: [] },
     quarterlySharesOutstanding: { labels: [], values: [] },
     annualDebtToEquity: { labels: [], values: [] },

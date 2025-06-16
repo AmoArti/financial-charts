@@ -9,7 +9,7 @@ export interface ProcessedEarningsData {
 
 export const processEarningsData = (earningsData: any): ProcessedEarningsData => {
   const initialMultiData: MultiDatasetStockData = { labels: [], datasets: [] };
-  let result: ProcessedEarningsData = {
+  const result: ProcessedEarningsData = {
     annualEPS: { ...initialMultiData },
     quarterlyEPS: { ...initialMultiData },
   };

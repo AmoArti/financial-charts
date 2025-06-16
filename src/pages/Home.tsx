@@ -1,5 +1,5 @@
 // src/pages/Home.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   IonContent, IonPage, IonToast,
 } from '@ionic/react';
@@ -12,7 +12,7 @@ import ChartGrid from '../components/ChartGrid';
 import ExpandedChartModal from '../components/ExpandedChartModal';
 // --- KORREKTUR HIER: Import aufgeteilt ---
 import { useStockData } from '../hooks/useStockData';
-import { MultiDatasetStockData, StockData, CompanyInfo, KeyMetrics, BalanceSheetMetrics } from '../types/stockDataTypes';
+import { MultiDatasetStockData, StockData } from '../types/stockDataTypes';
 // Importiere die Slicing-Funktion
 import { sliceMultiDataToLastNPoints } from '../utils/utils';
 import './Home.css';

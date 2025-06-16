@@ -29,12 +29,6 @@
   border-bottom: none !important;
   --min-height: auto; /* Erlaubt es, die Höhe der Toolbar ggf. zu reduzieren */
 }
-
-/* Stile für den IonContent-Bereich innerhalb des Modals */
-.expanded-chart-modal-custom ion-content {
-  /* ion-padding in JSX kümmert sich um den Innenabstand */
-}
-
 /* Stile für den Container-Div, der den BarChart umschließt */
 .expanded-chart-modal-custom .chart-container-in-modal {
   width: 100%;

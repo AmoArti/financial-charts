@@ -10,7 +10,7 @@ export interface ProcessedCashflowData {
 }
 
 export const processCashflowData = (cashFlowData: any): ProcessedCashflowData => {
-  let result: ProcessedCashflowData = {
+  const result: ProcessedCashflowData = {
     annualCashflowStatement: { labels: [], datasets: [] },
     quarterlyCashflowStatement: { labels: [], datasets: [] },
     annualTotalDividendsPaid: { labels: [], values: [] },
