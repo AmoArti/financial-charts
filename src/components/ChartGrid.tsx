@@ -7,16 +7,14 @@ import {
 } from '@ionic/react';
 import { expandOutline } from 'ionicons/icons';
 import BarChart from './BarChart';
-// MetricSwitcher wird hier nicht mehr benötigt
 import { MultiDatasetStockData } from '../types/stockDataTypes';
-
-// Der Typ wird nicht mehr aus Home importiert, da die Logik hier entfernt wird.
+import { FcfMetricType } from '../pages/Home';
 
 interface ModalChartConfig {
   title: string;
   yAxisFormat?: 'currency' | 'percent' | 'number' | 'ratio';
   yAxisLabel?: string;
-  chartId?: string; // Wichtig für die Modal-Logik
+  chartId?: string; 
 }
 
 interface ChartGridProps {
@@ -31,8 +29,7 @@ interface ChartGridProps {
   paysDividends: boolean;
   totalDividendsData: MultiDatasetStockData;
   dpsData: MultiDatasetStockData;
-  onExpandChart: (chartId: string, config: ModalChartConfig) => void; // Geänderte Signatur
-  // --- FCF-Props für die Standardansicht ---
+  onExpandChart: (chartId: string, config: ModalChartConfig) => void;
   fcfAbsData: MultiDatasetStockData;
 }
 
@@ -40,12 +37,10 @@ const ChartGrid: React.FC<ChartGridProps> = ({
   loading, viewMode, incomeData, cashflowData, marginsData, epsData,
   sharesData, debtToEquityData, paysDividends, totalDividendsData, dpsData,
   onExpandChart,
-  // --- FCF Prop ---
   fcfAbsData
 }) => {
   const chartViewModeLabel = viewMode === 'annual' ? 'Annual' : 'Quarterly';
 
-  // Konfigurationen bleiben hier, um Titel etc. zu definieren
   const chartConfigs = {
     income: { chartId: 'income', title: `Income Statement (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
     cashflow: { chartId: 'cashflow', title: `Cash Flow Statement (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
@@ -89,8 +84,6 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
-
-        {/* --- FCF-KARTE (Standardansicht) --- */}
         <IonCol size="12" size-lg="6">
           <IonCard className="chart-grid-card">
             <IonCardHeader>
@@ -106,8 +99,7 @@ const ChartGrid: React.FC<ChartGridProps> = ({
           </IonCard>
         </IonCol>
       </IonRow>
-
-       {/*... restliche Karten bleiben unverändert ...*/}
+      
       <IonRow>
         <IonCol size="12" size-lg="6">
            <IonCard className="chart-grid-card">
@@ -184,20 +176,36 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
-
-        {(paysDividends || canShowDps) && (
-          <IonCol size="12" size-lg="6">
-           {canShowDps && <IonCard className="chart-grid-card">
-              <IonCardHeader>
-                {renderHeaderContent(chartConfigs.dps.title, () => onExpandChart('dps', chartConfigs.dps))}
-              </IonCardHeader>
-              <IonCardContent>
-                {canShowDps ? <div className="chart-wrapper-div"><BarChart data={dpsData} title={chartConfigs.dps.title} yAxisFormat={chartConfigs.dps.yAxisFormat} /></div> : !loading && <p>Keine Daten verfügbar.</p>}
-              </IonCardContent>
-            </IonCard>}
-          </IonCol>
-        )}
+        
+        {/* --- KORRIGIERTER DIVIDENDEN-BLOCK --- */}
+        {paysDividends && <IonCol size="12" size-lg="6">
+          <IonCard className="chart-grid-card">
+            <IonCardHeader>
+              {renderHeaderContent(chartConfigs.totalDividends.title, () => onExpandChart('totalDividends', chartConfigs.totalDividends))}
+            </IonCardHeader>
+            <IonCardContent>
+              {canShowTotalDividends ? <div className="chart-wrapper-div"><BarChart data={totalDividendsData} title={chartConfigs.totalDividends.title} yAxisFormat={chartConfigs.totalDividends.yAxisFormat} /></div> : !loading && <p>Keine Daten verfügbar.</p>}
+            </IonCardContent>
+          </IonCard>
+        </IonCol>}
       </IonRow>
+      
+      {/* Eigene Zeile für DPS, falls es angezeigt werden kann und die obere Zeile schon voll ist oder es keine Dividenden gibt */}
+      {canShowDps && (
+        <IonRow>
+            <IonCol size="12" size-lg="6">
+                <IonCard className="chart-grid-card">
+                <IonCardHeader>
+                    {renderHeaderContent(chartConfigs.dps.title, () => onExpandChart('dps', chartConfigs.dps))}
+                </IonCardHeader>
+                <IonCardContent>
+                    <div className="chart-wrapper-div"><BarChart data={dpsData} title={chartConfigs.dps.title} yAxisFormat={chartConfigs.dps.yAxisFormat} /></div>
+                </IonCardContent>
+                </IonCard>
+            </IonCol>
+        </IonRow>
+      )}
+
     </IonGrid>
   );
 };
