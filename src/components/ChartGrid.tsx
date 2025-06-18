@@ -7,12 +7,16 @@ import {
 } from '@ionic/react';
 import { expandOutline } from 'ionicons/icons';
 import BarChart from './BarChart';
+// MetricSwitcher wird hier nicht mehr benötigt
 import { MultiDatasetStockData } from '../types/stockDataTypes';
+
+// Der Typ wird nicht mehr aus Home importiert, da die Logik hier entfernt wird.
 
 interface ModalChartConfig {
   title: string;
   yAxisFormat?: 'currency' | 'percent' | 'number' | 'ratio';
   yAxisLabel?: string;
+  chartId?: string; // Wichtig für die Modal-Logik
 }
 
 interface ChartGridProps {
@@ -27,25 +31,31 @@ interface ChartGridProps {
   paysDividends: boolean;
   totalDividendsData: MultiDatasetStockData;
   dpsData: MultiDatasetStockData;
-  onExpandChart: (data: MultiDatasetStockData, config: ModalChartConfig) => void;
+  onExpandChart: (chartId: string, config: ModalChartConfig) => void; // Geänderte Signatur
+  // --- FCF-Props für die Standardansicht ---
+  fcfAbsData: MultiDatasetStockData;
 }
 
 const ChartGrid: React.FC<ChartGridProps> = ({
   loading, viewMode, incomeData, cashflowData, marginsData, epsData,
   sharesData, debtToEquityData, paysDividends, totalDividendsData, dpsData,
-  onExpandChart
+  onExpandChart,
+  // --- FCF Prop ---
+  fcfAbsData
 }) => {
   const chartViewModeLabel = viewMode === 'annual' ? 'Annual' : 'Quarterly';
 
+  // Konfigurationen bleiben hier, um Titel etc. zu definieren
   const chartConfigs = {
-    income: { title: `Income Statement (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
-    cashflow: { title: `Cash Flow Statement (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
-    margins: { title: `Margins (${chartViewModeLabel})`, yAxisFormat: 'percent', yAxisLabel: 'Margin (%)' } as ModalChartConfig,
-    eps: { title: `EPS (${chartViewModeLabel})`, yAxisFormat: 'number', yAxisLabel: 'EPS ($)' } as ModalChartConfig,
-    shares: { title: `Outstanding Shares (${chartViewModeLabel})`, yAxisFormat: 'ratio', yAxisLabel: 'Shares (Millions)' } as ModalChartConfig,
-    debtToEquity: { title: `Debt-to-Equity Ratio (${chartViewModeLabel})`, yAxisFormat: 'ratio', yAxisLabel: 'D/E Ratio' } as ModalChartConfig,
-    totalDividends: { title: `Total Dividends Paid (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
-    dps: { title: `Dividend Per Share (${chartViewModeLabel})`, yAxisFormat: 'number', yAxisLabel: 'DPS ($)' } as ModalChartConfig,
+    income: { chartId: 'income', title: `Income Statement (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
+    cashflow: { chartId: 'cashflow', title: `Cash Flow Statement (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
+    margins: { chartId: 'margins', title: `Margins (${chartViewModeLabel})`, yAxisFormat: 'percent', yAxisLabel: 'Margin (%)' } as ModalChartConfig,
+    eps: { chartId: 'eps', title: `EPS (${chartViewModeLabel})`, yAxisFormat: 'number', yAxisLabel: 'EPS ($)' } as ModalChartConfig,
+    shares: { chartId: 'shares', title: `Outstanding Shares (${chartViewModeLabel})`, yAxisFormat: 'ratio', yAxisLabel: 'Shares (Millions)' } as ModalChartConfig,
+    debtToEquity: { chartId: 'debtToEquity', title: `Debt-to-Equity Ratio (${chartViewModeLabel})`, yAxisFormat: 'ratio', yAxisLabel: 'D/E Ratio' } as ModalChartConfig,
+    totalDividends: { chartId: 'totalDividends', title: `Total Dividends Paid (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
+    dps: { chartId: 'dps', title: `Dividend Per Share (${chartViewModeLabel})`, yAxisFormat: 'number', yAxisLabel: 'DPS ($)' } as ModalChartConfig,
+    fcf: { chartId: 'fcf', title: `Free Cash Flow (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
   };
 
   const canShowTotalDividends = paysDividends && totalDividendsData?.labels?.length > 0 && totalDividendsData.datasets[0]?.values?.length > 0;
@@ -68,7 +78,7 @@ const ChartGrid: React.FC<ChartGridProps> = ({
         <IonCol size="12" size-lg="6">
           <IonCard className="chart-grid-card">
             <IonCardHeader>
-              {renderHeaderContent(chartConfigs.income.title, () => onExpandChart(incomeData, chartConfigs.income))}
+              {renderHeaderContent(chartConfigs.income.title, () => onExpandChart('income', chartConfigs.income))}
             </IonCardHeader>
             <IonCardContent>
               {incomeData?.labels?.length > 0 && incomeData.datasets.length > 0 ? (
@@ -79,27 +89,44 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
+
+        {/* --- FCF-KARTE (Standardansicht) --- */}
+        <IonCol size="12" size-lg="6">
+          <IonCard className="chart-grid-card">
+            <IonCardHeader>
+              {renderHeaderContent(chartConfigs.fcf.title, () => onExpandChart('fcf', chartConfigs.fcf))}
+            </IonCardHeader>
+            <IonCardContent>
+              {fcfAbsData?.labels?.length > 0 && fcfAbsData.datasets.length > 0 ? (
+                <div className="chart-wrapper-div">
+                  <BarChart data={fcfAbsData} title={chartConfigs.fcf.title} yAxisFormat={chartConfigs.fcf.yAxisFormat} yAxisLabel={chartConfigs.fcf.yAxisLabel} />
+                </div>
+              ) : !loading && (<p>Keine Free Cash Flow Daten verfügbar.</p>)}
+            </IonCardContent>
+          </IonCard>
+        </IonCol>
+      </IonRow>
+
+       {/*... restliche Karten bleiben unverändert ...*/}
+      <IonRow>
         <IonCol size="12" size-lg="6">
            <IonCard className="chart-grid-card">
             <IonCardHeader>
-                {renderHeaderContent(chartConfigs.cashflow.title, () => onExpandChart(cashflowData, chartConfigs.cashflow))}
+                {renderHeaderContent(chartConfigs.cashflow.title, () => onExpandChart('cashflow', chartConfigs.cashflow))}
             </IonCardHeader>
             <IonCardContent>
               {cashflowData?.labels?.length > 0 && cashflowData.datasets.length > 0 ? (
                 <div className="chart-wrapper-div">
                   <BarChart data={cashflowData} title={chartConfigs.cashflow.title} yAxisFormat={chartConfigs.cashflow.yAxisFormat} yAxisLabel={chartConfigs.cashflow.yAxisLabel} />
                 </div>
-              ) : !loading && ( <p>Keine Cashflow Daten verfügbar.</p> )}
+              ) : !loading && ( <p>Keine Cashflow Statement Daten verfügbar.</p> )}
             </IonCardContent>
           </IonCard>
         </IonCol>
-      </IonRow>
-
-      <IonRow>
         <IonCol size="12" size-lg="6">
           <IonCard className="chart-grid-card">
             <IonCardHeader>
-                {renderHeaderContent(chartConfigs.margins.title, () => onExpandChart(marginsData, chartConfigs.margins))}
+                {renderHeaderContent(chartConfigs.margins.title, () => onExpandChart('margins', chartConfigs.margins))}
             </IonCardHeader>
             <IonCardContent>
               {marginsData?.labels?.length > 0 && marginsData.datasets.length > 0 ? (
@@ -110,10 +137,13 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
+      </IonRow>
+
+       <IonRow>
         <IonCol size="12" size-lg="6">
           <IonCard className="chart-grid-card">
             <IonCardHeader>
-                {renderHeaderContent(chartConfigs.eps.title, () => onExpandChart(epsData, chartConfigs.eps))}
+                {renderHeaderContent(chartConfigs.eps.title, () => onExpandChart('eps', chartConfigs.eps))}
             </IonCardHeader>
             <IonCardContent>
               {epsData?.labels?.length > 0 && epsData.datasets[0]?.values?.length > 0 ? (
@@ -124,12 +154,10 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
-      </IonRow>
-       <IonRow>
         <IonCol size="12" size-lg="6">
           <IonCard className="chart-grid-card">
             <IonCardHeader>
-                {renderHeaderContent(chartConfigs.shares.title, () => onExpandChart(sharesData, chartConfigs.shares))}
+                {renderHeaderContent(chartConfigs.shares.title, () => onExpandChart('shares', chartConfigs.shares))}
             </IonCardHeader>
             <IonCardContent>
               {sharesData?.labels?.length > 0 && sharesData.datasets[0]?.values?.length > 0 ? (
@@ -140,10 +168,12 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
+      </IonRow>
+      <IonRow>
         <IonCol size="12" size-lg="6">
           <IonCard className="chart-grid-card">
             <IonCardHeader>
-                {renderHeaderContent(chartConfigs.debtToEquity.title, () => onExpandChart(debtToEquityData, chartConfigs.debtToEquity))}
+                {renderHeaderContent(chartConfigs.debtToEquity.title, () => onExpandChart('debtToEquity', chartConfigs.debtToEquity))}
             </IonCardHeader>
             <IonCardContent>
               {debtToEquityData?.labels?.length > 0 && debtToEquityData.datasets[0]?.values?.length > 0 ? (
@@ -154,33 +184,20 @@ const ChartGrid: React.FC<ChartGridProps> = ({
             </IonCardContent>
           </IonCard>
         </IonCol>
-      </IonRow>
 
-      {(paysDividends || canShowDps) && (
-        <IonRow>
-          {paysDividends && <IonCol size="12" size-lg="6">
-            <IonCard className="chart-grid-card">
+        {(paysDividends || canShowDps) && (
+          <IonCol size="12" size-lg="6">
+           {canShowDps && <IonCard className="chart-grid-card">
               <IonCardHeader>
-                {renderHeaderContent(chartConfigs.totalDividends.title, () => onExpandChart(totalDividendsData, chartConfigs.totalDividends))}
-              </IonCardHeader>
-              <IonCardContent>
-                {canShowTotalDividends ? <div className="chart-wrapper-div"><BarChart data={totalDividendsData} title={chartConfigs.totalDividends.title} yAxisFormat={chartConfigs.totalDividends.yAxisFormat} /></div> : !loading && <p>Keine Daten verfügbar.</p>}
-              </IonCardContent>
-            </IonCard>
-          </IonCol>}
-
-          {canShowDps && <IonCol size="12" size-lg="6">
-            <IonCard className="chart-grid-card">
-              <IonCardHeader>
-                {renderHeaderContent(chartConfigs.dps.title, () => onExpandChart(dpsData, chartConfigs.dps))}
+                {renderHeaderContent(chartConfigs.dps.title, () => onExpandChart('dps', chartConfigs.dps))}
               </IonCardHeader>
               <IonCardContent>
                 {canShowDps ? <div className="chart-wrapper-div"><BarChart data={dpsData} title={chartConfigs.dps.title} yAxisFormat={chartConfigs.dps.yAxisFormat} /></div> : !loading && <p>Keine Daten verfügbar.</p>}
               </IonCardContent>
-            </IonCard>
-          </IonCol>}
-        </IonRow>
-      )}
+            </IonCard>}
+          </IonCol>
+        )}
+      </IonRow>
     </IonGrid>
   );
 };

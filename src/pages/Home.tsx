@@ -10,35 +10,30 @@ import KeyStatsDashboard from '../components/KeyStatsDashboard';
 import ChartControls from '../components/ChartControls';
 import ChartGrid from '../components/ChartGrid';
 import ExpandedChartModal from '../components/ExpandedChartModal';
-// --- KORREKTUR HIER: Import aufgeteilt ---
 import { useStockData } from '../hooks/useStockData';
 import { MultiDatasetStockData, StockData } from '../types/stockDataTypes';
-// Importiere die Slicing-Funktion
 import { sliceMultiDataToLastNPoints } from '../utils/utils';
 import './Home.css';
 
-// Definiere den Typ für yAxisFormat hier, um Konsistenz zu gewährleisten
 type YAxisFormatType = 'currency' | 'percent' | 'number' | 'ratio';
 
-// Optionen und Defaults für Jahresauswahl
 const quarterlyYearOptions = [
     { value: 1, label: '1Y' }, { value: 2, label: '2Y' }, { value: 4, label: '4Y' }, { value: 10, label: 'MAX' }
 ];
 const annualYearOptions = [
     { value: 5, label: '5Y' }, { value: 10, label: '10Y' }, { value: 15, label: '15Y' }, { value: 20, label: 'MAX' }
 ];
-const defaultYearsQuarterly = 4; // Entspricht 4 * 4 = 16 Quartalen
+const defaultYearsQuarterly = 4;
 const defaultYearsAnnual = 10;
 
-// Interface für die Konfiguration des Modal-Charts
 interface ModalChartConfig {
   title: string;
   yAxisFormat?: YAxisFormatType;
   yAxisLabel?: string;
+  chartId?: string;
 }
 
 const Home: React.FC = () => {
-  // --- Hooks und State Deklarationen ---
    const {
     annualIncomeStatement, quarterlyIncomeStatement,
     annualCashflowStatement, quarterlyCashflowStatement,
@@ -48,49 +43,42 @@ const Home: React.FC = () => {
     annualDebtToEquity, quarterlyDebtToEquity,
     annualTotalDividendsPaid, quarterlyTotalDividendsPaid,
     annualDPS, quarterlyDPS,
+    annualFCF, quarterlyFCF,
+    annualFCFPerShare, quarterlyFCFPerShare,
     paysDividends, balanceSheetMetrics,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
 
-  // States für Controls und App-Zustand
   const [viewMode, setViewMode] = useState<'annual' | 'quarterly'>('quarterly');
   const [displayYears, setDisplayYears] = useState<number>(defaultYearsQuarterly);
   const [currentTicker, setCurrentTicker] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const prevLoadingRef = useRef<boolean>(loading);
 
-  // States für das Chart-Modal
   const [isChartModalOpen, setIsChartModalOpen] = useState<boolean>(false);
-  const [modalChartData, setModalChartData] = useState<MultiDatasetStockData | null>(null);
+  const [modalChartId, setModalChartId] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState<ModalChartConfig | null>(null);
 
-  // --- Daten für Anzeige vorbereiten und slicen ---
   const pointsToKeep = viewMode === 'annual' ? displayYears : displayYears * 4;
-  
-  const incomeData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement, pointsToKeep);
-  const cashflowData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement, pointsToKeep);
-  const marginsData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualMargins : quarterlyMargins, pointsToKeep);
-  const epsData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualEPS : quarterlyEPS, pointsToKeep);
   
   const toMulti = (d: StockData, label: string): MultiDatasetStockData => ({
       labels: d?.labels || [],
       datasets: [{ label, values: d?.values || [] }],
   });
   
-  const sharesDataRaw = viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding;
-  const sharesData = sliceMultiDataToLastNPoints(toMulti(sharesDataRaw, 'Shares Out (M)'), pointsToKeep);
-  
-  const debtToEquityDataRaw = viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity;
-  const debtToEquityData = sliceMultiDataToLastNPoints(toMulti(debtToEquityDataRaw, 'D/E Ratio'), pointsToKeep);
+  const incomeData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualIncomeStatement : quarterlyIncomeStatement, pointsToKeep);
+  const cashflowData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualCashflowStatement : quarterlyCashflowStatement, pointsToKeep);
+  const marginsData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualMargins : quarterlyMargins, pointsToKeep);
+  const epsData = sliceMultiDataToLastNPoints(viewMode === 'annual' ? annualEPS : quarterlyEPS, pointsToKeep);
+  const sharesData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualSharesOutstanding : quarterlySharesOutstanding, 'Shares Out (M)'), pointsToKeep);
+  const debtToEquityData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualDebtToEquity : quarterlyDebtToEquity, 'D/E Ratio'), pointsToKeep);
+  const totalDividendsData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualTotalDividendsPaid : quarterlyTotalDividendsPaid, 'Total Dividends Paid'), pointsToKeep);
+  const dpsData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualDPS : quarterlyDPS, 'DPS ($)'), pointsToKeep);
+  const fcfAbsData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualFCF : quarterlyFCF, 'Free Cash Flow ($B)'), pointsToKeep);
+  const fcfPerShareData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualFCFPerShare : quarterlyFCFPerShare, 'FCF per Share ($)'), pointsToKeep);
 
-  const totalDividendsDataRaw = viewMode === 'annual' ? annualTotalDividendsPaid : quarterlyTotalDividendsPaid;
-  const totalDividendsData = sliceMultiDataToLastNPoints(toMulti(totalDividendsDataRaw, 'Total Dividends Paid'), pointsToKeep);
-  
-  const dpsDataRaw = viewMode === 'annual' ? annualDPS : quarterlyDPS;
-  const dpsData = sliceMultiDataToLastNPoints(toMulti(dpsDataRaw, 'DPS ($)'), pointsToKeep);
-
-  // --- Event Handlers ---
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
+  // ... (restliche Handler bleiben gleich)
   const handleRetry = () => { if (currentTicker) fetchData(currentTicker); };
   const handleGlobalYearsChange = (newYearsString: string | undefined) => {
     if (newYearsString === undefined) return;
@@ -103,22 +91,22 @@ const Home: React.FC = () => {
     setViewMode(newViewMode);
   };
 
-  const openChartModal = (data: MultiDatasetStockData, config: ModalChartConfig ) => {
-    setModalChartData(data);
+  const openChartModal = (chartId: string, config: ModalChartConfig ) => {
+    setModalChartId(chartId);
     setModalConfig(config);
     setIsChartModalOpen(true);
   };
   const closeChartModal = () => setIsChartModalOpen(false);
 
-  // --- useEffect Hooks ---
+  // ... (useEffect und Helper-Funktionen bleiben gleich) ...
+  
   useEffect(() => {
      document.title = currentTicker ? `${currentTicker} - Stock Dashboard` : "Stock Dashboard";
   }, [currentTicker]);
 
   useEffect(() => {
     if (prevLoadingRef.current && !loading && !error && currentTicker) {
-      const hasData = companyInfo?.Name;
-      if (hasData) {
+      if (companyInfo?.Name) {
         setSuccessMessage(`Daten für ${currentTicker} erfolgreich geladen`);
       }
     }
@@ -136,7 +124,6 @@ const Home: React.FC = () => {
       setDisplayYears(viewMode === 'annual' ? defaultYearsAnnual : defaultYearsQuarterly);
   }, [viewMode]);
 
-  // --- Helper Functions ---
   const formatMarketCap = (marketCap: string | null | undefined): string => {
     if (!marketCap || marketCap === 'None' || marketCap === '0') return 'N/A';
     const num = parseFloat(marketCap);
@@ -168,7 +155,6 @@ const Home: React.FC = () => {
 
   const currentYearOptions = viewMode === 'annual' ? annualYearOptions : quarterlyYearOptions;
 
-  // --- JSX Return ---
   return (
     <IonPage>
       <IonContent fullscreen>
@@ -214,27 +200,32 @@ const Home: React.FC = () => {
                        paysDividends={paysDividends}
                        totalDividendsData={totalDividendsData}
                        dpsData={dpsData}
+                       fcfAbsData={fcfAbsData}
                        onExpandChart={openChartModal}
                     />
                  </>
               )}
             </>
           )}
-
-          {!currentTicker && !loading && !error && (
-            <div style={{ textAlign: 'center', marginTop: '50px', color: 'var(--text-color-muted)' }}>
-              <p>Bitte geben Sie oben ein Aktiensymbol ein (z.B. AAPL, IBM).</p>
-            </div>
-          )}
         </div>
 
         <ExpandedChartModal
           isOpen={isChartModalOpen}
           onClose={closeChartModal}
-          chartTitle={modalConfig?.title}
-          chartData={modalChartData}
-          yAxisFormat={modalConfig?.yAxisFormat}
-          yAxisLabel={modalConfig?.yAxisLabel}
+          chartId={modalChartId}
+          config={modalConfig}
+          dataSources={{
+            income: incomeData,
+            cashflow: cashflowData,
+            margins: marginsData,
+            eps: epsData,
+            shares: sharesData,
+            debtToEquity: debtToEquityData,
+            totalDividends: totalDividendsData,
+            dps: dpsData,
+            fcf: fcfAbsData,
+            fcfPerShare: fcfPerShareData,
+          }}
         />
       </IonContent>
     </IonPage>

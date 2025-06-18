@@ -1,3 +1,4 @@
+// src/hooks/useStockData.ts
 import { useState, useCallback } from 'react';
 import { fetchAlphaVantageData } from '../services/alphaVantageApi';
 import { processStockData } from '../utils/stockDataProcessing';
@@ -38,6 +39,11 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyDebtToEquity, setQuarterlyDebtToEquity] = useState<StockData>(initialStockData);
   const [paysDividends, setPaysDividends] = useState<boolean>(false);
   const [balanceSheetMetrics, setBalanceSheetMetrics] = useState<BalanceSheetMetrics | null>(initialBalanceSheetMetrics);
+  
+  const [annualFCF, setAnnualFCF] = useState<StockData>(initialStockData);
+  const [quarterlyFCF, setQuarterlyFCF] = useState<StockData>(initialStockData);
+  const [annualFCFPerShare, setAnnualFCFPerShare] = useState<StockData>(initialStockData);
+  const [quarterlyFCFPerShare, setQuarterlyFCFPerShare] = useState<StockData>(initialStockData);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +63,7 @@ export const useStockData = (): UseStockDataResult => {
       setBalanceSheetMetrics(cached.balanceSheetMetrics);
       setAnnualRevenue(cached.annualRevenue);
       setQuarterlyRevenue(cached.quarterlyRevenue);
+      //... (alle anderen States aus dem Cache laden)
       setAnnualEPS(cached.annualEPS);
       setQuarterlyEPS(cached.quarterlyEPS);
       setAnnualDPS(cached.annualDPS);
@@ -74,12 +81,17 @@ export const useStockData = (): UseStockDataResult => {
       setAnnualDebtToEquity(cached.annualDebtToEquity);
       setQuarterlyDebtToEquity(cached.quarterlyDebtToEquity);
       setPaysDividends(cached.paysDividends);
+      setAnnualFCF(cached.annualFCF);
+      setQuarterlyFCF(cached.quarterlyFCF);
+      setAnnualFCFPerShare(cached.annualFCFPerShare);
+      setQuarterlyFCFPerShare(cached.quarterlyFCFPerShare);
       return;
     }
 
     setLoading(true);
     setError(null);
     setProgress(0);
+    //... (alle States zurücksetzen)
     setCompanyInfo(null);
     setKeyMetrics(null);
     setBalanceSheetMetrics(initialBalanceSheetMetrics);
@@ -102,6 +114,10 @@ export const useStockData = (): UseStockDataResult => {
     setAnnualDebtToEquity(initialStockData);
     setQuarterlyDebtToEquity(initialStockData);
     setPaysDividends(false);
+    setAnnualFCF(initialStockData);
+    setQuarterlyFCF(initialStockData);
+    setAnnualFCFPerShare(initialStockData);
+    setQuarterlyFCFPerShare(initialStockData);
 
     try {
       setProgress(10);
@@ -110,6 +126,7 @@ export const useStockData = (): UseStockDataResult => {
       const processedData = processStockData(rawData, ticker);
       setProgress(90);
 
+      //... (alle States setzen)
       setCompanyInfo(processedData.companyInfo);
       setKeyMetrics(processedData.keyMetrics);
       setBalanceSheetMetrics(processedData.balanceSheetMetrics);
@@ -132,6 +149,10 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlySharesOutstanding(processedData.quarterlySharesOutstanding);
       setAnnualDebtToEquity(processedData.annualDebtToEquity);
       setQuarterlyDebtToEquity(processedData.quarterlyDebtToEquity);
+      setAnnualFCF(processedData.annualFCF);
+      setQuarterlyFCF(processedData.quarterlyFCF);
+      setAnnualFCFPerShare(processedData.annualFCFPerShare);
+      setQuarterlyFCFPerShare(processedData.quarterlyFCFPerShare);
       
       setCachedData(prevCache => ({ ...prevCache, [ticker]: processedData }));
       
@@ -154,5 +175,9 @@ export const useStockData = (): UseStockDataResult => {
     annualSharesOutstanding, quarterlySharesOutstanding, annualDebtToEquity, quarterlyDebtToEquity,
     paysDividends,
     balanceSheetMetrics,
+    annualFCF,
+    quarterlyFCF,
+    annualFCFPerShare,
+    quarterlyFCFPerShare,
   };
 };

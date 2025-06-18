@@ -4,10 +4,8 @@
 .expanded-chart-modal-custom {
   --width: 90vw;
   --height: 85vh;
-  --max-width: 1200px; /* Oder ein anderer passender Wert für sehr große Bildschirme */
+  --max-width: 1200px;
   --border-radius: 10px;
-  /* Optional: Stärkerer Schatten für das Modal selbst, wenn gewünscht */
-  /* --box-shadow: 0 8px 24px rgba(0,0,0,0.2); */
 }
 
 /* Schatten/Border vom Header und Toolbar im Modal entfernen */
@@ -17,24 +15,38 @@
 }
 
 .expanded-chart-modal-custom ion-header::after {
-  display: none !important; /* Versteckt das ::after Pseudoelement, das oft Linien erzeugt */
+  display: none !important;
 }
 
 .expanded-chart-modal-custom ion-header ion-toolbar {
-  --background: var(--ion-toolbar-background, var(--ion-color-step-50, #f8f8f8)); /* Heller Hintergrund für Toolbar */
-  --color: var(--ion-toolbar-color, var(--ion-text-color, #000)); /* Textfarbe für den Titel */
+  --background: var(--ion-toolbar-background, var(--ion-color-step-50, #f8f8f8));
+  --color: var(--ion-toolbar-color, var(--ion-text-color, #000));
   --box-shadow: none !important;
   box-shadow: none !important;
   --border-width: 0px !important;
   border-bottom: none !important;
-  --min-height: auto; /* Erlaubt es, die Höhe der Toolbar ggf. zu reduzieren */
+  --min-height: auto;
 }
-/* Stile für den Container-Div, der den BarChart umschließt */
-.expanded-chart-modal-custom .chart-container-in-modal {
-  width: 100%;
-  height: 100%; /* Füllt den gepaddeten Bereich von ion-content */
+
+/* --- NEUE STILE FÜR DAS LAYOUT IM MODAL --- */
+.modal-content-wrapper {
   display: flex;
   flex-direction: column;
+  height: 100%;
+}
+
+.modal-switcher-container {
+  display: flex;
+  justify-content: center; /* Zentriert den Switcher horizontal */
+  flex-shrink: 0;          /* Verhindert, dass der Container schrumpft */
+  margin-bottom: 16px;     /* Abstand zum Chart */
+}
+
+/* Container-Div, der den BarChart umschließt */
+.expanded-chart-modal-custom .chart-container-in-modal {
+  flex-grow: 1; /* Lässt den Chart den restlichen Platz einnehmen */
+  width: 100%;
+  min-height: 200px; /* Stellt eine Mindesthöhe sicher */
 }
 
 /* Optional: Wenn der Fallback-Text im Modal speziell gestylt werden soll */

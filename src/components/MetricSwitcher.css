@@ -1,0 +1,48 @@
+/* src/components/MetricSwitcher.css */
+.metric-switcher-segment {
+  --background: transparent;
+  width: auto; /* Erlaubt dem Segment, sich an den Inhalt anzupassen */
+}
+
+.metric-switcher-segment ion-segment-button {
+  /* --- Größenreduzierung --- */
+  --padding-top: 2px;
+  --padding-bottom: 2px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  min-height: 22px; 
+  /* --- Ende Größenreduzierung --- */
+
+  height: auto;
+  --color: var(--text-color-muted);
+  --background: transparent;
+  --border-color: var(--border-color-ui);
+  --border-width: 1px;
+  --border-style: solid;
+  --border-radius: 5px;
+  --background-checked: var(--app-color-primary);
+  --color-checked: var(--text-color-on-primary);
+  --border-color-checked: var(--app-color-primary);
+  --indicator-color: transparent !important;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-left: 4px;
+  box-shadow: none;
+  max-width: none;
+}
+
+.metric-switcher-segment ion-segment-button:first-of-type {
+  margin-left: 0;
+}
+
+.metric-switcher-segment ion-segment-button:not(.segment-button-checked):hover {
+  --background: #f8f8f8;
+  --color: var(--text-color-default);
+}
+
+.metric-switcher-segment ion-segment-button ion-label {
+  /* --- Größenreduzierung --- */
+  font-size: 0.65rem;
+  font-weight: 500;
+  white-space: nowrap;
+}

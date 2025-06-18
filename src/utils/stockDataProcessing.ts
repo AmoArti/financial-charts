@@ -4,6 +4,7 @@ import {
   KeyMetrics,
   RawApiData,
   UseStockDataResult,
+  StockData,
 } from '../types/stockDataTypes';
 import { parseFloatOrZero } from '../utils/utils';
 import { processIncomeData } from './processing/incomeProcessing';
@@ -12,12 +13,38 @@ import { processCashflowData } from './processing/cashflowProcessing';
 import { processBalanceSheetData } from './processing/balanceSheetProcessing';
 import { processDividendHistory } from './processing/dividendProcessing';
 
+const divideStockDataPerShare = (numerator: StockData, denominator: StockData): StockData => {
+  if (!numerator || !denominator || numerator.labels.length === 0 || denominator.labels.length === 0) {
+    return { labels: [], values: [] };
+  }
+
+  const denominatorMap = new Map(denominator.labels.map((label, i) => [label, denominator.values[i]]));
+  const labels: (string | number)[] = [];
+  const values: number[] = [];
+
+  numerator.labels.forEach((label, i) => {
+    if (denominatorMap.has(label)) {
+      const denominatorValue = denominatorMap.get(label)!;
+      if (denominatorValue !== 0) {
+        const numeratorValue = numerator.values[i];
+        values.push((numeratorValue * 1000) / denominatorValue);
+        labels.push(label);
+      }
+    }
+  });
+
+  return { labels, values };
+};
+
+
 const formatMetric = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
     const stringValue = String(value);
     const num = parseFloat(stringValue);
     return isNaN(num) ? null : stringValue;
 };
+
+// ... (andere format-Funktionen bleiben unverändert) ...
 
 const formatPercentage = (value: string | number | null | undefined): string | null => {
     if (value === undefined || value === null || value === "None" || value === "-") return null;
@@ -41,6 +68,7 @@ const formatMarginForDisplay = (value: number | null): string | null => {
     if (value === null || isNaN(value) || !isFinite(value)) return null;
     return `${value.toFixed(2)}%`;
 };
+
 
 type ProcessedStockDataResult = Omit<UseStockDataResult, 'fetchData' | 'loading' | 'error' | 'progress'>;
 
@@ -87,6 +115,10 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   const rawChange = globalQuote?.['09. change'];
   const rawChangePercent = globalQuote?.['10. change percent'];
   const numChange = parseFloat(rawChange || '');
+  
+  const annualFCFPerShare = divideStockDataPerShare(cashflowProcessed.annualFCF, balanceSheetProcessed.annualSharesOutstanding);
+  const quarterlyFCFPerShare = divideStockDataPerShare(cashflowProcessed.quarterlyFCF, balanceSheetProcessed.quarterlySharesOutstanding);
+
   const keyMetrics: KeyMetrics = {
       peRatio: formatMetric(overview?.PERatio),
       psRatio: formatMetric(overview?.PriceToSalesRatioTTM),
@@ -128,5 +160,9 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
     quarterlyDebtToEquity: balanceSheetProcessed.quarterlyDebtToEquity,
     annualDPS: dividendProcessed.annualDPS,
     quarterlyDPS: dividendProcessed.quarterlyDPS,
+    annualFCF: cashflowProcessed.annualFCF,
+    quarterlyFCF: cashflowProcessed.quarterlyFCF,
+    annualFCFPerShare,
+    quarterlyFCFPerShare,
   };
 };

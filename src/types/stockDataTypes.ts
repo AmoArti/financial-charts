@@ -65,6 +65,14 @@ export interface UseStockDataResult {
   quarterlySharesOutstanding: StockData;
   annualDebtToEquity: StockData;
   quarterlyDebtToEquity: StockData;
+  
+  // --- FCF KENNZAHLEN (ohne SBC) ---
+  annualFCF: StockData;
+  quarterlyFCF: StockData;
+  annualFCFPerShare: StockData;
+  quarterlyFCFPerShare: StockData;
+  // --- ENDE FCF KENNZAHLEN ---
+
   balanceSheetMetrics: BalanceSheetMetrics | null;
   paysDividends: boolean;
   loading: boolean;
@@ -84,6 +92,7 @@ export interface RawReport {
   netIncome?: string;
   operatingCashflow?: string;
   capitalExpenditures?: string;
+  // stockBasedCompensation?: string; // ENTFERNT
   dividendPayoutCommonStock?: string;
   dividendPayout?: string;
   totalAssets?: string;
@@ -97,6 +106,7 @@ export interface RawReport {
   [key: string]: any;
 }
 
+// ... Rest der Datei bleibt unverändert
 export interface RawIncomeStatementData { symbol?: string; annualReports?: RawReport[]; quarterlyReports?: RawReport[]; }
 export interface RawEarningReport { fiscalDateEnding?: string; reportedDate?: string; reportedEPS?: string; estimatedEPS?: string; }
 export interface RawEarningsData { symbol?: string; annualEarnings?: RawEarningReport[]; quarterlyEarnings?: RawEarningReport[]; }

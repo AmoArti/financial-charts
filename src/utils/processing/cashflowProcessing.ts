@@ -7,6 +7,9 @@ export interface ProcessedCashflowData {
   quarterlyCashflowStatement: MultiDatasetStockData;
   annualTotalDividendsPaid: StockData;
   quarterlyTotalDividendsPaid: StockData;
+  annualFCF: StockData;
+  quarterlyFCF: StockData;
+  // annualSBC und quarterlySBC entfernt
 }
 
 export const processCashflowData = (cashFlowData: any): ProcessedCashflowData => {
@@ -15,6 +18,8 @@ export const processCashflowData = (cashFlowData: any): ProcessedCashflowData =>
     quarterlyCashflowStatement: { labels: [], datasets: [] },
     annualTotalDividendsPaid: { labels: [], values: [] },
     quarterlyTotalDividendsPaid: { labels: [], values: [] },
+    annualFCF: { labels: [], values: [] },
+    quarterlyFCF: { labels: [], values: [] },
   };
 
   if (!cashFlowData || (!cashFlowData.annualReports && !cashFlowData.quarterlyReports)) {
@@ -36,7 +41,9 @@ export const processCashflowData = (cashFlowData: any): ProcessedCashflowData =>
         labels: annualLabels,
         datasets: [ { label: 'Operating Cash Flow', values: annualOCF }, { label: 'Capital Expenditure', values: annualCapEx }, { label: 'Free Cash Flow', values: annualFCFValues } ]
       });
-
+      
+      result.annualFCF = trimData(annualLabels, annualFCFValues);
+      
       const annualDividendsValues = validAnnualReports.map((r: RawReport) => Math.abs(parseFloatOrZero(r?.dividendPayoutCommonStock ?? r?.dividendPayout)) / 1e9);
       result.annualTotalDividendsPaid = trimData(annualLabels, annualDividendsValues);
   }
@@ -56,6 +63,8 @@ export const processCashflowData = (cashFlowData: any): ProcessedCashflowData =>
         labels: quarterlyLabels,
         datasets: [ { label: 'Operating Cash Flow', values: quarterlyOCF }, { label: 'Capital Expenditure', values: quarterlyCapEx }, { label: 'Free Cash Flow', values: quarterlyFCFValues } ]
       });
+
+      result.quarterlyFCF = trimData(quarterlyLabels, quarterlyFCFValues);
 
       const quarterlyDividendsValues = validQuarterlyReports.map((r: RawReport) => Math.abs(parseFloatOrZero(r?.dividendPayoutCommonStock ?? r?.dividendPayout)) / 1e9);
       result.quarterlyTotalDividendsPaid = trimData(quarterlyLabels, quarterlyDividendsValues);
