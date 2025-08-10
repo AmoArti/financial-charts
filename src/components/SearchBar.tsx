@@ -28,21 +28,25 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         <IonInput
           value={query}
           onIonInput={(e) => setQuery(e.detail.value!)}
-          onKeyPress={(e) => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               handleSearch();
             }
           }}
           placeholder="Search for a company (e.g., AAPL)"
           className="search-input"
+          aria-label="Ticker suchen"
         />
         {query && (
-          <IonIcon
-            icon={closeOutline}
+          <IonButton
+            fill="clear"
             slot="end"
             className="clear-icon"
             onClick={clearSearch}
-          />
+            aria-label="Eingabe löschen"
+          >
+            <IonIcon icon={closeOutline} />
+          </IonButton>
         )}
         <IonButton
           fill="clear" // Entfernt den Button-Hintergrund für ein sauberes Design
