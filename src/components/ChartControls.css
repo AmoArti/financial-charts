@@ -1,0 +1,11 @@
+/* src/components/ChartControls.css */
+
+.chart-controls-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+

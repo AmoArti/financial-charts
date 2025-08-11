@@ -5,6 +5,7 @@ import {
   IonLabel,
 } from '@ionic/react';
 import { IonSegmentCustomEvent, SegmentChangeEventDetail } from '@ionic/core';
+import './ChartControls.css';
 
 interface YearOption {
   value: number;
@@ -28,15 +29,9 @@ const ChartControls: React.FC<ChartControlsProps> = ({
 }) => {
 
   return (
-    <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: '16px',
-        flexWrap: 'wrap',
-        width: '100%'
-        }}>
+    <div className="chart-controls-container">
         <IonSegment
+          aria-label="Anzeigeintervall"
           value={viewMode}
           onIonChange={(e: IonSegmentCustomEvent<SegmentChangeEventDetail>) => onViewModeChange(e.detail.value as 'annual' | 'quarterly' | undefined)}
         >
@@ -49,6 +44,7 @@ const ChartControls: React.FC<ChartControlsProps> = ({
         </IonSegment>
 
         <IonSegment
+          aria-label="Zeitraum"
           value={displayYears.toString()}
           onIonChange={(e: IonSegmentCustomEvent<SegmentChangeEventDetail>) => onYearsChange(e.detail.value?.toString())}
         >
