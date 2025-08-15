@@ -41,6 +41,8 @@ export interface KeyMetrics {
   isPositiveChange: boolean;
   grossMargin: string | null;
   operatingMargin: string | null;
+  returnOnEquity: string | null;
+  returnOnAssets: string | null;
   payoutRatio: string | null;
   payoutDate: string | null;
   freeCashFlowYield: string | null;
