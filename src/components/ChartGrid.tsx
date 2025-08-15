@@ -8,7 +8,6 @@ import {
 import { expandOutline } from 'ionicons/icons';
 import BarChart from './BarChart';
 import { MultiDatasetStockData } from '../types/stockDataTypes';
-import { FcfMetricType } from '../pages/Home';
 
 interface ModalChartConfig {
   title: string;
