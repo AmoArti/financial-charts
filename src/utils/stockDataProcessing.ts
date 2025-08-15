@@ -130,6 +130,8 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
       isPositiveChange: !isNaN(numChange) && numChange >= 0,
       grossMargin: formatMarginForDisplay(incomeProcessed.latestAnnualGrossMargin),
       operatingMargin: formatMarginForDisplay(incomeProcessed.latestAnnualOperatingMargin),
+      returnOnEquity: formatPercentage(overview?.ReturnOnEquityTTM),
+      returnOnAssets: formatPercentage(overview?.ReturnOnAssetsTTM),
       payoutRatio: formatPercentage(overview?.PayoutRatio),
       payoutDate: overview?.DividendDate || 'N/A',
       freeCashFlowYield: formatPercentage(fcfYield),
