@@ -18,7 +18,7 @@ interface MetricSwitcherProps {
 const MetricSwitcher: React.FC<MetricSwitcherProps> = ({ options, selectedValue, onSelectionChange }) => {
   const handleChange = (e: IonSegmentCustomEvent<SegmentChangeEventDetail>) => {
     if (e.detail.value) {
-      onSelectionChange(e.detail.value);
+      onSelectionChange(e.detail.value as string);
     }
   };
 
