@@ -67,6 +67,8 @@ const KeyStatsDashboard: React.FC<KeyStatsDashboardProps> = ({
             <h2 className="stats-title">Margins & Growth</h2>
             <IonItem lines="none"><IonLabel>Profit Margin</IonLabel><IonNote slot="end">{keyMetrics?.grossMargin ?? 'N/A'}</IonNote></IonItem>
             <IonItem lines="none"><IonLabel>Operating Margin</IonLabel><IonNote slot="end">{keyMetrics?.operatingMargin ?? 'N/A'}</IonNote></IonItem>
+            <IonItem lines="none"><IonLabel>Return on Equity</IonLabel><IonNote slot="end">{keyMetrics?.returnOnEquity ?? 'N/A'}</IonNote></IonItem>
+            <IonItem lines="none"><IonLabel>Return on Assets</IonLabel><IonNote slot="end">{keyMetrics?.returnOnAssets ?? 'N/A'}</IonNote></IonItem>
           </IonCol>
 
           <IonCol size="12" size-md="3" className="stats-col">
