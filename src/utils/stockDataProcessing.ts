@@ -119,6 +119,15 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
   const annualFCFPerShare = divideStockDataPerShare(cashflowProcessed.annualFCF, balanceSheetProcessed.annualSharesOutstanding);
   const quarterlyFCFPerShare = divideStockDataPerShare(cashflowProcessed.quarterlyFCF, balanceSheetProcessed.quarterlySharesOutstanding);
 
+  const calcPriceToFcf = (fcfData: StockData, mc: number): StockData => {
+    const labels = fcfData.labels;
+    const values = fcfData.values.map(v => (v !== 0 ? mc / (v * 1e9) : 0));
+    return { labels, values };
+  };
+
+  const annualPriceToFcf = calcPriceToFcf(cashflowProcessed.annualFCF, marketCap);
+  const quarterlyPriceToFcf = calcPriceToFcf(cashflowProcessed.quarterlyFCF, marketCap);
+
   const keyMetrics: KeyMetrics = {
       peRatio: formatMetric(overview?.PERatio),
       psRatio: formatMetric(overview?.PriceToSalesRatioTTM),
@@ -166,5 +175,7 @@ export const processStockData = (rawData: RawApiData, ticker: string): Processed
     quarterlyFCF: cashflowProcessed.quarterlyFCF,
     annualFCFPerShare,
     quarterlyFCFPerShare,
+    annualPriceToFcf,
+    quarterlyPriceToFcf,
   };
 };

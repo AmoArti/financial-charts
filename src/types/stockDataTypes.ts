@@ -73,6 +73,8 @@ export interface UseStockDataResult {
   quarterlyFCF: StockData;
   annualFCFPerShare: StockData;
   quarterlyFCFPerShare: StockData;
+  annualPriceToFcf: StockData;
+  quarterlyPriceToFcf: StockData;
   // --- ENDE FCF KENNZAHLEN ---
 
   balanceSheetMetrics: BalanceSheetMetrics | null;
