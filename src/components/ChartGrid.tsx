@@ -30,13 +30,15 @@ interface ChartGridProps {
   dpsData: MultiDatasetStockData;
   onExpandChart: (chartId: string, config: ModalChartConfig) => void;
   fcfAbsData: MultiDatasetStockData;
+  priceToFcfData: MultiDatasetStockData;
 }
 
 const ChartGrid: React.FC<ChartGridProps> = ({
   loading, viewMode, incomeData, cashflowData, marginsData, epsData,
   sharesData, debtToEquityData, paysDividends, totalDividendsData, dpsData,
   onExpandChart,
-  fcfAbsData
+  fcfAbsData,
+  priceToFcfData
 }) => {
   const chartViewModeLabel = viewMode === 'annual' ? 'Annual' : 'Quarterly';
 
@@ -50,6 +52,7 @@ const ChartGrid: React.FC<ChartGridProps> = ({
     totalDividends: { chartId: 'totalDividends', title: `Total Dividends Paid (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
     dps: { chartId: 'dps', title: `Dividend Per Share (${chartViewModeLabel})`, yAxisFormat: 'number', yAxisLabel: 'DPS ($)' } as ModalChartConfig,
     fcf: { chartId: 'fcf', title: `Free Cash Flow (${chartViewModeLabel})`, yAxisFormat: 'currency', yAxisLabel: 'Billions ($B)' } as ModalChartConfig,
+    pfcf: { chartId: 'pfcf', title: `Price/FCF (${chartViewModeLabel})`, yAxisFormat: 'ratio', yAxisLabel: 'P/FCF Ratio' } as ModalChartConfig,
   };
 
   const canShowTotalDividends = paysDividends && totalDividendsData?.labels?.length > 0 && totalDividendsData.datasets[0]?.values?.length > 0;
@@ -98,7 +101,24 @@ const ChartGrid: React.FC<ChartGridProps> = ({
           </IonCard>
         </IonCol>
       </IonRow>
-      
+
+      <IonRow>
+        <IonCol size="12">
+          <IonCard className="chart-grid-card">
+            <IonCardHeader>
+              {renderHeaderContent(chartConfigs.pfcf.title, () => onExpandChart('pfcf', chartConfigs.pfcf))}
+            </IonCardHeader>
+            <IonCardContent>
+              {priceToFcfData?.labels?.length > 0 && priceToFcfData.datasets[0]?.values?.length > 0 ? (
+                <div className="chart-wrapper-div">
+                  <BarChart data={priceToFcfData} title={chartConfigs.pfcf.title} yAxisFormat={chartConfigs.pfcf.yAxisFormat} yAxisLabel={chartConfigs.pfcf.yAxisLabel} />
+                </div>
+              ) : !loading && (<p>Keine P/FCF Daten verfügbar.</p>)}
+            </IonCardContent>
+          </IonCard>
+        </IonCol>
+      </IonRow>
+
       <IonRow>
         <IonCol size="12" size-lg="6">
            <IonCard className="chart-grid-card">

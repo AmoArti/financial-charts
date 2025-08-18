@@ -45,6 +45,7 @@ const Home: React.FC = () => {
     annualDPS, quarterlyDPS,
     annualFCF, quarterlyFCF,
     annualFCFPerShare, quarterlyFCFPerShare,
+    annualPriceToFcf, quarterlyPriceToFcf,
     paysDividends, balanceSheetMetrics,
     loading, error, progress, companyInfo, keyMetrics, fetchData
   } = useStockData();
@@ -76,6 +77,7 @@ const Home: React.FC = () => {
   const dpsData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualDPS : quarterlyDPS, 'DPS ($)'), pointsToKeep);
   const fcfAbsData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualFCF : quarterlyFCF, 'Free Cash Flow ($B)'), pointsToKeep);
   const fcfPerShareData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualFCFPerShare : quarterlyFCFPerShare, 'FCF per Share ($)'), pointsToKeep);
+  const priceToFcfData = sliceMultiDataToLastNPoints(toMulti(viewMode === 'annual' ? annualPriceToFcf : quarterlyPriceToFcf, 'P/FCF'), pointsToKeep);
 
   const handleSearch = (query: string) => { setCurrentTicker(query.toUpperCase()); };
   // ... (restliche Handler bleiben gleich)
@@ -201,6 +203,7 @@ const Home: React.FC = () => {
                        totalDividendsData={totalDividendsData}
                        dpsData={dpsData}
                        fcfAbsData={fcfAbsData}
+                       priceToFcfData={priceToFcfData}
                        onExpandChart={openChartModal}
                     />
                  </>
@@ -225,6 +228,7 @@ const Home: React.FC = () => {
             dps: dpsData,
             fcf: fcfAbsData,
             fcfPerShare: fcfPerShareData,
+            pfcf: priceToFcfData,
           }}
         />
       </IonContent>

@@ -44,6 +44,8 @@ export const useStockData = (): UseStockDataResult => {
   const [quarterlyFCF, setQuarterlyFCF] = useState<StockData>(initialStockData);
   const [annualFCFPerShare, setAnnualFCFPerShare] = useState<StockData>(initialStockData);
   const [quarterlyFCFPerShare, setQuarterlyFCFPerShare] = useState<StockData>(initialStockData);
+  const [annualPriceToFcf, setAnnualPriceToFcf] = useState<StockData>(initialStockData);
+  const [quarterlyPriceToFcf, setQuarterlyPriceToFcf] = useState<StockData>(initialStockData);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,8 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyFCF(cached.quarterlyFCF);
       setAnnualFCFPerShare(cached.annualFCFPerShare);
       setQuarterlyFCFPerShare(cached.quarterlyFCFPerShare);
+      setAnnualPriceToFcf(cached.annualPriceToFcf);
+      setQuarterlyPriceToFcf(cached.quarterlyPriceToFcf);
       return;
     }
 
@@ -118,6 +122,8 @@ export const useStockData = (): UseStockDataResult => {
     setQuarterlyFCF(initialStockData);
     setAnnualFCFPerShare(initialStockData);
     setQuarterlyFCFPerShare(initialStockData);
+    setAnnualPriceToFcf(initialStockData);
+    setQuarterlyPriceToFcf(initialStockData);
 
     try {
       setProgress(10);
@@ -153,6 +159,8 @@ export const useStockData = (): UseStockDataResult => {
       setQuarterlyFCF(processedData.quarterlyFCF);
       setAnnualFCFPerShare(processedData.annualFCFPerShare);
       setQuarterlyFCFPerShare(processedData.quarterlyFCFPerShare);
+      setAnnualPriceToFcf(processedData.annualPriceToFcf);
+      setQuarterlyPriceToFcf(processedData.quarterlyPriceToFcf);
       
       setCachedData(prevCache => ({ ...prevCache, [ticker]: processedData }));
       
@@ -179,5 +187,7 @@ export const useStockData = (): UseStockDataResult => {
     quarterlyFCF,
     annualFCFPerShare,
     quarterlyFCFPerShare,
+    annualPriceToFcf,
+    quarterlyPriceToFcf,
   };
 };
